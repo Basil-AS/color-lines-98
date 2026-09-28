@@ -20,6 +20,17 @@ export interface MoveResult {
   reason?: string;
 }
 
+export type Rng = () => number;
+
+/** Serializable game state. The undo history is intentionally not persisted. */
+export interface GameState {
+  size: number;
+  board: (BallColor | null)[][];
+  score: number;
+  nextColors: BallColor[];
+  isGameOver: boolean;
+}
+
 interface GameSnapshot {
   board: Board;
   score: number;
@@ -40,13 +51,16 @@ export class GameEngine {
   nextColors: BallColor[] = [];
 
   private undoStack: GameSnapshot[] = [];
+  private readonly rng: Rng;
 
   constructor(
     size = 9,
     ballsPerSpawn = 3,
     minLineLength = 5,
-    scoringSystem: ScoringSystem = 'gamos'
+    scoringSystem: ScoringSystem = 'gamos',
+    rng: Rng = Math.random
   ) {
+    this.rng = rng;
     this.size = size;
     this.ballsPerSpawn = ballsPerSpawn;
     this.minLineLength = minLineLength;
@@ -76,7 +90,7 @@ export class GameEngine {
   }
 
   private randomColor(): BallColor {
-    return ALL_COLORS[Math.floor(Math.random() * ALL_COLORS.length)];
+    return ALL_COLORS[Math.floor(this.rng() * ALL_COLORS.length)];
   }
 
   private generateNextColors(): void {
@@ -86,10 +100,56 @@ export class GameEngine {
   private shuffle<T>(array: T[]): T[] {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
+      const j = Math.floor(this.rng() * (i + 1));
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+
+  getState(): GameState {
+    const board: (BallColor | null)[][] = [];
+    for (let y = 0; y < this.size; y++) {
+      const row: (BallColor | null)[] = [];
+      for (let x = 0; x < this.size; x++) {
+        row.push(this.board.get(x, y));
+      }
+      board.push(row);
+    }
+    return {
+      size: this.size,
+      board,
+      score: this.score,
+      nextColors: [...this.nextColors],
+      isGameOver: this.isGameOver
+    };
+  }
+
+  /** Rebuilds an engine from untrusted data; returns null when it is not a valid state. */
+  static fromState(data: unknown, rng: Rng = Math.random): GameEngine | null {
+    if (typeof data !== 'object' || data === null) return null;
+    const s = data as Partial<GameState>;
+    const isColor = (v: unknown): v is BallColor =>
+      typeof v === 'string' && (ALL_COLORS as string[]).includes(v);
+
+    if (s.size !== 9 || !Array.isArray(s.board) || s.board.length !== s.size) return null;
+    for (const row of s.board) {
+      if (!Array.isArray(row) || row.length !== s.size) return null;
+      if (!row.every((c) => c === null || isColor(c))) return null;
+    }
+    if (typeof s.score !== 'number' || !Number.isInteger(s.score) || s.score < 0) return null;
+    if (typeof s.isGameOver !== 'boolean') return null;
+
+    const engine = new GameEngine(s.size, 3, 5, 'gamos', rng);
+    if (!Array.isArray(s.nextColors) || s.nextColors.length !== engine.ballsPerSpawn) return null;
+    if (!s.nextColors.every(isColor)) return null;
+
+    engine.board.clear();
+    s.board.forEach((row, y) => row.forEach((c, x) => engine.board.set(x, y, c)));
+    engine.score = s.score;
+    engine.nextColors = [...s.nextColors];
+    engine.isGameOver = s.isGameOver;
+    engine.undoStack = [];
+    return engine;
   }
 
   selectCell(point: Point): boolean {
@@ -111,6 +171,12 @@ export class GameEngine {
     }
 
     return false;
+  }
+
+  select(point: Point): void {
+    if (this.board.get(point.x, point.y)) {
+      this.selectedPoint = point;
+    }
   }
 
   unselect(): void {
