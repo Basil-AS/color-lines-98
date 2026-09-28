@@ -58,21 +58,19 @@ object LineDetector {
 
         // We check lines along the 4 primary axes
         for (axis in AXES) {
-            val visitedInDirection = Array(size) { BooleanArray(size) }
-
             for (y in 0 until size) {
                 for (x in 0 until size) {
-                    if (visitedInDirection[y][x]) continue
-
                     val startColor = board[x, y] ?: continue
-                    val currentLine = mutableListOf<Point>()
 
+                    // Only begin a run at its first cell, otherwise a long line would be
+                    // reported once per suffix and scored several times.
+                    if (board[x - axis.x, y - axis.y] == startColor) continue
+
+                    val currentLine = mutableListOf<Point>()
                     var cx = x
                     var cy = y
-
-                    while (board.isInside(cx, cy) && board[cx, cy] == startColor) {
+                    while (board[cx, cy] == startColor) {
                         currentLine.add(Point(cx, cy))
-                        visitedInDirection[cy][cx] = true
                         cx += axis.x
                         cy += axis.y
                     }
