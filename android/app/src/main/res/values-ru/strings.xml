@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Basil Lines</string>
+
+    <string name="hud_score">Счёт</string>
+    <string name="hud_best">Рекорд</string>
+    <string name="hud_next">Далее</string>
+
+    <string name="btn_undo">Отменить ход</string>
+    <string name="btn_new_game">Новая игра</string>
+    <string name="btn_stats">Статистика</string>
+    <string name="btn_help">Правила</string>
+    <string name="btn_sound_off">Выключить звук</string>
+    <string name="btn_sound_on">Включить звук</string>
+    <string name="btn_close">Закрыть</string>
+
+    <string name="theme_modern">Модерн</string>
+    <string name="theme_classic98">Classic 98</string>
+
+    <string name="board_label">Игровое поле</string>
+    <string name="cell_description">Ряд %1$d, столбец %2$d, %3$s%4$s</string>
+    <string name="cell_ball">%1$s шар</string>
+    <string name="cell_empty">пусто</string>
+    <string name="cell_selected">, выбран</string>
+    <string name="cell_reachable">, можно дойти</string>
+    <string name="next_label">Следующие шары: %1$s</string>
+
+    <string name="color_red">красный</string>
+    <string name="color_green">зелёный</string>
+    <string name="color_blue">синий</string>
+    <string name="color_cyan">голубой</string>
+    <string name="color_magenta">пурпурный</string>
+    <string name="color_yellow">жёлтый</string>
+    <string name="color_brown">коричневый</string>
+
+    <string name="gameover_title">Игра окончена</string>
+    <string name="gameover_final">Итоговый счёт</string>
+    <string name="gameover_best">Рекорд</string>
+    <string name="gameover_new_record">Новый рекорд!</string>
+    <string name="gameover_play_again">Играть снова</string>
+
+    <string name="stats_title">Статистика</string>
+    <string name="stats_games_played">Сыграно партий</string>
+    <string name="stats_best">Лучший счёт</string>
+    <string name="stats_average">Средний счёт</string>
+    <string name="stats_lines">Собрано линий</string>
+    <string name="stats_recent">Последние партии</string>
+    <string name="stats_empty">Пока нет партий. Закончите партию, и она появится здесь.</string>
+    <string name="stats_unfinished">не закончена</string>
+    <string name="stats_best_mark">рекорд</string>
+    <string name="stats_clear">Очистить историю</string>
+    <string name="stats_confirm_clear">Удалить все сохранённые партии?</string>
+    <string name="stats_confirm_yes">Удалить</string>
+    <string name="stats_confirm_no">Отмена</string>
+
+    <string name="help_title">Правила и очки</string>
+    <string name="help_objective">Выстройте 5 и более шаров одного цвета по горизонтали, вертикали или диагонали, чтобы убрать их.</string>
+    <string name="help_scoring">Очки за линию:</string>
+    <string name="help_scoring_line">%1$s: %2$d</string>
+    <string name="help_movement">Шар можно переместить, только если до нужной клетки есть свободный путь из пустых клеток.</string>
+    <string name="help_free_turn">Собранная линия даёт дополнительный ход: новые шары не появляются.</string>
+
+    <plurals name="moves">
+        <item quantity="one">%d ход</item>
+        <item quantity="few">%d хода</item>
+        <item quantity="many">%d ходов</item>
+        <item quantity="other">%d хода</item>
+    </plurals>
+    <plurals name="balls">
+        <item quantity="one">%d шар</item>
+        <item quantity="few">%d шара</item>
+        <item quantity="many">%d шаров</item>
+        <item quantity="other">%d шара</item>
+    </plurals>
+</resources>

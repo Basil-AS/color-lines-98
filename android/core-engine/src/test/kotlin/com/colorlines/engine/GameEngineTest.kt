@@ -222,4 +222,91 @@ class GameEngineTest {
             assertEquals(42, result.score)
         }
     }
+
+    @Test
+    fun testCountersTrackMovesLinesAndBalls() {
+        val engine = GameEngine(random = kotlin.random.Random(11))
+        engine.board.clear()
+        for (x in 0..3) engine.board[x, 0] = BallColor.RED
+        engine.board[5, 5] = BallColor.RED
+        assertEquals(0, engine.moves)
+
+        engine.moveBall(Point(5, 5), Point(4, 0))
+        assertEquals(1, engine.moves)
+        assertEquals(1, engine.linesCleared)
+        assertEquals(5, engine.ballsCleared)
+    }
+
+    @Test
+    fun testUndoAndNewGameResetCounters() {
+        val engine = GameEngine(random = kotlin.random.Random(12))
+        engine.board.clear()
+        engine.board[0, 0] = BallColor.RED
+        engine.moveBall(Point(0, 0), Point(1, 0))
+        assertEquals(1, engine.moves)
+        engine.undo()
+        assertEquals(0, engine.moves)
+
+        engine.moveBall(Point(0, 0), Point(1, 0))
+        engine.startNewGame()
+        assertEquals(listOf(0, 0, 0), listOf(engine.moves, engine.linesCleared, engine.ballsCleared))
+    }
+
+    @Test
+    fun testFullBoardEndsTheGame() {
+        val engine = GameEngine(random = kotlin.random.Random(5))
+        engine.board.clear()
+        val palette = BallColor.entries
+        for (y in 0 until 9) for (x in 0 until 9) engine.board[x, y] = palette[(x + 2 * y) % 7]
+        assertFalse(LineDetector.findLines(engine.board).hasMatches)
+        engine.board[0, 0] = null
+        engine.board[1, 0] = null
+        engine.board[8, 8] = null
+
+        val res = engine.moveBall(Point(2, 0), Point(1, 0))
+        assertTrue(res.success)
+        assertEquals(3, res.spawnedBalls.size)
+        assertTrue(res.isGameOver)
+        assertTrue(engine.isGameOver)
+        assertFalse(engine.canUndo)
+        assertFalse(engine.moveBall(Point(3, 0), Point(2, 0)).success)
+    }
+
+    @Test
+    fun testInvariantsHoldOverRandomGames() {
+        for (seed in 1..8) {
+            val rnd = kotlin.random.Random(seed)
+            val engine = GameEngine(random = kotlin.random.Random(seed))
+            var moves = 0
+            while (!engine.isGameOver && moves < 400) {
+                val movable = mutableListOf<Pair<Point, List<Point>>>()
+                for (y in 0 until 9) for (x in 0 until 9) {
+                    val p = Point(x, y)
+                    if (engine.board[p] == null) continue
+                    engine.selectCell(p)
+                    val targets = engine.getReachableCellsForSelected().toList()
+                    if (targets.isNotEmpty()) movable.add(p to targets)
+                }
+                engine.unselect()
+                if (movable.isEmpty()) break
+                val (from, targets) = movable[rnd.nextInt(movable.size)]
+                val to = targets[rnd.nextInt(targets.size)]
+
+                val ballsBefore = 81 - engine.board.getEmptyCells().size
+                val scoreBefore = engine.score
+                val movesBefore = engine.moves
+                val res = engine.moveBall(from, to)
+                assertTrue(res.success)
+                moves++
+
+                val ballsAfter = 81 - engine.board.getEmptyCells().size
+                assertEquals(ballsBefore + res.spawnedBalls.size - res.clearedPoints.size, ballsAfter)
+                assertEquals(res.pointsEarned, engine.score - scoreBefore)
+                assertEquals(movesBefore + 1, engine.moves)
+                assertFalse("no clearable line may remain", LineDetector.findLines(engine.board).hasMatches)
+                assertEquals(ballsAfter == 81, engine.isGameOver)
+            }
+            assertTrue("seed $seed should play several moves", moves > 5)
+        }
+    }
 }
