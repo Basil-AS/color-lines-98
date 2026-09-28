@@ -128,3 +128,37 @@ describe('TypeScript Game Engine', () => {
     expect(engine.board.getEmptyCells().length).toBe(initialEmpty);
   });
 });
+
+describe('LineDetector regressions', () => {
+  it('scores an anti-diagonal (/) line of 7 as a single line', () => {
+    const board = new Board(9);
+    for (let i = 0; i < 7; i++) {
+      board.set(i, 8 - i, 'magenta');
+    }
+
+    const match = LineDetector.findLines(board, 5, 'gamos');
+    expect(match.lines.length).toBe(1);
+    expect(match.lines[0].length).toBe(7);
+    expect(match.matchedPoints.length).toBe(7);
+    expect(match.score).toBe(18);
+  });
+
+  it('scores every axis of a long line identically', () => {
+    const shapes: Array<(i: number) => [number, number]> = [
+      (i) => [i, 0],
+      (i) => [0, i],
+      (i) => [i, i],
+      (i) => [i, 8 - i],
+    ];
+    for (const at of shapes) {
+      const board = new Board(9);
+      for (let i = 0; i < 9; i++) {
+        const [x, y] = at(i);
+        board.set(x, y, 'cyan');
+      }
+      const match = LineDetector.findLines(board, 5, 'gamos');
+      expect(match.lines.length).toBe(1);
+      expect(match.score).toBe(42);
+    }
+  });
+});
