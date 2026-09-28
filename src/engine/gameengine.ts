@@ -1,6 +1,8 @@
 import { Board } from './board';
-import { LineDetector, ScoringSystem } from './linedetector';
-import { ALL_COLORS, BallColor, Point, pointKey } from './models';
+import { LineDetector } from './linedetector';
+import type { ScoringSystem } from './linedetector';
+import { ALL_COLORS } from './models';
+import type { BallColor, Point } from './models';
 import { PathFinder } from './pathfinder';
 
 export interface SpawnedBall {
