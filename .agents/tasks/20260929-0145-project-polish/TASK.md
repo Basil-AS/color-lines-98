@@ -1,7 +1,7 @@
 # Task
 
 TASK_ID: 20260929-0145-project-polish
-STATUS: wip
+STATUS: done
 AGENT: Claude Code
 BRANCH: agent/feat-project-polish
 BASE_REF: refs/remotes/origin/main
@@ -31,7 +31,7 @@ project-polish
 - [x] README and specs match the real feature set and scoring table.
 - [x] Lint (0 warnings), typecheck, 33 Vitest tests, web build, Kotlin engine + app unit tests, debug and release APK builds all green.
 - [x] `JOURNAL.md` and `HANDOFF.md` are current.
-- [ ] PR opened (waiting for user approval to push).
+- [x] PR #1 and #2 merged, release v1.0.0 published, GitHub Pages live.
 
 ## Non-goals
 
@@ -76,10 +76,10 @@ DONE:
 - Engine fix, persistence, a11y, CI and docs; all verification green.
 
 CURRENT:
-- Awaiting user approval to push and open the PR.
+- Nothing pending.
 
 NEXT:
-- `git push -u origin agent/feat-project-polish`, then `gh pr create`.
+- Optional: move-animation, DataStore cleanup, web UI tests (needs new dev dependencies, approval).
 
 ## Verification
 
@@ -95,5 +95,5 @@ NEXT:
 
 ## Delivery
 
-PR: -
-MERGE_STATUS: not_started
+PR: https://github.com/Basil-AS/color-lines-98/pull/1 (+ #2 version bump)
+MERGE_STATUS: merged (rebase)
