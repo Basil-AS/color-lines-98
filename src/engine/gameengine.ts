@@ -29,12 +29,19 @@ export interface GameState {
   score: number;
   nextColors: BallColor[];
   isGameOver: boolean;
+  /** Optional so saves written before these counters existed still load. */
+  moves?: number;
+  linesCleared?: number;
+  ballsCleared?: number;
 }
 
 interface GameSnapshot {
   board: Board;
   score: number;
   nextColors: BallColor[];
+  moves: number;
+  linesCleared: number;
+  ballsCleared: number;
 }
 
 export class GameEngine {
@@ -46,6 +53,9 @@ export class GameEngine {
   board: Board;
   score: number = 0;
   bestScore: number = 0;
+  moves: number = 0;
+  linesCleared: number = 0;
+  ballsCleared: number = 0;
   isGameOver: boolean = false;
   selectedPoint: Point | null = null;
   nextColors: BallColor[] = [];
@@ -72,6 +82,9 @@ export class GameEngine {
   startNewGame(): void {
     this.board.clear();
     this.score = 0;
+    this.moves = 0;
+    this.linesCleared = 0;
+    this.ballsCleared = 0;
     this.isGameOver = false;
     this.selectedPoint = null;
     this.undoStack = [];
@@ -120,7 +133,10 @@ export class GameEngine {
       board,
       score: this.score,
       nextColors: [...this.nextColors],
-      isGameOver: this.isGameOver
+      isGameOver: this.isGameOver,
+      moves: this.moves,
+      linesCleared: this.linesCleared,
+      ballsCleared: this.ballsCleared
     };
   }
 
@@ -138,6 +154,12 @@ export class GameEngine {
     }
     if (typeof s.score !== 'number' || !Number.isInteger(s.score) || s.score < 0) return null;
     if (typeof s.isGameOver !== 'boolean') return null;
+    const counter = (v: unknown): number | null =>
+      v === undefined ? 0 : typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : null;
+    const moves = counter(s.moves);
+    const linesCleared = counter(s.linesCleared);
+    const ballsCleared = counter(s.ballsCleared);
+    if (moves === null || linesCleared === null || ballsCleared === null) return null;
 
     const engine = new GameEngine(s.size, 3, 5, 'gamos', rng);
     if (!Array.isArray(s.nextColors) || s.nextColors.length !== engine.ballsPerSpawn) return null;
@@ -148,6 +170,9 @@ export class GameEngine {
     engine.score = s.score;
     engine.nextColors = [...s.nextColors];
     engine.isGameOver = s.isGameOver;
+    engine.moves = moves;
+    engine.linesCleared = linesCleared;
+    engine.ballsCleared = ballsCleared;
     engine.undoStack = [];
     return engine;
   }
@@ -211,6 +236,7 @@ export class GameEngine {
     this.saveUndoSnapshot();
 
     // Execute move
+    this.moves++;
     this.board.set(from.x, from.y, null);
     this.board.set(to.x, to.y, movingColor);
 
@@ -222,6 +248,8 @@ export class GameEngine {
         this.board.set(p.x, p.y, null);
       }
       this.score += match.score;
+      this.linesCleared += match.lines.length;
+      this.ballsCleared += match.matchedPoints.length;
       if (this.score > this.bestScore) {
         this.bestScore = this.score;
       }
@@ -257,6 +285,8 @@ export class GameEngine {
       }
       postScore = postMatch.score;
       this.score += postScore;
+      this.linesCleared += postMatch.lines.length;
+      this.ballsCleared += postMatch.matchedPoints.length;
       if (this.score > this.bestScore) {
         this.bestScore = this.score;
       }
@@ -286,7 +316,10 @@ export class GameEngine {
     this.undoStack.push({
       board: this.board.copy(),
       score: this.score,
-      nextColors: [...this.nextColors]
+      nextColors: [...this.nextColors],
+      moves: this.moves,
+      linesCleared: this.linesCleared,
+      ballsCleared: this.ballsCleared
     });
   }
 
@@ -299,6 +332,9 @@ export class GameEngine {
     const snap = this.undoStack.pop()!;
     this.board = snap.board.copy();
     this.score = snap.score;
+    this.moves = snap.moves;
+    this.linesCleared = snap.linesCleared;
+    this.ballsCleared = snap.ballsCleared;
     this.nextColors = [...snap.nextColors];
     this.selectedPoint = null;
     this.isGameOver = false;
