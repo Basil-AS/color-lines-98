@@ -1,5 +1,6 @@
 import { Board } from './board';
-import { Point, pointKey, pointsEqual } from './models';
+import type { Point } from './models';
+import { pointKey, pointsEqual } from './models';
 
 const DIRECTIONS: Point[] = [
   { x: 1, y: 0 },

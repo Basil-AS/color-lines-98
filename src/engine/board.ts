@@ -1,4 +1,4 @@
-import { BallColor, Point } from './models';
+import type { BallColor, Point } from './models';
 
 export class Board {
   readonly size: number;

@@ -1,5 +1,6 @@
 import { Board } from './board';
-import { Point, pointKey } from './models';
+import type { Point } from './models';
+import { pointKey } from './models';
 
 export interface LineMatchResult {
   lines: Point[][];
@@ -68,7 +69,7 @@ export class LineDetector {
             cy += axis.y;
           }
 
-          if (currentLine.size ? currentLine.length >= minLength : currentLine.length >= minLength) {
+          if (currentLine.length >= minLength) {
             foundLines.push(currentLine);
             for (const pt of currentLine) {
               const k = pointKey(pt);
