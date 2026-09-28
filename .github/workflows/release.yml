@@ -1,0 +1,49 @@
+name: Release Pipeline
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build Web Standalone Distribution
+        run: |
+          npm ci
+          npm run build
+          cd dist && zip -r ../color-lines-web-standalone.zip . && cd ..
+
+      - name: Build Android Release APK
+        run: |
+          if [ -d "android" ] && [ -f "android/gradlew" ]; then
+            cd android && ./gradlew assembleRelease
+          else
+            echo "Android release build step ready for gradle project"
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            color-lines-web-standalone.zip
+            android/app/build/outputs/apk/release/*.apk
+          generate_release_notes: true
