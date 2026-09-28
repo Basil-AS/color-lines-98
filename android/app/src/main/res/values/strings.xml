@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Basil Lines</string>
+
+    <string name="hud_score">Score</string>
+    <string name="hud_best">Best</string>
+    <string name="hud_next">Next</string>
+
+    <string name="btn_undo">Undo move</string>
+    <string name="btn_new_game">New game</string>
+    <string name="btn_stats">Statistics</string>
+    <string name="btn_help">Rules and info</string>
+    <string name="btn_sound_off">Mute sound</string>
+    <string name="btn_sound_on">Unmute sound</string>
+    <string name="btn_close">Close</string>
+
+    <string name="theme_modern">Modern</string>
+    <string name="theme_classic98">Classic 98</string>
+
+    <string name="board_label">Game board</string>
+    <string name="cell_description">Row %1$d, column %2$d, %3$s%4$s</string>
+    <string name="cell_ball">%1$s ball</string>
+    <string name="cell_empty">empty</string>
+    <string name="cell_selected">, selected</string>
+    <string name="cell_reachable">, reachable</string>
+    <string name="next_label">Next balls: %1$s</string>
+
+    <string name="color_red">red</string>
+    <string name="color_green">green</string>
+    <string name="color_blue">blue</string>
+    <string name="color_cyan">cyan</string>
+    <string name="color_magenta">magenta</string>
+    <string name="color_yellow">yellow</string>
+    <string name="color_brown">brown</string>
+
+    <string name="gameover_title">Game over</string>
+    <string name="gameover_final">Final score</string>
+    <string name="gameover_best">Best score</string>
+    <string name="gameover_new_record">New record!</string>
+    <string name="gameover_play_again">Play again</string>
+
+    <string name="stats_title">Statistics</string>
+    <string name="stats_games_played">Games played</string>
+    <string name="stats_best">Best score</string>
+    <string name="stats_average">Average score</string>
+    <string name="stats_lines">Lines cleared</string>
+    <string name="stats_recent">Recent games</string>
+    <string name="stats_empty">No games yet. Finish a game and it will show up here.</string>
+    <string name="stats_unfinished">unfinished</string>
+    <string name="stats_best_mark">best</string>
+    <string name="stats_clear">Clear history</string>
+    <string name="stats_confirm_clear">Delete all saved games?</string>
+    <string name="stats_confirm_yes">Delete</string>
+    <string name="stats_confirm_no">Cancel</string>
+
+    <string name="help_title">Rules &amp; scoring</string>
+    <string name="help_objective">Line up 5 or more balls of the same colour horizontally, vertically or diagonally to clear them.</string>
+    <string name="help_scoring">Score for a line:</string>
+    <string name="help_scoring_line">%1$s: %2$d</string>
+    <string name="help_movement">A ball can move only if there is a clear path of empty cells to the destination.</string>
+    <string name="help_free_turn">Clearing a line is a free turn: no new balls appear.</string>
+
+    <plurals name="moves">
+        <item quantity="one">%d move</item>
+        <item quantity="other">%d moves</item>
+    </plurals>
+    <plurals name="balls">
+        <item quantity="one">%d ball</item>
+        <item quantity="other">%d balls</item>
+    </plurals>
+</resources>

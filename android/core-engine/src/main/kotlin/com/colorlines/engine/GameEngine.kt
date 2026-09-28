@@ -17,7 +17,10 @@ data class MoveResult(
 data class GameSnapshot(
     val board: Board,
     val score: Int,
-    val nextColors: List<BallColor>
+    val nextColors: List<BallColor>,
+    val moves: Int,
+    val linesCleared: Int,
+    val ballsCleared: Int
 )
 
 class GameEngine(
@@ -35,6 +38,13 @@ class GameEngine(
     var isGameOver: Boolean = false
         private set
 
+    var moves: Int = 0
+        private set
+    var linesCleared: Int = 0
+        private set
+    var ballsCleared: Int = 0
+        private set
+
     var selectedPoint: Point? = null
         private set
 
@@ -50,6 +60,9 @@ class GameEngine(
     fun startNewGame() {
         board.clear()
         score = 0
+        moves = 0
+        linesCleared = 0
+        ballsCleared = 0
         isGameOver = false
         selectedPoint = null
         undoStack.clear()
@@ -120,6 +133,7 @@ class GameEngine(
         saveUndoSnapshot()
 
         // Execute move
+        moves++
         board[from] = null
         board[to] = movingColor
 
@@ -132,6 +146,8 @@ class GameEngine(
                 board[p] = null
             }
             score += lineMatch.score
+            linesCleared += lineMatch.lines.size
+            ballsCleared += lineMatch.matchedPoints.size
             if (score > bestScore) {
                 bestScore = score
             }
@@ -171,6 +187,8 @@ class GameEngine(
             }
             postSpawnScore = afterSpawnMatch.score
             score += postSpawnScore
+            linesCleared += afterSpawnMatch.lines.size
+            ballsCleared += afterSpawnMatch.matchedPoints.size
             if (score > bestScore) {
                 bestScore = score
             }
@@ -202,7 +220,10 @@ class GameEngine(
             GameSnapshot(
                 board = board.copy(),
                 score = score,
-                nextColors = nextColors.toList()
+                nextColors = nextColors.toList(),
+                moves = moves,
+                linesCleared = linesCleared,
+                ballsCleared = ballsCleared
             )
         )
     }
@@ -219,9 +240,34 @@ class GameEngine(
             }
         }
         score = snapshot.score
+        moves = snapshot.moves
+        linesCleared = snapshot.linesCleared
+        ballsCleared = snapshot.ballsCleared
         nextColors = snapshot.nextColors
         selectedPoint = null
         isGameOver = false
         return true
+    }
+
+    /** Replaces the whole game with a previously saved one. The undo history is dropped. */
+    internal fun restoreState(
+        cells: List<BallColor?>,
+        score: Int,
+        moves: Int,
+        linesCleared: Int,
+        ballsCleared: Int,
+        nextColors: List<BallColor>,
+        isGameOver: Boolean
+    ) {
+        require(cells.size == size * size) { "Expected ${size * size} cells" }
+        for (y in 0 until size) for (x in 0 until size) board[x, y] = cells[y * size + x]
+        this.score = score
+        this.moves = moves
+        this.linesCleared = linesCleared
+        this.ballsCleared = ballsCleared
+        this.nextColors = nextColors
+        this.isGameOver = isGameOver
+        selectedPoint = null
+        undoStack.clear()
     }
 }
