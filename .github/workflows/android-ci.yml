@@ -13,6 +13,9 @@ on:
       - '.github/workflows/android-ci.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   check-and-build:
     runs-on: ubuntu-latest
@@ -30,17 +33,15 @@ jobs:
         uses: gradle/actions/setup-gradle@v3
 
       - name: Run Android Unit Tests
-        run: |
-          if [ -d "android" ] && [ -f "android/gradlew" ]; then
-            cd android && ./gradlew testDebugUnitTest
-          else
-            echo "Android project not initialized yet, skipping..."
-          fi
+        working-directory: android
+        run: ./gradlew testDebugUnitTest
 
       - name: Build Android Debug APK
-        run: |
-          if [ -d "android" ] && [ -f "android/gradlew" ]; then
-            cd android && ./gradlew assembleDebug
-          else
-            echo "Android project not initialized yet, skipping..."
-          fi
+        working-directory: android
+        run: ./gradlew assembleDebug
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: color-lines-debug-apk
+          path: android/app/build/outputs/apk/debug/*.apk

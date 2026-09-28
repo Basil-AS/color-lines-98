@@ -33,12 +33,8 @@ jobs:
           cd dist && zip -r ../color-lines-web-standalone.zip . && cd ..
 
       - name: Build Android Release APK
-        run: |
-          if [ -d "android" ] && [ -f "android/gradlew" ]; then
-            cd android && ./gradlew assembleRelease
-          else
-            echo "Android release build step ready for gradle project"
-          fi
+        working-directory: android
+        run: ./gradlew assembleRelease
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
