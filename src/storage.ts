@@ -1,4 +1,6 @@
 import { GameEngine } from './engine/gameengine';
+import { sanitizeHistory } from './stats';
+import type { GameRecord } from './stats';
 
 export const THEMES = ['modern', 'classic98', 'retro92'] as const;
 export type Theme = (typeof THEMES)[number];
@@ -6,6 +8,11 @@ export type Theme = (typeof THEMES)[number];
 const THEME_KEY = 'colorlines_theme';
 const BEST_KEY = 'colorlines_best_score';
 const GAME_KEY = 'colorlines_game';
+const HISTORY_KEY = 'colorlines_history';
+const LANG_KEY = 'colorlines_lang';
+
+export const LANGUAGE_PREFS = ['auto', 'en', 'ru'] as const;
+export type LanguagePref = (typeof LANGUAGE_PREFS)[number];
 
 // Storage can be missing or throw (private mode, blocked site data); the game
 // must still work, so reads fall back to defaults and writes are best-effort.
@@ -64,4 +71,35 @@ export function clearGame(): void {
   } catch {
     // See note above.
   }
+}
+
+export function loadHistory(): GameRecord[] {
+  const raw = read(HISTORY_KEY);
+  if (raw === null) return [];
+  try {
+    return sanitizeHistory(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+export function saveHistory(history: readonly GameRecord[]): void {
+  write(HISTORY_KEY, JSON.stringify(history));
+}
+
+export function clearHistory(): void {
+  try {
+    localStorage.removeItem(HISTORY_KEY);
+  } catch {
+    // See note above.
+  }
+}
+
+export function loadLanguagePref(): LanguagePref {
+  const raw = read(LANG_KEY);
+  return (LANGUAGE_PREFS as readonly string[]).includes(raw ?? '') ? (raw as LanguagePref) : 'auto';
+}
+
+export function saveLanguagePref(pref: LanguagePref): void {
+  write(LANG_KEY, pref);
 }

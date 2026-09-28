@@ -2,11 +2,16 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine } from '../src/engine/gameengine';
 import {
   clearGame,
+  clearHistory,
   loadBestScore,
   loadGame,
+  loadHistory,
+  loadLanguagePref,
   loadTheme,
   saveBestScore,
   saveGame,
+  saveHistory,
+  saveLanguagePref,
   saveTheme,
 } from '../src/storage';
 
@@ -79,5 +84,45 @@ describe('unavailable storage', () => {
     expect(loadGame()).toBeNull();
     expect(() => saveTheme('modern')).not.toThrow();
     expect(() => saveGame(new GameEngine())).not.toThrow();
+  });
+});
+
+describe('history storage', () => {
+  const record = { score: 42, endedAt: 1_700_000_000_000, moves: 9, lines: 2, balls: 10, completed: true };
+
+  it('is empty by default and after corrupt data', () => {
+    expect(loadHistory()).toEqual([]);
+    store.setItem('colorlines_history', '{oops');
+    expect(loadHistory()).toEqual([]);
+  });
+
+  it('round-trips and clears', () => {
+    saveHistory([record]);
+    expect(loadHistory()).toEqual([record]);
+    clearHistory();
+    expect(loadHistory()).toEqual([]);
+  });
+
+  it('never throws when storage is denied', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() { throw new Error('SecurityError'); },
+    });
+    expect(loadHistory()).toEqual([]);
+    expect(() => saveHistory([record])).not.toThrow();
+    expect(() => clearHistory()).not.toThrow();
+  });
+});
+
+describe('language preference', () => {
+  it('defaults to auto and ignores unknown values', () => {
+    expect(loadLanguagePref()).toBe('auto');
+    store.setItem('colorlines_lang', 'klingon');
+    expect(loadLanguagePref()).toBe('auto');
+  });
+
+  it('round-trips', () => {
+    saveLanguagePref('ru');
+    expect(loadLanguagePref()).toBe('ru');
   });
 });

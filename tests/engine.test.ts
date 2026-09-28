@@ -249,3 +249,162 @@ describe('selection', () => {
     expect(engine.selectedPoint).toBeNull();
   });
 });
+
+describe('game statistics counters', () => {
+  it('counts moves and cleared lines/balls', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(11));
+    engine.board.clear();
+    for (let x = 0; x <= 3; x++) engine.board.set(x, 0, 'red');
+    engine.board.set(5, 5, 'red');
+    expect(engine.moves).toBe(0);
+
+    engine.moveBall({ x: 5, y: 5 }, { x: 4, y: 0 });
+    expect(engine.moves).toBe(1);
+    expect(engine.linesCleared).toBe(1);
+    expect(engine.ballsCleared).toBe(5);
+  });
+
+  it('restores counters on undo', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(12));
+    engine.board.clear();
+    engine.board.set(0, 0, 'red');
+    engine.moveBall({ x: 0, y: 0 }, { x: 1, y: 0 });
+    expect(engine.moves).toBe(1);
+    engine.undo();
+    expect(engine.moves).toBe(0);
+    expect(engine.linesCleared).toBe(0);
+  });
+
+  it('resets counters on a new game', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(13));
+    engine.board.clear();
+    engine.board.set(0, 0, 'red');
+    engine.moveBall({ x: 0, y: 0 }, { x: 1, y: 0 });
+    engine.startNewGame();
+    expect([engine.moves, engine.linesCleared, engine.ballsCleared]).toEqual([0, 0, 0]);
+  });
+
+  it('round-trips counters and accepts legacy saves without them', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(14));
+    engine.board.clear();
+    engine.board.set(0, 0, 'red');
+    engine.moveBall({ x: 0, y: 0 }, { x: 1, y: 0 });
+    const state = engine.getState();
+    expect(state.moves).toBe(1);
+    expect(GameEngine.fromState(state)!.moves).toBe(1);
+
+    const legacy: Record<string, unknown> = { ...state };
+    delete legacy.moves;
+    delete legacy.linesCleared;
+    delete legacy.ballsCleared;
+    const restored = GameEngine.fromState(legacy);
+    expect(restored).not.toBeNull();
+    expect(restored!.moves).toBe(0);
+  });
+
+  it.each([-1, 1.5, 'x'])('rejects invalid counter %j', (bad) => {
+    expect(GameEngine.fromState({ ...validState(), moves: bad })).toBeNull();
+  });
+});
+
+describe('engine invariants over random games', () => {
+  function movableBalls(engine: GameEngine) {
+    const list: { from: { x: number; y: number }; targets: string[] }[] = [];
+    for (let y = 0; y < 9; y++) {
+      for (let x = 0; x < 9; x++) {
+        if (!engine.board.get(x, y)) continue;
+        engine.select({ x, y });
+        const targets = [...engine.getReachableCells()];
+        if (targets.length > 0) list.push({ from: { x, y }, targets });
+      }
+    }
+    engine.unselect();
+    return list;
+  }
+
+  function playRandomGame(seed: number, maxMoves: number) {
+    const rng = seededRng(seed);
+    const engine = new GameEngine(9, 3, 5, 'gamos', rng);
+    let moves = 0;
+    while (!engine.isGameOver && moves < maxMoves) {
+      const movable = movableBalls(engine);
+      if (movable.length === 0) break; // every ball is walled in
+      const pick = movable[Math.floor(rng() * movable.length)];
+      const [tx, ty] = pick.targets[Math.floor(rng() * pick.targets.length)].split(',').map(Number);
+      const ballsBefore = 81 - engine.board.getEmptyCells().length;
+      const scoreBefore = engine.score;
+      const movesBefore = engine.moves;
+
+      const res = engine.moveBall(pick.from, { x: tx, y: ty });
+      expect(res.success).toBe(true);
+      moves++;
+
+      const ballsAfter = 81 - engine.board.getEmptyCells().length;
+      expect(ballsAfter).toBe(ballsBefore + res.spawnedBalls.length - res.clearedPoints.length);
+      expect(engine.score - scoreBefore).toBe(res.pointsEarned);
+      expect(engine.moves).toBe(movesBefore + 1);
+      // Nothing that could still be cleared may remain on the board.
+      expect(LineDetector.findLines(engine.board, 5).matchedPoints).toHaveLength(0);
+      expect(engine.isGameOver).toBe(ballsAfter === 81);
+      expect(engine.nextColors).toHaveLength(3);
+    }
+    return { engine, moves };
+  }
+
+  it.each([1, 2, 3, 4, 5, 6, 7, 8])('keeps all invariants for seed %i', (seed) => {
+    const { engine, moves } = playRandomGame(seed, 400);
+    expect(moves).toBeGreaterThan(5);
+    expect(engine.score).toBeGreaterThanOrEqual(0);
+  });
+
+  it('undo restores the exact previous state after every move', () => {
+    const rng = seededRng(99);
+    const engine = new GameEngine(9, 3, 5, 'gamos', rng);
+    for (let i = 0; i < 60 && !engine.isGameOver; i++) {
+      let moved = false;
+      for (let y = 0; y < 9 && !moved; y++) {
+        for (let x = 0; x < 9 && !moved; x++) {
+          if (!engine.board.get(x, y)) continue;
+          engine.select({ x, y });
+          const t = [...engine.getReachableCells()][0];
+          if (!t) continue;
+          const [tx, ty] = t.split(',').map(Number);
+          const before = JSON.stringify(engine.getState());
+          expect(engine.moveBall({ x, y }, { x: tx, y: ty }).success).toBe(true);
+          if (!engine.isGameOver) {
+            expect(engine.undo()).toBe(true);
+            expect(JSON.stringify(engine.getState())).toBe(before);
+            engine.moveBall({ x, y }, { x: tx, y: ty });
+          }
+          moved = true;
+        }
+      }
+      if (!moved) break;
+    }
+  });
+
+  it('ends the game when the board fills up', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(5));
+    engine.board.clear();
+    // Neighbouring cells along every axis always differ, so no line can form.
+    const palette = ['red', 'green', 'blue', 'cyan', 'magenta', 'yellow', 'brown'] as const;
+    for (let y = 0; y < 9; y++) {
+      for (let x = 0; x < 9; x++) {
+        engine.board.set(x, y, palette[(x + 2 * y) % 7]);
+      }
+    }
+    expect(LineDetector.findLines(engine.board, 5).matchedPoints).toHaveLength(0);
+    // Exactly three empty cells: the move keeps three empty, the spawn fills them.
+    engine.board.set(0, 0, null);
+    engine.board.set(1, 0, null);
+    engine.board.set(8, 8, null);
+
+    const res = engine.moveBall({ x: 2, y: 0 }, { x: 1, y: 0 });
+    expect(res.success).toBe(true);
+    expect(res.spawnedBalls).toHaveLength(3);
+    expect(res.isGameOver).toBe(true);
+    expect(engine.isGameOver).toBe(true);
+    expect(engine.canUndo).toBe(false);
+    expect(engine.moveBall({ x: 3, y: 0 }, { x: 2, y: 0 }).success).toBe(false);
+  });
+});

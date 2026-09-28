@@ -59,10 +59,7 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  min-height: 100dvh;
   background-color: #121217;
   color: var(--text-main);
   font-family: var(--font-family);
@@ -84,10 +81,12 @@ body:has(.theme-retro92) {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 100vw;
-  min-height: 100vh;
-  padding: 16px;
+  width: 100%;
+  min-height: 100dvh;
+  padding-block: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-bottom));
+  padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
   gap: 16px;
+  --chrome: 285px; /* vertical space taken by header, footer and paddings around the board */
 }
 
 /* Top Control Panel */
@@ -99,7 +98,7 @@ body:has(.theme-retro92) {
   border: 1px solid var(--panel-border);
   border-radius: 16px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
-  max-width: 520px;
+  max-width: 560px;
   width: 100%;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -166,8 +165,10 @@ body:has(.theme-retro92) {
 
 .hud-top-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px 12px;
 }
 
 .game-title {
@@ -206,7 +207,7 @@ body:has(.theme-retro92) {
   border-radius: 8px;
   padding: 6px 12px;
   text-align: center;
-  min-width: 80px;
+  min-width: 72px;
 }
 
 .theme-classic98 .stat-box {
@@ -225,7 +226,7 @@ body:has(.theme-retro92) {
 }
 
 .stat-label {
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--text-muted);
@@ -251,8 +252,10 @@ body:has(.theme-retro92) {
 /* Next Balls & Controls Row */
 .hud-action-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px 12px;
 }
 
 .next-balls-preview {
@@ -288,6 +291,7 @@ body:has(.theme-retro92) {
 
 .controls-group {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -297,6 +301,8 @@ body:has(.theme-retro92) {
   color: var(--text-main);
   border-radius: 8px;
   padding: 6px 10px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -364,9 +370,9 @@ body:has(.theme-retro92) {
   border-radius: 12px;
   border: 1px solid var(--panel-border);
   aspect-ratio: 1 / 1;
-  width: 100%;
-  max-width: 460px;
-  touch-action: none;
+  width: min(100%, 520px, calc(100dvh - var(--chrome)));
+  min-width: 0;
+  touch-action: manipulation;
 }
 
 .theme-classic98 .board-grid {
@@ -543,8 +549,10 @@ body:has(.theme-retro92) {
   border: 1px solid var(--panel-border);
   border-radius: 16px;
   padding: 24px;
-  max-width: 400px;
+  max-width: 440px;
   width: 100%;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   text-align: center;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
 }
@@ -583,6 +591,7 @@ body:has(.theme-retro92) {
   font-weight: 700;
   font-size: 1rem;
   padding: 10px 24px;
+  min-height: 44px;
   border-radius: 8px;
   cursor: pointer;
   transition: transform 0.2s ease;
@@ -606,8 +615,10 @@ body:has(.theme-retro92) {
 .footer-row {
   padding: 10px 16px 16px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 8px 12px;
   font-size: 0.8rem;
   color: var(--text-muted);
   border-top: 1px solid var(--panel-border);
@@ -625,10 +636,11 @@ body:has(.theme-retro92) {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 4px 8px;
+  padding: 4px 10px;
+  min-height: 36px;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   transition: all 0.2s ease;
 }
 
@@ -680,5 +692,297 @@ body:has(.theme-retro92) {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---- Footer tools, links, language select ---- */
+.footer-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.ctrl-link {
+  gap: 6px;
+  padding: 6px 12px;
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.lang-select select {
+  min-height: 44px;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lang-select select option {
+  color: #000;
+  background: #fff;
+}
+
+.theme-classic98 .lang-select select {
+  border-radius: 0;
+  background: #c0c0c0;
+  color: #000;
+}
+
+.theme-retro92 .lang-select select {
+  border-radius: 0;
+  background: #001100;
+  color: #55ff55;
+  border-color: #00aa00;
+}
+
+/* ---- Dialogs ---- */
+.modal-text-left {
+  text-align: left;
+  line-height: 1.5;
+}
+
+.modal-text-left p + p,
+.modal-text-left ul {
+  margin-top: 10px;
+}
+
+.help-scores {
+  padding-left: 1.25rem;
+  color: var(--text-main);
+  font-variant-numeric: tabular-nums;
+}
+
+.modal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.modal-btn-secondary {
+  background: transparent;
+  color: var(--text-main);
+  border: 1px solid var(--panel-border);
+}
+
+.modal-btn-danger {
+  background: #ff5252;
+  color: #000;
+}
+
+.theme-classic98 .modal-btn-secondary,
+.theme-classic98 .modal-btn-danger {
+  background: #c0c0c0;
+  color: #000;
+  border-color: initial;
+}
+
+.confirm-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.9rem;
+}
+
+.record-banner {
+  margin-bottom: 12px;
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.stats-grid-2 {
+  margin-bottom: 4px;
+}
+
+.stats-card {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--panel-border);
+  border-radius: 10px;
+  padding: 10px 8px;
+}
+
+.theme-classic98 .stats-card {
+  border-radius: 0;
+  background: #000;
+}
+
+.stats-card dt {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.stats-card dd {
+  margin: 2px 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.theme-classic98 .stats-card dd {
+  color: #f00;
+}
+
+.stats-subtitle {
+  margin: 16px 0 8px;
+  font-size: 0.9rem;
+  text-align: left;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.stats-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.stats-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+}
+
+.stats-row-score {
+  font-size: 1.15rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats-row-meta {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.stats-badge {
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #000;
+  background: var(--accent);
+  vertical-align: middle;
+}
+
+.stats-badge-muted {
+  color: var(--text-main);
+  background: transparent;
+  border: 1px solid var(--panel-border);
+}
+
+.stats-badge + .stats-badge {
+  margin-left: 4px;
+}
+
+/* ---- Touch devices: bigger targets ---- */
+@media (pointer: coarse) {
+  .theme-opt-btn {
+    min-height: 44px;
+    padding-inline: 12px;
+  }
+
+  .win98-btn {
+    width: 28px;
+    height: 24px;
+    font-size: 14px;
+  }
+}
+
+/* ---- Narrow phones ---- */
+@media (max-width: 360px) {
+  .hud-header,
+  .footer-row {
+    padding-inline: 12px;
+  }
+
+  .board-container {
+    padding: 8px;
+  }
+
+  .game-title {
+    font-size: 1.2rem;
+  }
+
+  .stat-box {
+    min-width: 64px;
+    padding-inline: 8px;
+  }
+}
+
+/* ---- Short landscape screens (phones on their side): board left, panel right ---- */
+@media (orientation: landscape) and (max-height: 560px) {
+  .app-container {
+    --board-col: min(calc(100dvh - 26px), 60vw);
+    align-items: center;
+  }
+
+  .game-window {
+    max-width: min(100%, 960px);
+    display: grid;
+    grid-template-columns: var(--board-col) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas:
+      'title title'
+      'board header'
+      'board footer';
+  }
+
+  .win98-titlebar {
+    grid-area: title;
+  }
+
+  .hud-header {
+    grid-area: header;
+    border-bottom: 1px solid var(--panel-border);
+  }
+
+  .board-container {
+    grid-area: board;
+    padding: 12px;
+  }
+
+  .board-grid {
+    width: 100%;
+  }
+
+  .footer-row {
+    grid-area: footer;
+    align-content: start;
+    border-top: 0;
+  }
+}
+
+/* ---- Roomy screens ---- */
+@media (min-width: 900px) and (min-height: 820px) {
+  .game-window {
+    max-width: 640px;
   }
 }

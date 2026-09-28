@@ -2,60 +2,105 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import confetti from 'canvas-confetti';
 import {
+  BarChart3,
+  Download,
+  HelpCircle,
   RotateCcw,
   Undo2,
   Volume2,
   VolumeX,
-  HelpCircle,
-  Download
 } from 'lucide-react';
 import { GameEngine } from './engine/gameengine';
 import type { BallColor, Point } from './engine/models';
 import { pointsEqual } from './engine/models';
 import { soundManager } from './audio';
 import {
+  LANGUAGES,
+  colorName,
+  resolveLanguage,
+  translate,
+} from './i18n';
+import type { Language, MessageKey } from './i18n';
+import {
+  THEMES,
+  clearHistory,
   loadBestScore,
   loadGame,
+  loadHistory,
+  loadLanguagePref,
   loadTheme,
   saveBestScore,
   saveGame,
+  saveHistory,
+  saveLanguagePref,
   saveTheme,
 } from './storage';
-import type { Theme } from './storage';
+import type { LanguagePref, Theme } from './storage';
+import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
+import type { GameRecord } from './stats';
+import { GameOverDialog } from './components/GameOverDialog';
+import { HelpDialog } from './components/HelpDialog';
+import { StatsDialog } from './components/StatsDialog';
 import './App.css';
 
 const BOARD_SIZE = 9;
+const GITHUB_REPO_URL = 'https://github.com/Basil-AS/color-lines-98';
+const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases/latest`;
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
-function describeCell(
-  x: number,
-  y: number,
-  color: BallColor | null,
-  selected: boolean,
-  reachable: boolean
-): string {
-  const content = color ? `${color} ball` : 'empty';
-  return `Row ${y + 1}, column ${x + 1}, ${content}${selected ? ', selected' : ''}${
-    reachable ? ', reachable' : ''
-  }`;
+function browserLanguages(): readonly string[] {
+  return navigator.languages?.length ? navigator.languages : [navigator.language];
 }
 
-const GITHUB_REPO_URL = 'https://github.com/Basil-AS/color-lines-98';
-const GITHUB_RELEASES_URL = 'https://github.com/Basil-AS/color-lines-98/releases';
+function applyDocumentLanguage(lang: Language): void {
+  document.documentElement.lang = lang;
+  document.title = translate(lang, 'app.docTitle');
+}
+
+function withRecord(history: readonly GameRecord[], engine: GameEngine, completed: boolean) {
+  return addRecord(history, recordFromEngine(engine, completed, Date.now()));
+}
+
+function ballThemeClass(theme: Theme): string {
+  return theme === 'classic98' ? '' : theme === 'retro92' ? 'ball-retro' : 'ball-modern';
+}
+
+function getSpriteUrl(color: BallColor): string {
+  const map: Record<BallColor, string> = {
+    red: 'sprites/classic/lineBall_10_0.png',
+    green: 'sprites/classic/lineBall_10_1.png',
+    blue: 'sprites/classic/lineBall_10_2.png',
+    cyan: 'sprites/classic/lineBall_10_3.png',
+    magenta: 'sprites/classic/lineBall_10_4.png',
+    yellow: 'sprites/classic/lineBall_10_5.png',
+    brown: 'sprites/classic/lineBall_10_6.png',
+  };
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  return `${base}/${map[color]}`;
+}
 
 export default function App() {
   const [engine] = useState(() => loadGame() ?? new GameEngine(BOARD_SIZE, 3, 5, 'gamos'));
   const [, setVersion] = useState(0); // Bumped after every engine mutation to re-render
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const [langPref, setLangPref] = useState<LanguagePref>(loadLanguagePref);
   const [soundEnabled, setSoundEnabled] = useState(() => soundManager.isEnabled);
-  const [showHelp, setShowHelp] = useState(false);
-  const [bestScore, setBestScore] = useState(loadBestScore);
+  const [dialog, setDialog] = useState<'help' | 'stats' | null>(null);
+  const [history, setHistory] = useState(loadHistory);
+  const [bestScore, setBestScore] = useState(() =>
+    Math.max(loadBestScore(), summarize(loadHistory()).bestScore)
+  );
+  const [bestAtGameStart, setBestAtGameStart] = useState(bestScore);
   const [announcement, setAnnouncement] = useState('');
   const [focusCell, setFocusCell] = useState<Point>({ x: 0, y: 0 });
   const cellRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const lang = resolveLanguage(langPref, browserLanguages());
+  const t = (key: MessageKey, params?: Record<string, string | number>) =>
+    translate(lang, key, params);
 
   // Re-render and persist the game after the engine has been mutated by a handler.
   const commit = useCallback(() => {
@@ -63,14 +108,24 @@ export default function App() {
     saveGame(engine);
   }, [engine]);
 
+  const recordGame = (completed: boolean) => {
+    const next = withRecord(history, engine, completed);
+    setHistory(next);
+    saveHistory(next);
+  };
+
   const changeTheme = (newTheme: Theme) => {
     setTheme(newTheme);
     saveTheme(newTheme);
   };
 
+  const changeLanguage = (pref: LanguagePref) => {
+    setLangPref(pref);
+    saveLanguagePref(pref);
+  };
+
   const toggleSound = () => {
-    const next = soundManager.toggle();
-    setSoundEnabled(next);
+    setSoundEnabled(soundManager.toggle());
   };
 
   const handleCellClick = (x: number, y: number) => {
@@ -95,7 +150,7 @@ export default function App() {
     const res = engine.moveBall(engine.selectedPoint, clickedPoint);
     if (!res.success) {
       soundManager.playClick();
-      setAnnouncement('No path to that cell');
+      setAnnouncement(t('announce.noPath'));
       return;
     }
 
@@ -104,26 +159,23 @@ export default function App() {
 
     if (res.clearedPoints.length > 0) {
       soundManager.playEat(res.pointsEarned);
-      setAnnouncement(`Line cleared, plus ${res.pointsEarned} points. Score ${engine.score}`);
+      setAnnouncement(t('announce.lineCleared', { points: res.pointsEarned, score: engine.score }));
       if (res.pointsEarned >= 18 && !prefersReducedMotion()) {
-        confetti({
-          particleCount: 50 + res.pointsEarned * 2,
-          spread: 60,
-          origin: { y: 0.6 },
-        });
+        confetti({ particleCount: 50 + res.pointsEarned * 2, spread: 60, origin: { y: 0.6 } });
       }
     } else {
-      setAnnouncement(`Score ${engine.score}`);
-    }
-
-    if (res.isGameOver) {
-      soundManager.playLose();
-      setAnnouncement(`Game over. Final score ${engine.score}`);
+      setAnnouncement(t('announce.score', { score: engine.score }));
     }
 
     if (engine.score > bestScore) {
       setBestScore(engine.score);
       saveBestScore(engine.score);
+    }
+
+    if (res.isGameOver) {
+      soundManager.playLose();
+      setAnnouncement(t('announce.gameOver', { score: engine.score }));
+      recordGame(true);
     }
     commit();
   };
@@ -147,46 +199,45 @@ export default function App() {
   const handleUndo = () => {
     if (engine.undo()) {
       soundManager.playClick();
-      setAnnouncement(`Move undone. Score ${engine.score}`);
+      setAnnouncement(t('announce.undone', { score: engine.score }));
       commit();
     }
   };
 
   const handleNewGame = () => {
+    // Abandoning a game in progress still counts towards the history.
+    if (!engine.isGameOver && engine.moves > 0) recordGame(false);
     engine.startNewGame();
+    setBestAtGameStart(bestScore);
     soundManager.playClick();
-    setAnnouncement('New game started');
+    setAnnouncement(t('announce.newGame'));
     commit();
   };
 
-  const reachableCells = engine.getReachableCells();
+  const closeDialog = useCallback(() => setDialog(null), []);
 
-  const getSpriteUrl = (color: BallColor): string => {
-    const map: Record<BallColor, string> = {
-      red: 'sprites/classic/lineBall_10_0.png',
-      green: 'sprites/classic/lineBall_10_1.png',
-      blue: 'sprites/classic/lineBall_10_2.png',
-      cyan: 'sprites/classic/lineBall_10_3.png',
-      magenta: 'sprites/classic/lineBall_10_4.png',
-      yellow: 'sprites/classic/lineBall_10_5.png',
-      brown: 'sprites/classic/lineBall_10_6.png',
-    };
-    const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-    return `${base}/${map[color]}`;
+  const handleClearHistory = () => {
+    clearHistory();
+    setHistory([]);
   };
-
-  useEffect(() => {
-    if (!showHelp) return;
-    const onKey = (e: globalThis.KeyboardEvent) => {
-      if (e.key === 'Escape') setShowHelp(false);
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [showHelp]);
 
   useEffect(() => {
     document.body.className = `theme-${theme}`;
   }, [theme]);
+
+  useEffect(() => {
+    applyDocumentLanguage(lang);
+  }, [lang]);
+
+  const reachableCells = engine.getReachableCells();
+  const newRecord = engine.isGameOver && isNewRecord(engine.score, bestAtGameStart);
+  const cellText = (x: number, y: number, color: BallColor | null, sel: boolean, reach: boolean) =>
+    t('cell.description', {
+      row: y + 1,
+      col: x + 1,
+      content: color ? t('cell.ball', { color: colorName(lang, color) }) : t('cell.empty'),
+      state: `${sel ? t('cell.selected') : ''}${reach ? t('cell.reachable') : ''}`,
+    });
 
   return (
     <div className={`app-container theme-${theme}`}>
@@ -194,44 +245,52 @@ export default function App() {
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
         </div>
-        {/* Win98 Window Titlebar */}
+
         {theme === 'classic98' && (
           <div className="win98-titlebar">
-            <span>Color Lines 98</span>
+            <span>{t('app.name')}</span>
             <div className="win98-titlebar-buttons">
-              <button className="win98-btn" onClick={() => setShowHelp(true)} aria-label="Rules and info">?</button>
-              <button className="win98-btn" onClick={handleNewGame} aria-label="New game">×</button>
+              <button
+                type="button"
+                className="win98-btn"
+                onClick={() => setDialog('help')}
+                aria-label={t('btn.help')}
+              >
+                ?
+              </button>
             </div>
           </div>
         )}
 
-        {/* HUD Header */}
         <header className="hud-header">
           <div className="hud-top-row">
-            <h1 className="game-title">Color Lines 98</h1>
+            <h1 className="game-title">{t('app.name')}</h1>
             <div className="hud-stats">
               <div className="stat-box">
-                <div className="stat-label">Score</div>
+                <div className="stat-label">{t('hud.score')}</div>
                 <div className="stat-value">{engine.score}</div>
               </div>
               <div className="stat-box">
-                <div className="stat-label">Best</div>
+                <div className="stat-label">{t('hud.best')}</div>
                 <div className="stat-value">{Math.max(engine.score, bestScore)}</div>
               </div>
             </div>
           </div>
 
           <div className="hud-action-row">
-            <div className="next-balls-preview">
-              <span className="next-balls-label">Next:</span>
-              <div className="next-balls-list" role="img" aria-label={`Next balls: ${engine.nextColors.join(', ')}`}>
+            <div
+              className="next-balls-preview"
+              role="img"
+              aria-label={t('next.label', {
+                colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+              })}
+            >
+              <span className="next-balls-label" aria-hidden="true">
+                {t('hud.next')}
+              </span>
+              <div className="next-balls-list" aria-hidden="true">
                 {engine.nextColors.map((color, idx) => (
-                  <div
-                    key={idx}
-                    className={`ball ball-mini ${
-                      theme === 'classic98' ? '' : theme === 'retro92' ? 'ball-retro' : 'ball-modern'
-                    } color-${color}`}
-                  >
+                  <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
                     {theme === 'classic98' && (
                       <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
                     )}
@@ -242,51 +301,66 @@ export default function App() {
 
             <div className="controls-group">
               <button
+                type="button"
                 className="ctrl-btn"
                 onClick={handleUndo}
                 disabled={!engine.canUndo}
-                title="Undo move"
-                aria-label="Undo move"
+                title={t('btn.undo')}
+                aria-label={t('btn.undo')}
               >
-                <Undo2 size={18} />
+                <Undo2 size={20} aria-hidden="true" />
               </button>
               <button
+                type="button"
                 className="ctrl-btn"
                 onClick={handleNewGame}
-                title="New Game"
-                aria-label="New game"
+                title={t('btn.newGame')}
+                aria-label={t('btn.newGame')}
               >
-                <RotateCcw size={18} />
+                <RotateCcw size={20} aria-hidden="true" />
               </button>
               <button
+                type="button"
+                className="ctrl-btn"
+                onClick={() => setDialog('stats')}
+                title={t('btn.stats')}
+                aria-label={t('btn.stats')}
+              >
+                <BarChart3 size={20} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
                 className="ctrl-btn"
                 onClick={toggleSound}
-                title={soundEnabled ? 'Mute sound' : 'Unmute sound'}
-                aria-label={soundEnabled ? 'Mute sound' : 'Unmute sound'}
+                title={soundEnabled ? t('btn.mute') : t('btn.unmute')}
+                aria-label={soundEnabled ? t('btn.mute') : t('btn.unmute')}
                 aria-pressed={!soundEnabled}
               >
-                {soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
+                {soundEnabled ? (
+                  <Volume2 size={20} aria-hidden="true" />
+                ) : (
+                  <VolumeX size={20} aria-hidden="true" />
+                )}
               </button>
               <button
+                type="button"
                 className="ctrl-btn"
-                onClick={() => setShowHelp(true)}
-                title="Rules & Info"
-                aria-label="Rules and info"
+                onClick={() => setDialog('help')}
+                title={t('btn.help')}
+                aria-label={t('btn.help')}
               >
-                <HelpCircle size={18} />
+                <HelpCircle size={20} aria-hidden="true" />
               </button>
             </div>
           </div>
         </header>
 
-        {/* 9x9 Board */}
         <main className="board-container">
-          <div className="board-grid" role="group" aria-label="Game board">
+          <div className="board-grid" role="group" aria-label={t('board.label')}>
             {Array.from({ length: BOARD_SIZE }).map((_, y) =>
               Array.from({ length: BOARD_SIZE }).map((_, x) => {
                 const color = engine.board.get(x, y);
-                const isSelected =
-                  engine.selectedPoint?.x === x && engine.selectedPoint?.y === y;
+                const isSelected = engine.selectedPoint?.x === x && engine.selectedPoint?.y === y;
                 const isReachable = !color && reachableCells.has(`${x},${y}`);
                 const isFocusStop = focusCell.x === x && focusCell.y === y;
 
@@ -298,7 +372,7 @@ export default function App() {
                       cellRefs.current[y * BOARD_SIZE + x] = el;
                     }}
                     tabIndex={isFocusStop ? 0 : -1}
-                    aria-label={describeCell(x, y, color, isSelected, isReachable)}
+                    aria-label={cellText(x, y, color, isSelected, isReachable)}
                     aria-pressed={color ? isSelected : undefined}
                     className={`board-cell ${isSelected ? 'selected' : ''} ${
                       isReachable ? 'reachable' : ''
@@ -309,15 +383,9 @@ export default function App() {
                     {color && (
                       <div
                         aria-hidden="true"
-                        className={`ball ${
-                          isSelected ? 'selected-ball' : ''
-                        } ${
-                          theme === 'classic98'
-                            ? ''
-                            : theme === 'retro92'
-                            ? 'ball-retro'
-                            : 'ball-modern'
-                        } color-${color}`}
+                        className={`ball ${isSelected ? 'selected-ball' : ''} ${ballThemeClass(
+                          theme
+                        )} color-${color}`}
                       >
                         {theme === 'classic98' && (
                           <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
@@ -331,100 +399,80 @@ export default function App() {
           </div>
         </main>
 
-        {/* Footer & Themes */}
         <footer className="footer-row">
-          <div className="theme-selector">
-            <button
-              className={`theme-opt-btn ${theme === 'modern' ? 'active' : ''}`}
-              onClick={() => changeTheme('modern')}
-              aria-pressed={theme === 'modern'}
-            >
-              Modern
-            </button>
-            <button
-              className={`theme-opt-btn ${theme === 'classic98' ? 'active' : ''}`}
-              onClick={() => changeTheme('classic98')}
-              aria-pressed={theme === 'classic98'}
-            >
-              Win98
-            </button>
-            <button
-              className={`theme-opt-btn ${theme === 'retro92' ? 'active' : ''}`}
-              onClick={() => changeTheme('retro92')}
-              aria-pressed={theme === 'retro92'}
-            >
-              DOS92
-            </button>
+          <div className="theme-selector" role="group" aria-label={t('theme.group')}>
+            {THEMES.map((id) => (
+              <button
+                type="button"
+                key={id}
+                className={`theme-opt-btn ${theme === id ? 'active' : ''}`}
+                onClick={() => changeTheme(id)}
+                aria-pressed={theme === id}
+              >
+                {t(`theme.${id}` as MessageKey)}
+              </button>
+            ))}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div className="footer-tools">
+            <label className="lang-select">
+              <span className="sr-only">{t('lang.label')}</span>
+              <select
+                value={langPref}
+                onChange={(e) => changeLanguage(e.target.value as LanguagePref)}
+              >
+                <option value="auto">{t('lang.auto')}</option>
+                {LANGUAGES.map((l) => (
+                  <option key={l} value={l}>
+                    {t(`lang.${l}` as MessageKey)}
+                  </option>
+                ))}
+              </select>
+            </label>
             <a
               href={GITHUB_RELEASES_URL}
               target="_blank"
               rel="noreferrer"
-              className="ctrl-btn"
-              title="Download Android APK"
-              style={{ textDecoration: 'none', gap: '4px', padding: '4px 8px', fontSize: '0.75rem' }}
+              className="ctrl-btn ctrl-link"
+              title={t('btn.apk')}
             >
-              <Download size={14} /> APK
+              <Download size={16} aria-hidden="true" />
+              <span>APK</span>
             </a>
             <a
               href={GITHUB_REPO_URL}
               target="_blank"
               rel="noreferrer"
-              className="ctrl-btn"
-              title="GitHub Repo"
-              style={{ textDecoration: 'none', padding: '4px 8px', display: 'flex', alignItems: 'center' }}
+              className="ctrl-btn ctrl-link"
+              title={t('btn.github')}
+              aria-label={`${t('btn.github')}: Basil-AS`}
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
               </svg>
+              <span>Basil-AS</span>
             </a>
           </div>
         </footer>
       </div>
 
-      {/* Game Over Modal */}
       {engine.isGameOver && (
-        <div className="modal-overlay">
-          <div className="modal-content" role="alertdialog" aria-modal="true" aria-labelledby="game-over-title">
-            <h2 className="modal-title" id="game-over-title">Game Over!</h2>
-            <p className="modal-text">
-              Final Score: <strong>{engine.score}</strong>
-              <br />
-              Best Score: <strong>{bestScore}</strong>
-            </p>
-            <button className="modal-btn" onClick={handleNewGame} autoFocus>
-              Play Again
-            </button>
-          </div>
-        </div>
+        <GameOverDialog
+          lang={lang}
+          score={engine.score}
+          best={Math.max(engine.score, bestScore)}
+          newRecord={newRecord}
+          onPlayAgain={handleNewGame}
+        />
       )}
-
-      {/* Help Modal */}
-      {showHelp && (
-        <div className="modal-overlay" onClick={() => setShowHelp(false)}>
-          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="help-title" onClick={(e) => e.stopPropagation()}>
-            <h2 className="modal-title" id="help-title">Rules & Scoring</h2>
-            <p className="modal-text" style={{ textAlign: 'left', lineHeight: '1.5' }}>
-              <strong>Objective:</strong> Align 5 or more balls of the same color horizontally, vertically, or diagonally.
-              <br /><br />
-              <strong>Scoring (Gamos 1992):</strong>
-              <br />• 5 balls: 10 pts
-              <br />• 6 balls: 12 pts
-              <br />• 7 balls: 18 pts
-              <br />• 8 balls: 28 pts
-              <br />• 9 balls: 42 pts
-              <br /><br />
-              <strong>Movement:</strong> A ball can only move if there is a clear, unblocked path to the destination cell. Clearing a line gives a free turn: no new balls appear.
-              <br /><br />
-              <strong>Keyboard:</strong> arrow keys move between cells, Enter or Space selects a ball or moves it, Escape closes this window.
-            </p>
-            <button className="modal-btn" onClick={() => setShowHelp(false)} autoFocus>
-              Close
-            </button>
-          </div>
-        </div>
+      {!engine.isGameOver && dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
+      {!engine.isGameOver && dialog === 'stats' && (
+        <StatsDialog
+          lang={lang}
+          history={history}
+          onClear={handleClearHistory}
+          onClose={closeDialog}
+        />
       )}
     </div>
   );
