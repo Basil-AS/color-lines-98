@@ -1,0 +1,42 @@
+# OS & Editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build, runtimes and package managers
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+node_modules/
+dist/
+
+# Backups, large data dumps and archives (protects Gortex indexing)
+.local-backups/
+codex_history/
+*.tar.gz
+*.tar
+*.zip
+*.iso
+*.bin
+*.img
+*.apk
+*.apks
+
+# Local code intelligence caches
+.serena/
+
+# BEGIN UNIVERSAL AGENT KIT
+AGENT.local.md
+.agent-cache/
+*.agent-local.*
+.agents/runtime/
+.agents/tmp/
+# END UNIVERSAL AGENT KIT
