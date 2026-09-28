@@ -1,10 +1,10 @@
 # Handoff
 
 TASK_ID: 20260929-0145-project-polish
-STATUS: wip
-BRANCH: agent/feat-project-polish
+STATUS: done
+BRANCH: main
 BASE_COMMIT: ec9d2171d0b57d86651e65b94bb9834768aefff3
-HEAD: ec9d217
+HEAD: e3add23
 LAST_VERIFIED_COMMIT: ec9d217
 PR: -
 PROFILE: balanced
@@ -26,7 +26,7 @@ UPDATED_AT: 2026-09-29T01:45:38+03:00
 
 ## Current work
 
-- Nothing running. Waiting for approval to push `agent/feat-project-polish` and open a PR.
+- Nothing running. Delivered: PR #1, #2 merged; release v1.0.0; Pages live.
 
 ## Uncommitted or running state
 

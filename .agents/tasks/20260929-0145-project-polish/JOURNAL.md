@@ -37,3 +37,20 @@ DECISION: Start line runs only at their first cell (drops the visited grid). Per
 SOURCE: code + tests
 NEXT: User approval to push branch and open PR.
 
+## 2026-09-29T02:20:00+03:00 — delivered: PR #1/#2 merged, v1.0.0 released
+
+AGENT: Claude Code
+BRANCH: main
+HEAD_BEFORE: 36263ab
+HEAD_AFTER: e3add23
+STATUS: DONE
+ACTIVE_SKILLS: -
+TOOLS_USED: gh, git, rtk
+CHANGED: GitHub state only (PRs, tag v1.0.0, release assets, Pages deploy)
+COMMANDS: gh pr create/merge, git tag -a v1.0.0, git push origin v1.0.0
+RESULT: CI, Android CI, Web CI/Pages deploy and Release Pipeline green; release has app-release.apk (debug-signed) and color-lines-web-standalone.zip; https://basil-as.github.io/color-lines-98/ serves the new bundle.
+TRIED: Chained `git switch -c && git commit` was blocked by the workstation guard (branch checked before the chain runs); split into separate calls.
+DECISION: Rebase-merge to keep conventional commits; release APK is signed with the debug key (no release keystore exists).
+SOURCE: gh run/release output
+NEXT: none required.
+
