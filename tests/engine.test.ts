@@ -162,3 +162,90 @@ describe('LineDetector regressions', () => {
     }
   });
 });
+
+function seededRng(seed: number): () => number {
+  let s = seed >>> 0;
+  return () => {
+    s = (s + 0x6d2b79f5) >>> 0;
+    let t = s;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+describe('Deterministic play and persistence', () => {
+  it('produces identical games from identical RNG seeds', () => {
+    const a = new GameEngine(9, 3, 5, 'gamos', seededRng(42));
+    const b = new GameEngine(9, 3, 5, 'gamos', seededRng(42));
+    expect(a.getState()).toEqual(b.getState());
+    expect(a.nextColors).toHaveLength(3);
+  });
+
+  it('starts a new game with exactly 5 balls on the board', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(7));
+    expect(81 - engine.board.getEmptyCells().length).toBe(5);
+    expect(engine.score).toBe(0);
+    expect(engine.isGameOver).toBe(false);
+  });
+
+  it('round-trips state through JSON', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(1));
+    const ball = findBall(engine);
+    const target = engine.board.getEmptyCells()[0];
+    engine.moveBall(ball, target);
+
+    const restored = GameEngine.fromState(JSON.parse(JSON.stringify(engine.getState())));
+    expect(restored).not.toBeNull();
+    expect(restored!.getState()).toEqual(engine.getState());
+  });
+
+  it.each([
+    ['null', null],
+    ['a string', 'nope'],
+    ['wrong board size', { ...validState(), board: [[null]] }],
+    ['unknown color', mutate((s) => { s.board[0][0] = 'purple'; })],
+    ['negative score', { ...validState(), score: -5 }],
+    ['fractional score', { ...validState(), score: 1.5 }],
+    ['bad nextColors', { ...validState(), nextColors: ['red'] }],
+    ['non-boolean gameOver', { ...validState(), isGameOver: 'yes' }],
+  ])('rejects malformed state: %s', (_name, value) => {
+    expect(GameEngine.fromState(value)).toBeNull();
+  });
+});
+
+function findBall(engine: GameEngine) {
+  for (let y = 0; y < engine.size; y++) {
+    for (let x = 0; x < engine.size; x++) {
+      if (engine.board.get(x, y)) return { x, y };
+    }
+  }
+  throw new Error('no ball on board');
+}
+
+function validState() {
+  return new GameEngine(9, 3, 5, 'gamos', seededRng(3)).getState();
+}
+
+function mutate(fn: (s: ReturnType<typeof validState>) => void) {
+  const s = validState();
+  fn(s as never);
+  return s;
+}
+
+describe('selection', () => {
+  it('selects only cells that hold a ball', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(5));
+    engine.board.clear();
+    engine.board.set(2, 2, 'red');
+
+    engine.select({ x: 4, y: 4 });
+    expect(engine.selectedPoint).toBeNull();
+
+    engine.select({ x: 2, y: 2 });
+    expect(engine.selectedPoint).toEqual({ x: 2, y: 2 });
+
+    engine.unselect();
+    expect(engine.selectedPoint).toBeNull();
+  });
+});
