@@ -47,24 +47,20 @@ export class LineDetector {
     const size = board.size;
 
     for (const axis of AXES) {
-      const visitedInDirection: boolean[][] = Array.from({ length: size }, () =>
-        Array(size).fill(false)
-      );
-
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
-          if (visitedInDirection[y][x]) continue;
-
           const startColor = board.get(x, y);
           if (!startColor) continue;
+
+          // Only begin a run at its first cell, otherwise a long line would be
+          // reported once per suffix and scored several times.
+          if (board.get(x - axis.x, y - axis.y) === startColor) continue;
 
           const currentLine: Point[] = [];
           let cx = x;
           let cy = y;
-
-          while (board.isInside(cx, cy) && board.get(cx, cy) === startColor) {
+          while (board.get(cx, cy) === startColor) {
             currentLine.push({ x: cx, y: cy });
-            visitedInDirection[cy][cx] = true;
             cx += axis.x;
             cy += axis.y;
           }

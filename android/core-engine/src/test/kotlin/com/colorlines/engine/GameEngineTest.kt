@@ -189,4 +189,37 @@ class GameEngineTest {
         assertNull(engine.board[1, 0])
         assertEquals(initialEmpty, engine.board.getEmptyCells().size)
     }
+
+    @Test
+    fun testAntiDiagonalLineOf7IsSingleLine() {
+        val board = Board(9)
+        for (i in 0..6) {
+            board[i, 8 - i] = BallColor.MAGENTA
+        }
+
+        val result = LineDetector.findLines(board, minLength = 5)
+        assertEquals(1, result.lines.size)
+        assertEquals(7, result.matchedPoints.size)
+        assertEquals(18, result.score)
+    }
+
+    @Test
+    fun testFullLengthLineScoresOnceOnEveryAxis() {
+        val shapes: List<(Int) -> Point> = listOf(
+            { i -> Point(i, 0) },
+            { i -> Point(0, i) },
+            { i -> Point(i, i) },
+            { i -> Point(i, 8 - i) }
+        )
+        for (at in shapes) {
+            val board = Board(9)
+            for (i in 0..8) {
+                val p = at(i)
+                board[p.x, p.y] = BallColor.CYAN
+            }
+            val result = LineDetector.findLines(board, minLength = 5)
+            assertEquals(1, result.lines.size)
+            assertEquals(42, result.score)
+        }
+    }
 }
