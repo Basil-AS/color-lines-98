@@ -1,53 +1,84 @@
 package com.colorlines.app
 
-import android.content.Context
+import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
-import androidx.compose.animation.core.*
-import androidx.compose.foundation.Canvas
+import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.FilledTonalIconButton
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.colorlines.engine.BallColor
 import com.colorlines.engine.GameEngine
+import com.colorlines.engine.GameRecord
+import com.colorlines.engine.GameStats
 import com.colorlines.engine.Point
-
-enum class AppTheme {
-    MODERN, CLASSIC_98
-}
 
 class MainActivity : ComponentActivity() {
     private lateinit var soundManager: SoundManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Draw behind the system bars; the UI keeps clear of them with WindowInsets.safeDrawing.
+        val transparent = AndroidColor.TRANSPARENT
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(transparent),
+            navigationBarStyle = SystemBarStyle.dark(transparent)
+        )
         soundManager = SoundManager(this)
-
-        setContent {
-            ColorLinesApp(soundManager = soundManager)
-        }
+        val storage = GameStorage(this)
+        setContent { BasilLinesApp(storage, soundManager) }
     }
 
     override fun onDestroy() {
@@ -56,422 +87,349 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private fun colorScheme(theme: AppTheme, p: Palette): ColorScheme =
+    if (theme == AppTheme.MODERN) {
+        darkColorScheme(
+            primary = p.accent, onPrimary = p.onAccent,
+            surface = p.panel, onSurface = p.text,
+            surfaceVariant = p.chip, onSurfaceVariant = p.textMuted,
+            background = p.background, onBackground = p.text,
+            outline = Color(0xFF6B6B78)
+        )
+    } else {
+        lightColorScheme(
+            primary = p.accent, onPrimary = p.onAccent,
+            surface = p.panel, onSurface = p.text,
+            surfaceVariant = Color(0xFFDFDFDF), onSurfaceVariant = p.textMuted,
+            background = p.background, onBackground = p.text,
+            outline = Color(0xFF404040)
+        )
+    }
+
 @Composable
-fun ColorLinesApp(soundManager: SoundManager) {
-    val context = LocalContext.current
+fun BasilLinesApp(storage: GameStorage, soundManager: SoundManager) {
     val haptic = LocalHapticFeedback.current
-    val prefs = remember { context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE) }
 
-    var theme by remember {
-        val savedTheme = prefs.getString("theme", AppTheme.MODERN.name)
-        mutableStateOf(AppTheme.valueOf(savedTheme ?: AppTheme.MODERN.name))
-    }
-    var bestScore by remember {
-        mutableIntStateOf(prefs.getInt("best_score", 0))
-    }
-    var soundEnabled by remember {
-        mutableStateOf(soundManager.isEnabled)
+    var theme by remember { mutableStateOf(storage.theme) }
+    val engine = remember { storage.loadGame() ?: GameEngine() }
+    // The engine is a plain object Compose cannot observe: bump `version` after every change.
+    var version by remember { mutableIntStateOf(0) }
+    var history by remember { mutableStateOf(storage.history) }
+    var bestScore by remember { mutableIntStateOf(maxOf(storage.bestScore, GameStats.summarize(storage.history).bestScore)) }
+    var bestAtGameStart by remember { mutableIntStateOf(bestScore) }
+    var soundEnabled by remember { mutableStateOf(soundManager.isEnabled) }
+    var showHelp by remember { mutableStateOf(false) }
+    var showStats by remember { mutableStateOf(false) }
+
+    fun commit() {
+        version++
+        storage.saveGame(engine)
     }
 
-    val engine = remember { GameEngine() }
-    var tick by remember { mutableIntStateOf(0) }
-    var showGameOverDialog by remember { mutableStateOf(false) }
-    var showHelpDialog by remember { mutableStateOf(false) }
+    fun record(completed: Boolean) {
+        history = GameStats.addRecord(history, GameStats.recordFrom(engine, completed, System.currentTimeMillis()))
+        storage.history = history
+    }
 
-    fun refreshState() {
-        tick++
+    fun onCellTap(point: Point) {
+        if (engine.isGameOver) return
+        if (engine.board[point] != null) {
+            if (engine.selectedPoint == point) {
+                engine.unselect()
+            } else {
+                engine.selectCell(point)
+                soundManager.playSelect()
+                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            }
+            commit()
+            return
+        }
+        val from = engine.selectedPoint ?: return
+        val result = engine.moveBall(from, point)
+        if (!result.success) {
+            soundManager.playClick()
+            return
+        }
+        engine.unselect()
+        soundManager.playJump()
+        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        if (result.clearedPoints.isNotEmpty()) soundManager.playEat(result.pointsEarned)
         if (engine.score > bestScore) {
             bestScore = engine.score
-            prefs.edit().putInt("best_score", bestScore).apply()
+            storage.bestScore = bestScore
         }
-        if (engine.isGameOver) {
-            showGameOverDialog = true
+        if (result.isGameOver) {
             soundManager.playLose()
+            record(completed = true)
+        }
+        commit()
+    }
+
+    fun onNewGame() {
+        // Abandoning a game in progress still counts towards the history.
+        if (!engine.isGameOver && engine.moves > 0) record(completed = false)
+        engine.startNewGame()
+        bestAtGameStart = bestScore
+        soundManager.playClick()
+        commit()
+    }
+
+    fun onUndo() {
+        if (engine.undo()) {
+            soundManager.playClick()
+            commit()
         }
     }
 
-    val reachableCells = remember(engine.selectedPoint, tick) {
-        engine.getReachableCellsForSelected()
+    // Everything below reads plain values captured for this version, never the live engine.
+    val snapshot = remember(version) {
+        BoardSnapshot(
+            cells = List(BOARD_SIZE * BOARD_SIZE) { engine.board[it % BOARD_SIZE, it / BOARD_SIZE] },
+            selected = engine.selectedPoint,
+            reachable = engine.getReachableCellsForSelected()
+        )
     }
+    val score = remember(version) { engine.score }
+    val nextColors = remember(version) { engine.nextColors }
+    val canUndo = remember(version) { engine.canUndo }
+    val gameOver = remember(version) { engine.isGameOver }
 
-    val bgColor = if (theme == AppTheme.MODERN) Color(0xFF121217) else Color(0xFF008080)
-    val panelBg = if (theme == AppTheme.MODERN) Color(0xFF1E1E24) else Color(0xFFC0C0C0)
-    val textColor = if (theme == AppTheme.MODERN) Color.White else Color.Black
-
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = bgColor
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Header / HUD
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = if (theme == AppTheme.MODERN) RoundedCornerShape(16.dp) else RoundedCornerShape(0.dp),
-                colors = CardDefaults.cardColors(containerColor = panelBg),
-                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-            ) {
-                Column(
-                    modifier = Modifier.padding(14.dp),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    // Top row: Title and Stats
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Color Lines 98",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = textColor,
-                            fontFamily = if (theme == AppTheme.CLASSIC_98) FontFamily.Monospace else FontFamily.Default
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            StatBox(label = "Score", value = engine.score, theme = theme)
-                            StatBox(label = "Best", value = maxOf(engine.score, bestScore), theme = theme)
-                        }
-                    }
-
-                    // Bottom row: Next Preview and Actions
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Next Balls Preview
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier
-                                .background(
-                                    if (theme == AppTheme.MODERN) Color(0xFF141418) else Color(0xFF808080),
-                                    shape = RoundedCornerShape(8.dp)
-                                )
-                                .padding(horizontal = 8.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "Next:",
-                                fontSize = 12.sp,
-                                color = if (theme == AppTheme.MODERN) Color.LightGray else Color.White
-                            )
-                            engine.nextColors.forEach { color ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(16.dp)
-                                        .clip(CircleShape)
-                                        .background(getColorForBall(color))
-                                )
-                            }
-                        }
-
-                        // Action Controls
-                        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            // Undo
-                            FilledTonalButton(
-                                onClick = {
-                                    if (engine.undo()) {
-                                        soundManager.playClick()
-                                        refreshState()
-                                    }
-                                },
-                                enabled = engine.canUndo,
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("↶ Undo", fontSize = 12.sp)
-                            }
-
-                            // New Game
-                            FilledTonalButton(
-                                onClick = {
-                                    engine.startNewGame()
-                                    soundManager.playClick()
-                                    refreshState()
-                                },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("New", fontSize = 12.sp)
-                            }
-
-                            // Sound Toggle
-                            FilledTonalButton(
-                                onClick = {
-                                    soundEnabled = !soundEnabled
-                                    soundManager.isEnabled = soundEnabled
-                                },
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                            ) {
-                                Text(if (soundEnabled) "🔊" else "🔇", fontSize = 12.sp)
-                            }
-                        }
-                    }
+    val palette = paletteFor(theme)
+    MaterialTheme(colorScheme = colorScheme(theme, palette)) {
+        Box(Modifier.fillMaxSize().background(palette.background)) {
+            GameScreen(
+                palette = palette,
+                theme = theme,
+                score = score,
+                best = maxOf(score, bestScore),
+                nextColors = nextColors,
+                canUndo = canUndo,
+                soundEnabled = soundEnabled,
+                snapshot = snapshot,
+                onCellTap = ::onCellTap,
+                onUndo = ::onUndo,
+                onNewGame = ::onNewGame,
+                onStats = { showStats = true },
+                onHelp = { showHelp = true },
+                onToggleSound = {
+                    soundEnabled = !soundEnabled
+                    soundManager.isEnabled = soundEnabled
+                },
+                onTheme = {
+                    theme = it
+                    storage.theme = it
                 }
-            }
+            )
+        }
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // 9x9 Game Board
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .aspectRatio(1f)
-                    .clip(if (theme == AppTheme.MODERN) RoundedCornerShape(16.dp) else RoundedCornerShape(0.dp))
-                    .background(if (theme == AppTheme.MODERN) Color(0xFF1E1E24) else Color(0xFF808080))
-                    .padding(4.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                GameBoardCanvas(
-                    engine = engine,
-                    theme = theme,
-                    reachableCells = reachableCells,
-                    onCellTap = { point ->
-                        val currentBall = engine.board[point]
-                        if (currentBall != null) {
-                            engine.selectCell(point)
-                            soundManager.playSelect()
-                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
-                            refreshState()
-                        } else if (engine.selectedPoint != null) {
-                            val from = engine.selectedPoint!!
-                            val moveResult = engine.moveBall(from, point)
-                            if (moveResult.success) {
-                                engine.unselect()
-                                soundManager.playJump()
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-
-                                if (moveResult.clearedPoints.isNotEmpty()) {
-                                    soundManager.playEat(moveResult.pointsEarned)
-                                }
-                            } else {
-                                soundManager.playClick()
-                            }
-                            refreshState()
-                        }
-                    }
+        if (gameOver) {
+            GameOverDialog(
+                score = score,
+                best = maxOf(score, bestScore),
+                newRecord = GameStats.isNewRecord(score, bestAtGameStart),
+                onPlayAgain = ::onNewGame
+            )
+        } else {
+            if (showHelp) HelpDialog(onClose = { showHelp = false })
+            if (showStats) {
+                StatsDialog(
+                    history = history,
+                    onClear = {
+                        history = emptyList()
+                        storage.history = history
+                    },
+                    onClose = { showStats = false }
                 )
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Bottom bar: Theme Switcher & Rules
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = theme == AppTheme.MODERN,
-                        onClick = {
-                            theme = AppTheme.MODERN
-                            prefs.edit().putString("theme", theme.name).apply()
-                        },
-                        label = { Text("Modern") }
-                    )
-                    FilterChip(
-                        selected = theme == AppTheme.CLASSIC_98,
-                        onClick = {
-                            theme = AppTheme.CLASSIC_98
-                            prefs.edit().putString("theme", theme.name).apply()
-                        },
-                        label = { Text("Classic 98") }
-                    )
-                }
-
-                TextButton(onClick = { showHelpDialog = true }) {
-                    Text("Rules & Info", color = textColor)
-                }
             }
         }
-    }
-
-    // Game Over Dialog
-    if (showGameOverDialog) {
-        AlertDialog(
-            onDismissRequest = { showGameOverDialog = false },
-            title = { Text("Game Over!") },
-            text = {
-                Text("Final Score: ${engine.score}\nBest Score: $bestScore")
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        showGameOverDialog = false
-                        engine.startNewGame()
-                        refreshState()
-                    }
-                ) {
-                    Text("Play Again")
-                }
-            }
-        )
-    }
-
-    // Help Dialog
-    if (showHelpDialog) {
-        AlertDialog(
-            onDismissRequest = { showHelpDialog = false },
-            title = { Text("Color Lines 98 Rules") },
-            text = {
-                Text(
-                    "• Align 5 or more balls of the same color horizontally, vertically, or diagonally.\n\n" +
-                    "• Classic Gamos 1992 scoring:\n" +
-                    "  5 balls = 10 pts\n" +
-                    "  6 balls = 12 pts\n" +
-                    "  7 balls = 18 pts\n" +
-                    "  8 balls = 28 pts\n" +
-                    "  9 balls = 42 pts\n\n" +
-                    "• A ball can only move if an unobstructed path exists."
-                )
-            },
-            confirmButton = {
-                Button(onClick = { showHelpDialog = false }) {
-                    Text("Got it")
-                }
-            }
-        )
     }
 }
 
 @Composable
-fun StatBox(label: String, value: Int, theme: AppTheme) {
+private fun GameScreen(
+    palette: Palette,
+    theme: AppTheme,
+    score: Int,
+    best: Int,
+    nextColors: List<BallColor>,
+    canUndo: Boolean,
+    soundEnabled: Boolean,
+    snapshot: BoardSnapshot,
+    onCellTap: (Point) -> Unit,
+    onUndo: () -> Unit,
+    onNewGame: () -> Unit,
+    onStats: () -> Unit,
+    onHelp: () -> Unit,
+    onToggleSound: () -> Unit,
+    onTheme: (AppTheme) -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        val margin = 12.dp
+        if (maxWidth > maxHeight) {
+            // Landscape: board on the left, panel on the right.
+            val boardSize = minOf(maxHeight - margin * 2, maxWidth * 0.58f)
+            Row(
+                Modifier.fillMaxSize().padding(margin),
+                horizontalArrangement = Arrangement.spacedBy(margin),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize))
+                Column(
+                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(margin, Alignment.CenterVertically)
+                ) {
+                    HeaderCard(palette, theme, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onHelp, onToggleSound)
+                    ThemeSwitcher(theme, onTheme)
+                }
+            }
+        } else {
+            val boardSize = minOf(maxWidth - margin * 2, 560.dp, (maxHeight - 250.dp).coerceAtLeast(240.dp))
+            Column(
+                Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(margin),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(margin, Alignment.CenterVertically)
+            ) {
+                Box(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
+                    HeaderCard(palette, theme, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onHelp, onToggleSound)
+                }
+                BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize))
+                ThemeSwitcher(theme, onTheme)
+            }
+        }
+    }
+}
+
+@Composable
+private fun HeaderCard(
+    palette: Palette,
+    theme: AppTheme,
+    score: Int,
+    best: Int,
+    nextColors: List<BallColor>,
+    canUndo: Boolean,
+    soundEnabled: Boolean,
+    onUndo: () -> Unit,
+    onNewGame: () -> Unit,
+    onStats: () -> Unit,
+    onHelp: () -> Unit,
+    onToggleSound: () -> Unit
+) {
+    val shape = if (palette.square) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp)
+    val mono = if (theme == AppTheme.CLASSIC_98) FontFamily.Monospace else FontFamily.Default
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = palette.panel),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.app_name),
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = palette.text,
+                    fontFamily = mono,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                Spacer(Modifier.size(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatBox(stringResource(R.string.hud_score), score, palette, live = true)
+                    StatBox(stringResource(R.string.hud_best), best, palette)
+                }
+            }
+
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                NextPreview(palette, nextColors)
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+                    ActionButton(AppIcons.Refresh, stringResource(R.string.btn_new_game), onNewGame)
+                    ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)
+                    ActionButton(
+                        if (soundEnabled) AppIcons.VolumeUp else AppIcons.VolumeOff,
+                        stringResource(if (soundEnabled) R.string.btn_sound_off else R.string.btn_sound_on),
+                        onToggleSound
+                    )
+                    ActionButton(AppIcons.Help, stringResource(R.string.btn_help), onHelp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ActionButton(icon: ImageVector, description: String, onClick: () -> Unit, enabled: Boolean = true) {
+    FilledTonalIconButton(onClick = onClick, enabled = enabled, modifier = Modifier.size(44.dp)) {
+        Icon(icon, contentDescription = description, modifier = Modifier.size(22.dp))
+    }
+}
+
+@Composable
+private fun NextPreview(palette: Palette, colors: List<BallColor>) {
+    val names = colors.map { colorLabel(it) }.joinToString(", ")
+    val description = stringResource(R.string.next_label, names)
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(if (palette.square) 0.dp else 8.dp))
+            .background(palette.chip)
+            .padding(horizontal = 10.dp, vertical = 8.dp)
+            .semantics(mergeDescendants = true) { contentDescription = description },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Text(
+            stringResource(R.string.hud_next),
+            fontSize = 12.sp,
+            color = if (palette.square) Color.White else palette.textMuted
+        )
+        colors.forEach { color ->
+            Box(Modifier.size(16.dp).clip(CircleShape).background(ballColor(color)))
+        }
+    }
+}
+
+@Composable
+private fun StatBox(label: String, value: Int, palette: Palette, live: Boolean = false) {
+    val live = if (live) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier
     Column(
-        modifier = Modifier
-            .background(
-                if (theme == AppTheme.MODERN) Color(0xFF141418) else Color.Black,
-                shape = RoundedCornerShape(6.dp)
-            )
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+        Modifier
+            .clip(RoundedCornerShape(if (palette.square) 0.dp else 8.dp))
+            .background(if (palette.square) Color.Black else palette.chip)
+            .padding(horizontal = 12.dp, vertical = 6.dp)
+            .then(live),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Text(text = label, fontSize = 10.sp, color = Color.Gray)
+        Text(label, fontSize = 11.sp, color = if (palette.square) Color(0xFFB0B0B0) else palette.textMuted)
         Text(
-            text = value.toString(),
-            fontSize = 16.sp,
+            value.toString(),
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
-            color = if (theme == AppTheme.MODERN) Color(0xFF00E676) else Color.Red,
+            color = palette.statValue,
             fontFamily = FontFamily.Monospace
         )
     }
 }
 
 @Composable
-fun GameBoardCanvas(
-    engine: GameEngine,
-    theme: AppTheme,
-    reachableCells: Set<Point>,
-    onCellTap: (Point) -> Unit
-) {
-    val infiniteTransition = rememberInfiniteTransition(label = "selectionPulse")
-    val pulseScale by infiniteTransition.animateFloat(
-        initialValue = 0.88f,
-        targetValue = 1.05f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(450, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulseScale"
-    )
-
-    Canvas(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(Unit) {
-                detectTapGestures { offset ->
-                    val cellSize = size.width / 9f
-                    val col = (offset.x / cellSize).toInt().coerceIn(0, 8)
-                    val row = (offset.y / cellSize).toInt().coerceIn(0, 8)
-                    onCellTap(Point(col, row))
-                }
-            }
-    ) {
-        val boardSize = 9
-        val cellSize = size.width / boardSize
-        val cellPadding = 2f
-
-        for (row in 0 until boardSize) {
-            for (col in 0 until boardSize) {
-                val point = Point(col, row)
-                val left = col * cellSize + cellPadding
-                val top = row * cellSize + cellPadding
-                val cellWidth = cellSize - cellPadding * 2
-
-                // Draw cell background
-                val cellColor = if (theme == AppTheme.MODERN) {
-                    Color(0xFF2B2B36)
-                } else {
-                    Color(0xFFB0B0B0)
-                }
-                drawRect(
-                    color = cellColor,
-                    topLeft = Offset(left, top),
-                    size = androidx.compose.ui.geometry.Size(cellWidth, cellWidth)
-                )
-
-                // Draw reachable dot for empty cell
-                if (point in reachableCells && engine.board.isEmpty(point)) {
-                    drawCircle(
-                        color = if (theme == AppTheme.MODERN) Color(0xFF4FC3F7).copy(alpha = 0.6f) else Color(0xFF000080).copy(alpha = 0.5f),
-                        radius = cellWidth * 0.12f,
-                        center = Offset(left + cellWidth / 2f, top + cellWidth / 2f)
-                    )
-                }
-
-                // Draw ball if present
-                val ball = engine.board[point]
-                if (ball != null) {
-                    val isSelected = engine.selectedPoint == point
-                    val currentRadius = if (isSelected) {
-                        (cellWidth * 0.40f) * pulseScale
-                    } else {
-                        cellWidth * 0.40f
-                    }
-                    val centerX = left + cellWidth / 2f
-                    val centerY = top + cellWidth / 2f
-
-                    val baseColor = getColorForBall(ball)
-                    val highlightColor = Color.White.copy(alpha = 0.75f)
-
-                    // 3D sphere gradient
-                    val brush = Brush.radialGradient(
-                        colors = listOf(highlightColor, baseColor, baseColor.copy(alpha = 0.85f), Color.Black.copy(alpha = 0.4f)),
-                        center = Offset(centerX - currentRadius * 0.35f, centerY - currentRadius * 0.35f),
-                        radius = currentRadius * 1.3f
-                    )
-
-                    // Shadow underneath
-                    drawCircle(
-                        color = Color.Black.copy(alpha = 0.3f),
-                        radius = currentRadius * 0.95f,
-                        center = Offset(centerX, centerY + currentRadius * 0.15f)
-                    )
-
-                    // Ball sphere
-                    drawCircle(
-                        brush = brush,
-                        radius = currentRadius,
-                        center = Offset(centerX, centerY)
-                    )
-                }
-            }
-        }
-    }
-}
-
-fun getColorForBall(ball: BallColor): Color {
-    return when (ball) {
-        BallColor.RED -> Color(0xFFE53935)
-        BallColor.GREEN -> Color(0xFF43A047)
-        BallColor.BLUE -> Color(0xFF1E88E5)
-        BallColor.CYAN -> Color(0xFF00ACC1)
-        BallColor.MAGENTA -> Color(0xFF8E24AA)
-        BallColor.YELLOW -> Color(0xFFFDD835)
-        BallColor.BROWN -> Color(0xFF6D4C41)
+private fun ThemeSwitcher(theme: AppTheme, onTheme: (AppTheme) -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FilterChip(
+            selected = theme == AppTheme.MODERN,
+            onClick = { onTheme(AppTheme.MODERN) },
+            label = { Text(stringResource(R.string.theme_modern)) }
+        )
+        FilterChip(
+            selected = theme == AppTheme.CLASSIC_98,
+            onClick = { onTheme(AppTheme.CLASSIC_98) },
+            label = { Text(stringResource(R.string.theme_classic98)) }
+        )
     }
 }

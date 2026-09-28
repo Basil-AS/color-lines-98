@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- System bars are drawn edge-to-edge by the activity; the window colour avoids a white flash. -->
+    <style name="Theme.BasilLines" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/window_background</item>
+        <item name="android:colorBackground">@color/window_background</item>
+    </style>
+    <color name="window_background">#121217</color>
+</resources>
