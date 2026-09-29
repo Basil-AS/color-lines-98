@@ -408,3 +408,101 @@ describe('engine invariants over random games', () => {
     expect(engine.moveBall({ x: 3, y: 0 }, { x: 2, y: 0 }).success).toBe(false);
   });
 });
+
+describe('spawn preview (cells where the next balls will appear)', () => {
+  const key = (p: { x: number; y: number }) => `${p.x},${p.y}`;
+
+  it('plans three distinct empty cells for a new game', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(21));
+    expect(engine.nextSpawnPoints).toHaveLength(3);
+    expect(new Set(engine.nextSpawnPoints.map(key)).size).toBe(3);
+    for (const p of engine.nextSpawnPoints) expect(engine.board.isEmpty(p.x, p.y)).toBe(true);
+  });
+
+  it('spawns exactly where it announced', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(22));
+    engine.board.clear();
+    engine.board.set(0, 0, 'red');
+    // A full-board plan is needed after clear(): re-plan through a harmless move first.
+    engine.moveBall({ x: 0, y: 0 }, { x: 0, y: 1 });
+    const planned = engine.nextSpawnPoints.map((p) => ({ ...p }));
+    const colors = [...engine.nextColors];
+    const target = engine.board.getEmptyCells().find((c) => !planned.some((p) => key(p) === key(c)))!;
+    const from = findBall(engine);
+
+    const res = engine.moveBall(from, target);
+    expect(res.success).toBe(true);
+    if (res.clearedPoints.length === 0) {
+      expect(res.spawnedBalls.map((s) => key(s.point)).sort()).toEqual(planned.map(key).sort());
+      expect(res.spawnedBalls.map((s) => s.color).sort()).toEqual([...colors].sort());
+    }
+  });
+
+  it('relocates a planned cell that the player moves onto', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(23));
+    const from = findBall(engine);
+    const target = engine.nextSpawnPoints[0];
+    const res = engine.moveBall(from, target);
+    expect(res.success).toBe(true);
+    expect(res.spawnedBalls).toHaveLength(3);
+    expect(new Set(res.spawnedBalls.map((s) => key(s.point))).size).toBe(3);
+    expect(engine.board.get(target.x, target.y)).not.toBeNull();
+  });
+
+  it('keeps the preview valid after every move of random games', () => {
+    const rng = seededRng(24);
+    const engine = new GameEngine(9, 3, 5, 'gamos', rng);
+    for (let i = 0; i < 120 && !engine.isGameOver; i++) {
+      const balls: { x: number; y: number }[] = [];
+      for (let y = 0; y < 9; y++) for (let x = 0; x < 9; x++) if (engine.board.get(x, y)) balls.push({ x, y });
+      let moved = false;
+      for (const b of balls) {
+        engine.select(b);
+        const t = [...engine.getReachableCells()][0];
+        if (!t) continue;
+        const [tx, ty] = t.split(',').map(Number);
+        engine.moveBall(b, { x: tx, y: ty });
+        moved = true;
+        break;
+      }
+      if (!moved) break;
+      const empty = engine.board.getEmptyCells().length;
+      expect(engine.nextSpawnPoints).toHaveLength(Math.min(3, empty));
+      expect(new Set(engine.nextSpawnPoints.map(key)).size).toBe(engine.nextSpawnPoints.length);
+      for (const p of engine.nextSpawnPoints) expect(engine.board.isEmpty(p.x, p.y)).toBe(true);
+    }
+  });
+
+  it('restores the preview on undo and through saved state', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(25));
+    const before = JSON.stringify(engine.nextSpawnPoints);
+    const from = findBall(engine);
+    const target = engine.board.getEmptyCells().find(
+      (c) => !engine.nextSpawnPoints.some((p) => key(p) === key(c))
+    )!;
+    engine.moveBall(from, target);
+    engine.undo();
+    expect(JSON.stringify(engine.nextSpawnPoints)).toBe(before);
+
+    const restored = GameEngine.fromState(JSON.parse(JSON.stringify(engine.getState())));
+    expect(restored!.nextSpawnPoints).toEqual(engine.nextSpawnPoints);
+  });
+
+  it('re-plans when loading a legacy save without preview cells and rejects bad ones', () => {
+    const state = new GameEngine(9, 3, 5, 'gamos', seededRng(26)).getState();
+    const legacy: Record<string, unknown> = { ...state };
+    delete legacy.nextPoints;
+    const restored = GameEngine.fromState(legacy);
+    expect(restored!.nextSpawnPoints).toHaveLength(3);
+
+    const occupied = findBall(new GameEngine(9, 3, 5, 'gamos', seededRng(26)));
+    for (const bad of [
+      [{ x: 99, y: 0 }, { x: 1, y: 1 }, { x: 2, y: 2 }],
+      [{ x: 1, y: 1 }, { x: 1, y: 1 }, { x: 2, y: 2 }],
+      [occupied, { x: 1, y: 1 }, { x: 2, y: 2 }],
+      'nope',
+    ]) {
+      expect(GameEngine.fromState({ ...state, nextPoints: bad })).toBeNull();
+    }
+  });
+});

@@ -18,6 +18,7 @@ data class GameSnapshot(
     val board: Board,
     val score: Int,
     val nextColors: List<BallColor>,
+    val nextPoints: List<Point>,
     val moves: Int,
     val linesCleared: Int,
     val ballsCleared: Int
@@ -51,6 +52,10 @@ class GameEngine(
     var nextColors: List<BallColor> = emptyList()
         private set
 
+    /** Cells where the next balls will appear, so the UI can preview them. */
+    var nextSpawnPoints: List<Point> = emptyList()
+        private set
+
     private val undoStack = mutableListOf<GameSnapshot>()
 
     init {
@@ -80,6 +85,26 @@ class GameEngine(
 
         // Generate next turn prediction
         generateNextColors()
+        planSpawnPoints()
+    }
+
+    private fun planSpawnPoints() {
+        val empty = board.getEmptyCells().shuffled(random)
+        nextSpawnPoints = empty.take(minOf(ballsPerSpawn, empty.size))
+    }
+
+    /** Keeps the still-free planned cells and replaces those the player just occupied. */
+    private fun repairSpawnPlan() {
+        val kept = nextSpawnPoints.filter { board.isEmpty(it) }.toMutableList()
+        val empty = board.getEmptyCells()
+        val want = minOf(ballsPerSpawn, empty.size)
+        if (kept.size < want) {
+            for (c in empty.shuffled(random)) {
+                if (kept.size >= want) break
+                if (c !in kept) kept.add(c)
+            }
+        }
+        nextSpawnPoints = kept
     }
 
     private fun generateNextColors() {
@@ -136,6 +161,7 @@ class GameEngine(
         moves++
         board[from] = null
         board[to] = movingColor
+        repairSpawnPlan()
 
         // 1. Check if the moved ball completed a line
         val lineMatch = LineDetector.findLines(board, minLineLength, scoringSystem)
@@ -164,12 +190,11 @@ class GameEngine(
         }
 
         // 2. If no line was formed, spawn the next 3 balls
-        val emptyCells = board.getEmptyCells().shuffled(random)
         val spawned = mutableListOf<SpawnedBall>()
-        val spawnCount = minOf(nextColors.size, emptyCells.size)
+        val spawnCount = minOf(nextColors.size, nextSpawnPoints.size)
 
         for (i in 0 until spawnCount) {
-            val p = emptyCells[i]
+            val p = nextSpawnPoints[i]
             val color = nextColors[i]
             board[p] = color
             spawned.add(SpawnedBall(p, color))
@@ -194,8 +219,9 @@ class GameEngine(
             }
         }
 
-        // Generate next colors for the upcoming turn
+        // Generate next colors for the upcoming turn and where they will appear
         generateNextColors()
+        planSpawnPoints()
 
         // 4. Check for game over
         if (board.getEmptyCells().isEmpty()) {
@@ -221,6 +247,7 @@ class GameEngine(
                 board = board.copy(),
                 score = score,
                 nextColors = nextColors.toList(),
+                nextPoints = nextSpawnPoints.toList(),
                 moves = moves,
                 linesCleared = linesCleared,
                 ballsCleared = ballsCleared
@@ -244,6 +271,7 @@ class GameEngine(
         linesCleared = snapshot.linesCleared
         ballsCleared = snapshot.ballsCleared
         nextColors = snapshot.nextColors
+        nextSpawnPoints = snapshot.nextPoints
         selectedPoint = null
         isGameOver = false
         return true
@@ -257,6 +285,7 @@ class GameEngine(
         linesCleared: Int,
         ballsCleared: Int,
         nextColors: List<BallColor>,
+        nextPoints: List<Point>?,
         isGameOver: Boolean
     ) {
         require(cells.size == size * size) { "Expected ${size * size} cells" }
@@ -269,5 +298,6 @@ class GameEngine(
         this.isGameOver = isGameOver
         selectedPoint = null
         undoStack.clear()
+        if (nextPoints != null) nextSpawnPoints = nextPoints else planSpawnPoints()
     }
 }

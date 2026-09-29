@@ -63,7 +63,7 @@ class GameStateCodecTest {
             null,
             "",
             "garbage",
-            valid.replaceFirst("v1", "v2"),
+            valid.replaceFirst("v2", "v9"),
             valid.dropLast(1),                                    // board too short
             valid + "0",                                          // board too long
             valid.substring(0, valid.length - 1) + "9",           // unknown colour id
@@ -74,5 +74,27 @@ class GameStateCodecTest {
             parts.toMutableList().also { it[6] = "1,2,9" }.joinToString("|")
         )
         for (input in bad) assertNull("should reject: $input", GameStateCodec.decode(input))
+    }
+
+    @Test
+    fun readsTheLegacyV1FormatAndReplansThePreview() {
+        val v2 = GameStateCodec.encode(playedEngine(9)).split("|")
+        val v1 = (listOf("v1") + v2.subList(1, 7) + v2.last()).joinToString("|")
+        val restored = GameStateCodec.decode(v1)
+        assertNotNull(restored)
+        assertEquals(minOf(3, restored!!.board.getEmptyCells().size), restored.nextSpawnPoints.size)
+    }
+
+    @Test
+    fun previewSurvivesARoundTripAndBadPointsAreRejected() {
+        val engine = playedEngine(4)
+        assertEquals(engine.nextSpawnPoints, GameStateCodec.decode(GameStateCodec.encode(engine))!!.nextSpawnPoints)
+
+        val parts = GameStateCodec.encode(engine).split("|").toMutableList()
+        fun withPoints(value: String) = parts.toMutableList().also { it[7] = value }.joinToString("|")
+        val occupied = (0 until 81).first { engine.board[it % 9, it / 9] != null }
+        for (bad in listOf("99:0,1:1,2:2", "1:1,1:1,2:2", "${occupied % 9}:${occupied / 9},1:1,2:2", "1:1", "a:b,1:1,2:2")) {
+            assertNull("should reject points: $bad", GameStateCodec.decode(withPoints(bad)))
+        }
     }
 }
