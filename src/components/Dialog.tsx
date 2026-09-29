@@ -19,7 +19,7 @@ export function Dialog({ titleId, title, onClose, alert = false, children }: Dia
     const opener = document.activeElement as HTMLElement | null;
     const node = ref.current;
     const first = node?.querySelector<HTMLElement>('[data-autofocus]') ?? node;
-    first?.focus();
+    first?.focus({ preventScroll: true });
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !alert && onClose) {
