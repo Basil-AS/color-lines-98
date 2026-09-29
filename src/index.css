@@ -1,6 +1,5 @@
 /* Global reset only; the game's look lives in App.css. */
 :root {
-  color-scheme: dark;
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
 }
