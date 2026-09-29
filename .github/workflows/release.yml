@@ -25,21 +25,44 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: 'npm'
 
-      - name: Build Web Standalone Distribution
+      - name: Check that the tag matches the app versions
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          WEB="$(node -p "require('./package.json').version")"
+          ANDROID="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' android/app/build.gradle.kts)"
+          echo "tag=$VERSION web=$WEB android=$ANDROID"
+          test "$VERSION" = "$WEB" && test "$VERSION" = "$ANDROID"
+
+      - name: Build and test the web app
         run: |
           npm ci
+          npm run lint
+          npm run typecheck
+          npm test
           npm run build
-          cd dist && zip -r ../color-lines-web-standalone.zip . && cd ..
 
-      - name: Build Android Release APK
+      - name: Package the web app
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          (cd dist && zip -qr "../BasilLines-${VERSION}-web.zip" .)
+
+      - name: Test and build the Android app
         working-directory: android
-        run: ./gradlew assembleRelease
+        run: ./gradlew testDebugUnitTest assembleRelease
+
+      - name: Name the release files
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cp android/app/build/outputs/apk/release/app-release.apk "BasilLines-${VERSION}.apk"
+          ls -l BasilLines-*
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: Basil Lines ${{ github.ref_name }}
           files: |
-            color-lines-web-standalone.zip
-            android/app/build/outputs/apk/release/*.apk
+            BasilLines-*.apk
+            BasilLines-*-web.zip
           generate_release_notes: true
