@@ -16,6 +16,8 @@ interface SettingsDialogProps {
   onToggleSound: () => void;
   spawnPreview: boolean;
   onTogglePreview: () => void;
+  playerName: string;
+  onPlayerName: (name: string) => void;
   onClose: () => void;
 }
 
@@ -79,6 +81,17 @@ export function SettingsDialog(props: SettingsDialogProps) {
             role="switch"
             checked={props.spawnPreview}
             onChange={props.onTogglePreview}
+          />
+        </label>
+
+        <label className="settings-row">
+          <span>{t('settings.playerName')}</span>
+          <input
+            type="text"
+            className="settings-text"
+            value={props.playerName}
+            maxLength={12}
+            onChange={(e) => props.onPlayerName(e.target.value)}
           />
         </label>
       </div>

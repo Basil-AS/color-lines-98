@@ -174,6 +174,16 @@ const en = {
   'plural.days_many': '{n} days',
   'plural.days_other': '{n} days',
 
+  'dos.help': 'Help',
+  'dos.sound': 'Sound',
+  'dos.next': 'Show next balls',
+  'dos.restart': 'Restart',
+  'dos.topTen': 'Top Ten',
+  'dos.pretender': 'Pretender',
+  'dos.king': 'King',
+  'dos.defaultName': 'Player',
+  'settings.playerName': 'Your name (Top Ten)',
+
   'plural.moves_one': '{n} move',
   'plural.moves_few': '{n} moves',
   'plural.moves_many': '{n} moves',
@@ -360,6 +370,16 @@ const ru: Dictionary = {
   'plural.days_few': '{n} дня',
   'plural.days_many': '{n} дней',
   'plural.days_other': '{n} дня',
+
+  'dos.help': 'Помощь',
+  'dos.sound': 'Звук',
+  'dos.next': 'Показывать следующие шары',
+  'dos.restart': 'Заново',
+  'dos.topTen': 'Десятка лучших',
+  'dos.pretender': 'Pretender',
+  'dos.king': 'King',
+  'dos.defaultName': 'Игрок',
+  'settings.playerName': 'Ваше имя (десятка лучших)',
 
   'plural.moves_one': '{n} ход',
   'plural.moves_few': '{n} хода',

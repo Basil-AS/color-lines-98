@@ -1,4 +1,6 @@
 import { GameEngine } from './engine/gameengine';
+import { sanitizeHall } from './dos/hall';
+import type { HallEntry } from './dos/hall';
 import { sanitizeProgress } from './progress';
 import type { Progress } from './progress';
 import { sanitizeHistory } from './stats';
@@ -17,6 +19,9 @@ const HISTORY_KEY = 'colorlines_history';
 const LANG_KEY = 'colorlines_lang';
 const PROGRESS_KEY = 'colorlines_progress';
 const PREVIEW_KEY = 'colorlines_spawn_preview';
+const HALL_KEY = 'colorlines_hall';
+const NAME_KEY = 'colorlines_player_name';
+const NEXT_KEY = 'colorlines_show_next';
 
 export const LANGUAGE_PREFS = ['auto', 'en', 'ru'] as const;
 export type LanguagePref = (typeof LANGUAGE_PREFS)[number];
@@ -132,11 +137,51 @@ export function clearProgress(): void {
   }
 }
 
-/** Show small balls on the board where the next balls will appear. On by default. */
-export function loadSpawnPreview(): boolean {
-  return read(PREVIEW_KEY) !== 'false';
+/** The player's explicit choice for marking the spawn cells, or null to use the theme default. */
+export function loadSpawnPreview(): boolean | null {
+  const raw = read(PREVIEW_KEY);
+  return raw === 'true' ? true : raw === 'false' ? false : null;
 }
 
 export function saveSpawnPreview(enabled: boolean): void {
   write(PREVIEW_KEY, String(enabled));
+}
+
+export function loadHall(): HallEntry[] {
+  const raw = read(HALL_KEY);
+  if (raw === null) return [];
+  try {
+    return sanitizeHall(JSON.parse(raw));
+  } catch {
+    return [];
+  }
+}
+
+export function saveHall(hall: readonly HallEntry[]): void {
+  write(HALL_KEY, JSON.stringify(hall));
+}
+
+export function clearHall(): void {
+  try {
+    localStorage.removeItem(HALL_KEY);
+  } catch {
+    // See note above.
+  }
+}
+
+export function loadPlayerName(): string {
+  return (read(NAME_KEY) ?? '').slice(0, 12);
+}
+
+export function savePlayerName(name: string): void {
+  write(NAME_KEY, name.slice(0, 12));
+}
+
+/** F3 "NEXT" of the 1992 screen: show the upcoming colours. On by default. */
+export function loadShowNext(): boolean {
+  return read(NEXT_KEY) !== 'false';
+}
+
+export function saveShowNext(show: boolean): void {
+  write(NEXT_KEY, String(show));
 }

@@ -7,6 +7,7 @@ import {
   HelpCircle,
   RotateCcw,
   Settings,
+  Trophy,
   Undo2,
   Volume2,
   VolumeX,
@@ -29,6 +30,9 @@ import {
   loadHistory,
   loadLanguagePref,
   loadProgress,
+  loadHall,
+  loadPlayerName,
+  loadShowNext,
   loadSpawnPreview,
   loadTheme,
   saveBestScore,
@@ -36,6 +40,9 @@ import {
   saveHistory,
   saveLanguagePref,
   saveProgress,
+  saveHall,
+  savePlayerName,
+  saveShowNext,
   saveSpawnPreview,
   saveTheme,
 } from './storage';
@@ -44,7 +51,11 @@ import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { soundProfile } from './themes';
+import { defaultSpawnPreview, soundProfile } from './themes';
+import { DosScreen } from './dos/DosScreen';
+import type { DosWindow } from './dos/DosScreen';
+import type { Effect } from './dos/scene';
+import { insertScore, kingOf } from './dos/hall';
 import { GameOverDialog } from './components/GameOverDialog';
 import { HelpDialog } from './components/HelpDialog';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -64,6 +75,7 @@ function browserLanguages(): readonly string[] {
 }
 
 const clock = (): number => Date.now();
+const perfNow = (): number => performance.now();
 
 function applyDocumentLanguage(lang: Language): void {
   document.documentElement.lang = lang;
@@ -119,7 +131,16 @@ export default function App() {
     // Saves made before profiles existed: rebuild the profile from the recorded games.
     return saved.totalGames === 0 && past.length > 0 ? rebuildProgress(past) : saved;
   });
-  const [spawnPreview, setSpawnPreview] = useState(loadSpawnPreview);
+  const [spawnStored, setSpawnStored] = useState<boolean | null>(loadSpawnPreview);
+  const spawnPreview = spawnStored ?? defaultSpawnPreview(theme);
+  const [hall, setHall] = useState(loadHall);
+  const [showNext, setShowNext] = useState(loadShowNext);
+  const [dosWindow, setDosWindow] = useState<DosWindow>('none');
+  const [effects, setEffects] = useState<Effect[]>([]);
+  const [coronationStart, setCoronationStart] = useState<number | null>(() =>
+    engine.score > kingOf(loadHall()).score ? -1e9 : null
+  );
+  const [playerName, setPlayerName] = useState(loadPlayerName);
   const [lastResult, setLastResult] = useState<{ xp: number; levelUp: number | null; unlocked: string[] }>({
     xp: 0,
     levelUp: null,
@@ -159,6 +180,11 @@ export default function App() {
     saveHistory(nextHistory);
     setProgress(applied.progress);
     saveProgress(applied.progress);
+    if (completed) {
+      const nextHall = insertScore(hall, { name: playerName || t('dos.defaultName'), score: record.score, at: record.endedAt });
+      setHall(nextHall);
+      saveHall(nextHall);
+    }
     const before = levelInfo(xpOf(progress)).level;
     const after = levelInfo(xpOf(applied.progress)).level;
     setLastResult({
@@ -182,11 +208,21 @@ export default function App() {
     setSoundEnabled(soundManager.toggle());
   };
 
+  const changePlayerName = (name: string) => {
+    setPlayerName(name.slice(0, 12));
+    savePlayerName(name);
+  };
+
   const togglePreview = () => {
-    setSpawnPreview((on) => {
-      saveSpawnPreview(!on);
-      return !on;
-    });
+    const next = !spawnPreview;
+    setSpawnStored(next);
+    saveSpawnPreview(next);
+  };
+
+  const toggleNext = () => {
+    const next = !showNext;
+    setShowNext(next);
+    saveShowNext(next);
   };
 
   const handleCellClick = (x: number, y: number) => {
@@ -209,7 +245,9 @@ export default function App() {
 
     if (!engine.selectedPoint) return;
 
-    const res = engine.moveBall(engine.selectedPoint, clickedPoint);
+    const from = engine.selectedPoint;
+    const before = engine.board.copy();
+    const res = engine.moveBall(from, clickedPoint);
     if (!res.success) {
       soundManager.playClick();
       setAnnouncement(t('announce.noPath'));
@@ -218,6 +256,25 @@ export default function App() {
 
     engine.unselect();
     soundManager.playJump();
+
+    // Remember what appeared and what burst, so the 1992 screen can animate it.
+    const start = perfNow();
+    const movedColor = before.get(from.x, from.y);
+    const fx: Effect[] = res.spawnedBalls.map((s) => ({
+      kind: 'spawn',
+      x: s.point.x,
+      y: s.point.y,
+      color: s.color,
+      start,
+    }));
+    for (const p of res.clearedPoints) {
+      const color = pointsEqual(p, clickedPoint)
+        ? movedColor
+        : (before.get(p.x, p.y) ?? res.spawnedBalls.find((s) => pointsEqual(s.point, p))?.color ?? null);
+      if (color) fx.push({ kind: 'burst', x: p.x, y: p.y, color, start });
+    }
+    setEffects(fx);
+    if (engine.score > kingOf(hall).score && coronationStart === null) setCoronationStart(start);
 
     if (res.clearedPoints.length > 0) {
       soundManager.playEat(res.pointsEarned);
@@ -272,6 +329,8 @@ export default function App() {
     if (!engine.isGameOver && engine.moves > 0) recordGame(false);
     engine.startNewGame();
     lastActionAt.current = 0;
+    setEffects([]);
+    setCoronationStart(null);
     setBestAtGameStart(bestScore);
     soundManager.playClick();
     setAnnouncement(t('announce.newGame'));
@@ -295,6 +354,28 @@ export default function App() {
   useEffect(() => {
     applyDocumentTheme(theme);
   }, [theme]);
+
+  const dos = theme === 'colorlines92';
+
+  // The original keys: F1 help, F2 sound, F3 next, F4 restart.
+  useEffect(() => {
+    if (!dos) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (dialog !== null || engine.isGameOver) return;
+      const action: Record<string, () => void> = {
+        F1: () => setDosWindow((w) => (w === 'help' ? 'none' : 'help')),
+        F2: toggleSound,
+        F3: toggleNext,
+        F4: handleNewGame,
+      };
+      const run = action[e.key];
+      if (!run) return;
+      e.preventDefault();
+      run();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
 
   useEffect(() => {
     soundManager.setProfile(soundProfile(theme));
@@ -330,6 +411,151 @@ export default function App() {
       }`,
     });
   const sprites = theme === 'lines98';
+
+  const cellButtons = (visual: boolean) =>
+    Array.from({ length: BOARD_SIZE }).map((_, y) =>
+      Array.from({ length: BOARD_SIZE }).map((_, x) => {
+        const color = engine.board.get(x, y);
+        const isSelected = engine.selectedPoint?.x === x && engine.selectedPoint?.y === y;
+        const isReachable = !color && reachableCells.has(`${x},${y}`);
+        const coming = color ? undefined : incoming.get(`${x},${y}`);
+        const isFocusStop = focusCell.x === x && focusCell.y === y;
+
+        return (
+          <button
+            type="button"
+            key={`${x}-${y}`}
+            ref={(el) => {
+              cellRefs.current[y * BOARD_SIZE + x] = el;
+            }}
+            tabIndex={isFocusStop ? 0 : -1}
+            aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
+            aria-pressed={color ? isSelected : undefined}
+            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''}`}
+            onClick={() => handleCellClick(x, y)}
+            onKeyDown={(e) => handleCellKeyDown(e, x, y)}
+          >
+            {visual && color && (
+              <div
+                aria-hidden="true"
+                className={`ball ${isSelected ? 'selected-ball' : ''} ${ballThemeClass(
+                  theme
+                )} color-${color}`}
+              >
+                {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
+              </div>
+            )}
+            {visual && coming && (
+              <div
+                aria-hidden="true"
+                className={`ball ball-preview ${ballThemeClass(theme)} color-${coming}`}
+              >
+                {sprites && <img src={getSpriteUrl(coming)} alt="" className="ball-classic" />}
+              </div>
+            )}
+          </button>
+        );
+      })
+    );
+
+  const dialogs = (
+    <>
+      {engine.isGameOver && (
+        <GameOverDialog
+          lang={lang}
+          score={engine.score}
+          best={Math.max(engine.score, bestScore)}
+          newRecord={newRecord}
+          xpGained={lastResult.xp}
+          levelUp={lastResult.levelUp}
+          unlocked={lastResult.unlocked}
+          onPlayAgain={handleNewGame}
+        />
+      )}
+      {!engine.isGameOver && dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
+      {!engine.isGameOver && dialog === 'stats' && (
+        <StatsDialog
+          lang={lang}
+          history={history}
+          progress={progress}
+          now={statsNow}
+          onClear={handleClearHistory}
+          onClose={closeDialog}
+        />
+      )}
+      {!engine.isGameOver && dialog === 'settings' && (
+        <SettingsDialog
+          lang={lang}
+          theme={theme}
+          onTheme={changeTheme}
+          langPref={langPref}
+          onLangPref={changeLanguage}
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
+          spawnPreview={spawnPreview}
+          onTogglePreview={togglePreview}
+          playerName={playerName}
+          onPlayerName={changePlayerName}
+          onClose={closeDialog}
+        />
+      )}
+    </>
+  );
+
+  const dosView = (
+    <div className="game-window dos-window">
+      <div className="sr-only" role="status" aria-live="polite">
+        {announcement}
+      </div>
+      <DosScreen
+        state={{
+          cells: Array.from({ length: 81 }, (_, i) => engine.board.get(i % 9, Math.floor(i / 9))),
+          selected: engine.selectedPoint,
+          next: engine.nextColors,
+          showNext,
+          score: engine.score,
+          kingScore: coronationStart !== null ? engine.score : kingOf(hall).score,
+          soundOn: soundEnabled,
+          effects,
+          coronationStart,
+        }}
+        kingName={coronationStart !== null ? playerName || t('dos.defaultName') : kingOf(hall).name}
+        pretenderName={coronationStart !== null ? t('dos.king') : t('dos.pretender')}
+        window={dosWindow}
+        hall={hall}
+        labels={{ help: t('dos.help'), sound: t('dos.sound'), next: t('dos.next'), restart: t('dos.restart') }}
+        onButton={(id) => {
+          if (id === 'help') setDosWindow((w) => (w === 'help' ? 'none' : 'help'));
+          else if (id === 'sound') toggleSound();
+          else if (id === 'next') toggleNext();
+          else handleNewGame();
+        }}
+        onCloseWindow={() => setDosWindow('none')}
+      >
+        <div className="dos-grid" role="group" aria-label={t('board.label')}>
+          {cellButtons(false)}
+        </div>
+      </DosScreen>
+      <div className="dos-tools">
+        <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={!engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
+          <Undo2 size={20} aria-hidden="true" />
+        </button>
+        <button type="button" className="ctrl-btn" onClick={() => setDosWindow((w) => (w === 'top10' ? 'none' : 'top10'))} title={t('dos.topTen')} aria-label={t('dos.topTen')} aria-pressed={dosWindow === 'top10'}>
+          <Trophy size={20} aria-hidden="true" />
+        </button>
+        <button type="button" className="ctrl-btn" onClick={openStats} title={t('btn.stats')} aria-label={t('btn.stats')}>
+          <BarChart3 size={20} aria-hidden="true" />
+        </button>
+        <button type="button" className="ctrl-btn" onClick={() => setDialog('settings')} title={t('btn.settings')} aria-label={t('btn.settings')}>
+          <Settings size={20} aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+
+  if (dos) {
+    return <div className={`app-container theme-${theme}`}>{dosView}{dialogs}</div>;
+  }
 
   return (
     <div className={`app-container theme-${theme}`}>
@@ -472,50 +698,7 @@ export default function App() {
 
         <main className="board-container">
           <div className="board-grid" role="group" aria-label={t('board.label')}>
-            {Array.from({ length: BOARD_SIZE }).map((_, y) =>
-              Array.from({ length: BOARD_SIZE }).map((_, x) => {
-                const color = engine.board.get(x, y);
-                const isSelected = engine.selectedPoint?.x === x && engine.selectedPoint?.y === y;
-                const isReachable = !color && reachableCells.has(`${x},${y}`);
-                const coming = color ? undefined : incoming.get(`${x},${y}`);
-                const isFocusStop = focusCell.x === x && focusCell.y === y;
-
-                return (
-                  <button
-                    type="button"
-                    key={`${x}-${y}`}
-                    ref={(el) => {
-                      cellRefs.current[y * BOARD_SIZE + x] = el;
-                    }}
-                    tabIndex={isFocusStop ? 0 : -1}
-                    aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
-                    aria-pressed={color ? isSelected : undefined}
-                    className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''}`}
-                    onClick={() => handleCellClick(x, y)}
-                    onKeyDown={(e) => handleCellKeyDown(e, x, y)}
-                  >
-                    {color && (
-                      <div
-                        aria-hidden="true"
-                        className={`ball ${isSelected ? 'selected-ball' : ''} ${ballThemeClass(
-                          theme
-                        )} color-${color}`}
-                      >
-                        {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
-                      </div>
-                    )}
-                    {coming && (
-                      <div
-                        aria-hidden="true"
-                        className={`ball ball-preview ${ballThemeClass(theme)} color-${coming}`}
-                      >
-                        {sprites && <img src={getSpriteUrl(coming)} alt="" className="ball-classic" />}
-                      </div>
-                    )}
-                  </button>
-                );
-              })
-            )}
+            {cellButtons(true)}
           </div>
         </main>
 
@@ -549,43 +732,7 @@ export default function App() {
         </footer>
       </div>
 
-      {engine.isGameOver && (
-        <GameOverDialog
-          lang={lang}
-          score={engine.score}
-          best={Math.max(engine.score, bestScore)}
-          newRecord={newRecord}
-          xpGained={lastResult.xp}
-          levelUp={lastResult.levelUp}
-          unlocked={lastResult.unlocked}
-          onPlayAgain={handleNewGame}
-        />
-      )}
-      {!engine.isGameOver && dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
-      {!engine.isGameOver && dialog === 'stats' && (
-        <StatsDialog
-          lang={lang}
-          history={history}
-          progress={progress}
-          now={statsNow}
-          onClear={handleClearHistory}
-          onClose={closeDialog}
-        />
-      )}
-      {!engine.isGameOver && dialog === 'settings' && (
-        <SettingsDialog
-          lang={lang}
-          theme={theme}
-          onTheme={changeTheme}
-          langPref={langPref}
-          onLangPref={changeLanguage}
-          soundEnabled={soundEnabled}
-          onToggleSound={toggleSound}
-          spawnPreview={spawnPreview}
-          onTogglePreview={togglePreview}
-          onClose={closeDialog}
-        />
-      )}
+      {dialogs}
     </div>
   );
 }

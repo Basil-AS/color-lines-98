@@ -26,3 +26,8 @@ export function soundProfile(theme: Theme): SoundProfile {
 export function isRetroTheme(theme: Theme): boolean {
   return theme === 'lines98' || theme === 'colorlines92';
 }
+
+/** The originals only show the next colours in a panel, so marking the spawn cells is off there. */
+export function defaultSpawnPreview(theme: Theme): boolean {
+  return !isRetroTheme(theme);
+}

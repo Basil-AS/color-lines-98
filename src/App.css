@@ -1284,3 +1284,100 @@ input[role='switch']:focus-visible {
     max-width: 640px;
   }
 }
+
+/* ==========================================================================
+   Color Lines 1992: the original 640x350 screen, drawn on a canvas and shown 4:3 like DOSBox does.
+   ========================================================================== */
+.dos-window {
+  max-width: min(100%, 960px, calc((100dvh - 96px) * 4 / 3));
+  background: #000000;
+  border: 0;
+  border-radius: 0;
+  box-shadow: 0 0 0 4px #000000;
+  outline: 0;
+}
+
+.dos-screen {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: #000000;
+}
+
+.dos-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+.dos-board-overlay {
+  position: absolute;
+}
+
+.dos-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  grid-template-rows: repeat(9, 1fr);
+  width: 100%;
+  height: 100%;
+}
+
+.dos-grid .board-cell,
+.theme-colorlines92 .dos-grid .board-cell {
+  aspect-ratio: auto;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.dos-grid .board-cell.selected {
+  outline: 2px solid #ffff55;
+  box-shadow: none;
+}
+
+.dos-grid .board-cell.reachable::after {
+  display: none;
+}
+
+.dos-button,
+.dos-window-close {
+  position: absolute;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dos-button:focus-visible,
+.dos-window-close:focus-visible {
+  outline: 3px solid #ffb300;
+}
+
+.dos-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  background: #000000;
+}
+
+.settings-text {
+  min-height: 40px;
+  width: 9.5em;
+  padding: 6px 10px;
+  font: inherit;
+  color: var(--text-main);
+  background: var(--input-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+.dos-board-overlay[hidden] {
+  display: none;
+}
