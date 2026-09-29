@@ -15,6 +15,7 @@ import {
   xpOf,
 } from '../progress';
 import type { Progress } from '../progress';
+import { InsightsPanel } from './InsightsPanel';
 import { summarize } from '../stats';
 import type { GameRecord } from '../stats';
 
@@ -101,6 +102,8 @@ export function StatsDialog({ lang, history, progress, now, onClear, onClose }: 
           </div>
         ))}
       </dl>
+
+      <InsightsPanel lang={lang} history={history} progress={progress} now={now} />
 
       <h3 className="stats-subtitle">{t('stats.trend')}</h3>
       {history.length < 2 ? (
