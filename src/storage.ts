@@ -1,4 +1,6 @@
 import { GameEngine } from './engine/gameengine';
+import { sanitizeProgress } from './progress';
+import type { Progress } from './progress';
 import { sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 
@@ -10,6 +12,8 @@ const BEST_KEY = 'colorlines_best_score';
 const GAME_KEY = 'colorlines_game';
 const HISTORY_KEY = 'colorlines_history';
 const LANG_KEY = 'colorlines_lang';
+const PROGRESS_KEY = 'colorlines_progress';
+const PREVIEW_KEY = 'colorlines_spawn_preview';
 
 export const LANGUAGE_PREFS = ['auto', 'en', 'ru'] as const;
 export type LanguagePref = (typeof LANGUAGE_PREFS)[number];
@@ -102,4 +106,35 @@ export function loadLanguagePref(): LanguagePref {
 
 export function saveLanguagePref(pref: LanguagePref): void {
   write(LANG_KEY, pref);
+}
+
+export function loadProgress(): Progress {
+  const raw = read(PROGRESS_KEY);
+  if (raw === null) return sanitizeProgress(null);
+  try {
+    return sanitizeProgress(JSON.parse(raw));
+  } catch {
+    return sanitizeProgress(null);
+  }
+}
+
+export function saveProgress(progress: Progress): void {
+  write(PROGRESS_KEY, JSON.stringify(progress));
+}
+
+export function clearProgress(): void {
+  try {
+    localStorage.removeItem(PROGRESS_KEY);
+  } catch {
+    // See note above.
+  }
+}
+
+/** Show small balls on the board where the next balls will appear. On by default. */
+export function loadSpawnPreview(): boolean {
+  return read(PREVIEW_KEY) !== 'false';
+}
+
+export function saveSpawnPreview(enabled: boolean): void {
+  write(PREVIEW_KEY, String(enabled));
 }

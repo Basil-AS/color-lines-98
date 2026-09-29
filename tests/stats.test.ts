@@ -15,6 +15,8 @@ const rec = (score: number, over: Partial<GameRecord> = {}): GameRecord => ({
   lines: 1,
   balls: 5,
   completed: true,
+  maxLine: 5,
+  durationMs: 60_000,
   ...over,
 });
 
@@ -92,8 +94,14 @@ describe('sanitizeHistory', () => {
       { ...good, endedAt: 'yesterday' },
       { ...good, completed: 'yes' },
       { score: 5 },
+      { ...good, maxLine: -2 },
     ]);
     expect(out).toEqual([good]);
+  });
+
+  it('accepts older records without maxLine and durationMs', () => {
+    const { maxLine: _m, durationMs: _d, ...old } = rec(7);
+    expect(sanitizeHistory([old])).toEqual([{ ...old, maxLine: 0, durationMs: 0 }]);
   });
 
   it('caps the length', () => {

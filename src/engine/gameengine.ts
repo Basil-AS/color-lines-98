@@ -36,6 +36,8 @@ export interface GameState {
   moves?: number;
   linesCleared?: number;
   ballsCleared?: number;
+  maxLine?: number;
+  playMs?: number;
 }
 
 interface GameSnapshot {
@@ -46,6 +48,7 @@ interface GameSnapshot {
   moves: number;
   linesCleared: number;
   ballsCleared: number;
+  maxLine: number;
 }
 
 export class GameEngine {
@@ -60,6 +63,10 @@ export class GameEngine {
   moves: number = 0;
   linesCleared: number = 0;
   ballsCleared: number = 0;
+  /** Length of the longest line cleared in this game. */
+  maxLine: number = 0;
+  /** Active play time in milliseconds, reported by the UI through addPlayTime. */
+  playMs: number = 0;
   isGameOver: boolean = false;
   selectedPoint: Point | null = null;
   nextColors: BallColor[] = [];
@@ -90,6 +97,8 @@ export class GameEngine {
     this.moves = 0;
     this.linesCleared = 0;
     this.ballsCleared = 0;
+    this.maxLine = 0;
+    this.playMs = 0;
     this.isGameOver = false;
     this.selectedPoint = null;
     this.undoStack = [];
@@ -164,7 +173,9 @@ export class GameEngine {
       isGameOver: this.isGameOver,
       moves: this.moves,
       linesCleared: this.linesCleared,
-      ballsCleared: this.ballsCleared
+      ballsCleared: this.ballsCleared,
+      maxLine: this.maxLine,
+      playMs: this.playMs
     };
   }
 
@@ -187,7 +198,10 @@ export class GameEngine {
     const moves = counter(s.moves);
     const linesCleared = counter(s.linesCleared);
     const ballsCleared = counter(s.ballsCleared);
+    const maxLine = counter(s.maxLine);
+    const playMs = counter(s.playMs);
     if (moves === null || linesCleared === null || ballsCleared === null) return null;
+    if (maxLine === null || playMs === null) return null;
 
     const engine = new GameEngine(s.size, 3, 5, 'gamos', rng);
     if (!Array.isArray(s.nextColors) || s.nextColors.length !== engine.ballsPerSpawn) return null;
@@ -220,6 +234,8 @@ export class GameEngine {
     engine.moves = moves;
     engine.linesCleared = linesCleared;
     engine.ballsCleared = ballsCleared;
+    engine.maxLine = maxLine;
+    engine.playMs = playMs;
     engine.undoStack = [];
     if (nextPoints) engine.nextSpawnPoints = nextPoints;
     else engine.planSpawnPoints();
@@ -300,6 +316,7 @@ export class GameEngine {
       this.score += match.score;
       this.linesCleared += match.lines.length;
       this.ballsCleared += match.matchedPoints.length;
+      this.noteLongestLine(match.lines);
       if (this.score > this.bestScore) {
         this.bestScore = this.score;
       }
@@ -336,6 +353,7 @@ export class GameEngine {
       this.score += postScore;
       this.linesCleared += postMatch.lines.length;
       this.ballsCleared += postMatch.matchedPoints.length;
+      this.noteLongestLine(postMatch.lines);
       if (this.score > this.bestScore) {
         this.bestScore = this.score;
       }
@@ -359,6 +377,15 @@ export class GameEngine {
     };
   }
 
+  private noteLongestLine(lines: Point[][]): void {
+    for (const line of lines) this.maxLine = Math.max(this.maxLine, line.length);
+  }
+
+  /** Adds active play time; negative or non-finite values are ignored. */
+  addPlayTime(ms: number): void {
+    if (Number.isFinite(ms) && ms > 0) this.playMs += Math.round(ms);
+  }
+
   private saveUndoSnapshot(): void {
     if (this.undoStack.length >= 20) {
       this.undoStack.shift();
@@ -370,7 +397,8 @@ export class GameEngine {
       nextPoints: this.nextSpawnPoints.map((p) => ({ ...p })),
       moves: this.moves,
       linesCleared: this.linesCleared,
-      ballsCleared: this.ballsCleared
+      ballsCleared: this.ballsCleared,
+      maxLine: this.maxLine
     });
   }
 
@@ -386,6 +414,7 @@ export class GameEngine {
     this.moves = snap.moves;
     this.linesCleared = snap.linesCleared;
     this.ballsCleared = snap.ballsCleared;
+    this.maxLine = snap.maxLine;
     this.nextColors = [...snap.nextColors];
     this.nextSpawnPoints = snap.nextPoints.map((p) => ({ ...p }));
     this.selectedPoint = null;

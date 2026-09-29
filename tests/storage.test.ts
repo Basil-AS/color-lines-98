@@ -3,15 +3,20 @@ import { GameEngine } from '../src/engine/gameengine';
 import {
   clearGame,
   clearHistory,
+  clearProgress,
   loadBestScore,
   loadGame,
   loadHistory,
   loadLanguagePref,
+  loadProgress,
+  loadSpawnPreview,
   loadTheme,
   saveBestScore,
   saveGame,
   saveHistory,
   saveLanguagePref,
+  saveProgress,
+  saveSpawnPreview,
   saveTheme,
 } from '../src/storage';
 
@@ -88,7 +93,7 @@ describe('unavailable storage', () => {
 });
 
 describe('history storage', () => {
-  const record = { score: 42, endedAt: 1_700_000_000_000, moves: 9, lines: 2, balls: 10, completed: true };
+  const record = { score: 42, endedAt: 1_700_000_000_000, moves: 9, lines: 2, balls: 10, completed: true, maxLine: 5, durationMs: 90_000 };
 
   it('is empty by default and after corrupt data', () => {
     expect(loadHistory()).toEqual([]);
@@ -124,5 +129,45 @@ describe('language preference', () => {
   it('round-trips', () => {
     saveLanguagePref('ru');
     expect(loadLanguagePref()).toBe('ru');
+  });
+});
+
+describe('progress storage', () => {
+  it('starts empty, round-trips, clears and survives corrupt data', async () => {
+    const { applyGame, emptyProgress } = await import('../src/progress');
+    expect(loadProgress()).toEqual(emptyProgress());
+    const played = applyGame(emptyProgress(), {
+      score: 60, endedAt: new Date(2026, 8, 29, 12).getTime(), moves: 20, lines: 2, balls: 10,
+      completed: true, maxLine: 5, durationMs: 1000,
+    }).progress;
+    saveProgress(played);
+    expect(loadProgress()).toEqual(played);
+    store.setItem('colorlines_progress', '{oops');
+    expect(loadProgress()).toEqual(emptyProgress());
+    saveProgress(played);
+    clearProgress();
+    expect(loadProgress()).toEqual(emptyProgress());
+  });
+
+  it('never throws when storage is denied', () => {
+    Object.defineProperty(globalThis, 'localStorage', {
+      configurable: true,
+      get() { throw new Error('SecurityError'); },
+    });
+    expect(() => loadProgress()).not.toThrow();
+    expect(() => saveProgress(loadProgress())).not.toThrow();
+    expect(() => clearProgress()).not.toThrow();
+  });
+});
+
+describe('spawn preview setting', () => {
+  it('defaults to on and remembers the choice', () => {
+    expect(loadSpawnPreview()).toBe(true);
+    saveSpawnPreview(false);
+    expect(loadSpawnPreview()).toBe(false);
+    saveSpawnPreview(true);
+    expect(loadSpawnPreview()).toBe(true);
+    store.setItem('colorlines_spawn_preview', 'maybe');
+    expect(loadSpawnPreview()).toBe(true);
   });
 });
