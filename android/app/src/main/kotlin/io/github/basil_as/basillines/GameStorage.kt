@@ -5,6 +5,8 @@ import io.github.basil_as.basillines.engine.GameEngine
 import io.github.basil_as.basillines.engine.GameRecord
 import io.github.basil_as.basillines.engine.GameStateCodec
 import io.github.basil_as.basillines.engine.GameStats
+import io.github.basil_as.basillines.engine.Hall
+import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.Progress
 import io.github.basil_as.basillines.engine.ProgressTracker
 
@@ -35,10 +37,26 @@ class GameStorage(context: Context) {
         }
         set(value) = prefs.edit().putString(KEY_PROGRESS, ProgressTracker.encode(value)).apply()
 
-    /** Show small balls on the board where the next balls will appear. On by default. */
-    var spawnPreview: Boolean
-        get() = prefs.getBoolean(KEY_PREVIEW, true)
-        set(value) = prefs.edit().putBoolean(KEY_PREVIEW, value).apply()
+    /** The player's explicit choice for marking the spawn cells, or null to use the theme default. */
+    var spawnPreview: Boolean?
+        get() = if (prefs.contains(KEY_PREVIEW)) prefs.getBoolean(KEY_PREVIEW, true) else null
+        set(value) {
+            if (value == null) prefs.edit().remove(KEY_PREVIEW).apply() else prefs.edit().putBoolean(KEY_PREVIEW, value).apply()
+        }
+
+    /** The Top Ten of the 1992 screen. */
+    var hall: List<HallEntry>
+        get() = Hall.decode(prefs.getString(KEY_HALL, null))
+        set(value) = prefs.edit().putString(KEY_HALL, Hall.encode(value)).apply()
+
+    var playerName: String
+        get() = (prefs.getString(KEY_NAME, "") ?: "").take(Hall.NAME_LIMIT)
+        set(value) = prefs.edit().putString(KEY_NAME, value.take(Hall.NAME_LIMIT)).apply()
+
+    /** F3 "NEXT" of the 1992 screen: show the upcoming colours. On by default. */
+    var showNext: Boolean
+        get() = prefs.getBoolean(KEY_NEXT, true)
+        set(value) = prefs.edit().putBoolean(KEY_NEXT, value).apply()
 
     fun loadGame(): GameEngine? = GameStateCodec.decode(prefs.getString(KEY_GAME, null))
 
@@ -53,6 +71,9 @@ class GameStorage(context: Context) {
         private const val KEY_GAME = "game"
         private const val KEY_PROGRESS = "progress"
         private const val KEY_PREVIEW = "spawn_preview"
+        private const val KEY_HALL = "hall"
+        private const val KEY_NAME = "player_name"
+        private const val KEY_NEXT = "show_next"
 
         /** Names used before the four current themes existed. */
         private val LEGACY = mapOf("CLASSIC_98" to AppTheme.LINES_98)

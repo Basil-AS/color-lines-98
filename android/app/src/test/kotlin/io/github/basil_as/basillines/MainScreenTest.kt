@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.hasText
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -157,8 +158,9 @@ class MainScreenTest {
             GameStorage(ApplicationProvider.getApplicationContext()).theme = theme
             rule.activityRule.scenario.recreate()
             rule.waitForIdle()
-            rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
-            rule.onNodeWithContentDescription("New game").performClick()
+            if (theme != AppTheme.COLORLINES_92) rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
+            if (theme == AppTheme.COLORLINES_92) rule.onNodeWithContentDescription("F4: Restart").performClick()
+            else rule.onNodeWithContentDescription("New game").performClick()
             rule.waitForIdle()
             assertEquals(5, ballCount())
             playOneMove()
@@ -349,11 +351,28 @@ class GameStorageMigrationTest {
     }
 
     @Test
-    fun spawnPreviewIsOnByDefaultAndRemembered() {
+    fun spawnPreviewFollowsTheThemeUntilTheUserChoosesAndIsRemembered() {
         val s = GameStorage(context)
-        assertTrue(s.spawnPreview)
+        assertNull(s.spawnPreview)
         s.spawnPreview = false
         assertEquals(false, GameStorage(context).spawnPreview)
+        s.spawnPreview = true
+        assertEquals(true, GameStorage(context).spawnPreview)
+    }
+
+    @Test
+    fun theHallPlayerNameAndNextToggleAreRemembered() {
+        val s = GameStorage(context)
+        assertTrue(s.hall.isEmpty())
+        assertEquals("", s.playerName)
+        assertTrue(s.showNext)
+        s.hall = listOf(io.github.basil_as.basillines.engine.HallEntry("Ann", 300, 5))
+        s.playerName = "Alexander the Great"
+        s.showNext = false
+        val again = GameStorage(context)
+        assertEquals(listOf(io.github.basil_as.basillines.engine.HallEntry("Ann", 300, 5)), again.hall)
+        assertEquals("Alexander th", again.playerName)
+        assertEquals(false, again.showNext)
     }
 
     @Test
@@ -364,5 +383,93 @@ class GameStorageMigrationTest {
         assertEquals(2, p.totalGames)
         assertEquals(50, p.bestScore)
         assertTrue("first_game" in p.achievements)
+    }
+}
+
+
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], qualifiers = "en-rUS-w411dp-h891dp-port")
+class DosThemeTest {
+
+    @get:Rule
+    val rule = createAndroidComposeRule<MainActivity>()
+
+    private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    private fun startDos() {
+        val prefs = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().putString("theme", AppTheme.COLORLINES_92.name).commit()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+    }
+
+    private fun balls() = rule.onAllNodes(
+        SemanticsMatcher("ball cell") { node ->
+            node.config.getOrNull(SemanticsProperties.ContentDescription)?.any { Regex("Row \\d+, column \\d+, [a-z]+ ball.*").matches(it) } == true
+        }
+    ).fetchSemanticsNodes().size
+
+    @Test
+    fun showsTheOriginalControlsAndABoardOfCells() {
+        startDos()
+        for (label in listOf("F1: Help", "F2: Sound", "F3: Show next balls", "F4: Restart")) {
+            rule.onNodeWithContentDescription(label).assertIsDisplayed()
+        }
+        assertEquals(5, balls())
+        rule.onNodeWithContentDescription("Top Ten").assertIsDisplayed()
+    }
+
+    @Test
+    fun f1OpensTheOriginalHelpWindowAndAnyTapClosesIt() {
+        startDos()
+        rule.onNodeWithContentDescription("F1: Help").performClick()
+        rule.onNodeWithContentDescription("Close").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Close").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("F1: Help").assertIsDisplayed()
+    }
+
+    @Test
+    fun f3TogglesTheNextBallsAndIsRemembered() {
+        startDos()
+        rule.onNodeWithContentDescription("F3: Show next balls").performClick()
+        rule.waitForIdle()
+        assertEquals(false, GameStorage(context).showNext)
+    }
+
+    @Test
+    fun theSettingsListTheTopTenName() {
+        startDos()
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.waitForIdle()
+        // (The text field behind this row has an endless blinking cursor that Robolectric never sees as idle,
+        // so the row is checked here and the stored value has its own test.)
+        rule.onAllNodes(hasText("Your name (Top Ten)", substring = true)).onFirst().assertExists()
+    }
+
+    @Test
+    fun aFinishedGameEntersTheTopTenAndBecomesTheKing() {
+        val cells = buildString {
+            for (y in 0 until 9) for (x in 0 until 9) {
+                val empty = (x == 0 && y == 0) || (x == 1 && y == 0) || (x == 8 && y == 8)
+                append(if (empty) 0 else ((x + 2 * y) % 7) + 1)
+            }
+        }
+        val game = listOf("v3", 60, 5, 1, 5, 0, 5, 1000, "1,1,2", "0:0,8:8,1:0", cells).joinToString("|")
+        val prefs = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().putString("theme", AppTheme.COLORLINES_92.name).putString("player_name", "Ann").putString("game", game).commit()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Row 1, column 3, blue ball", substring = true).performClick()
+        rule.onNodeWithContentDescription("Row 1, column 2, empty", substring = true).performClick()
+        rule.waitForIdle()
+
+        rule.onAllNodes(hasText("Game over")).onFirst().assertIsDisplayed()
+        val hall = GameStorage(context).hall
+        assertEquals(1, hall.size)
+        assertEquals("Ann", hall[0].name)
+        assertEquals(60, hall[0].score)
     }
 }
