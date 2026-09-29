@@ -1480,3 +1480,33 @@ input[role='switch']:focus-visible {
   color: var(--text-muted);
   margin-left: 6px;
 }
+
+/* ---- Lines 98 (Windows): the bevelled board and LED digits come from the original artwork ---- */
+.theme-lines98 .board-grid {
+  background: url('/originals/lines98/board.png') left bottom / 100% auto no-repeat, #c0c0c0;
+  image-rendering: pixelated;
+  border: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.theme-lines98 .board-cell,
+.theme-lines98 .board-cell:hover {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+.led-number {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+}
+
+.led-number img {
+  height: 100%;
+  width: auto;
+  image-rendering: pixelated;
+  /* The artwork's segments are blue; Lines 98 shows red ones. */
+  filter: hue-rotate(160deg) saturate(1.6) brightness(1.05);
+}
