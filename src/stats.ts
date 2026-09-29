@@ -1,6 +1,6 @@
 import type { GameEngine } from './engine/gameengine';
 
-export const HISTORY_LIMIT = 100;
+export const HISTORY_LIMIT = 1000;
 
 export interface GameRecord {
   score: number;
@@ -13,6 +13,10 @@ export interface GameRecord {
   balls: number;
   /** false when the player abandoned the game with "new game". */
   completed: boolean;
+  /** Length of the longest line cleared. */
+  maxLine: number;
+  /** Active play time in milliseconds. */
+  durationMs: number;
 }
 
 export interface StatsSummary {
@@ -35,6 +39,8 @@ export function recordFromEngine(engine: GameEngine, completed: boolean, now: nu
     lines: engine.linesCleared,
     balls: engine.ballsCleared,
     completed,
+    maxLine: engine.maxLine,
+    durationMs: engine.playMs,
   };
 }
 
@@ -82,7 +88,11 @@ export function sanitizeHistory(raw: unknown): GameRecord[] {
   for (const item of raw) {
     if (typeof item !== 'object' || item === null) continue;
     const r = item as Partial<GameRecord>;
+    const maxLine = r.maxLine === undefined ? 0 : r.maxLine;
+    const durationMs = r.durationMs === undefined ? 0 : r.durationMs;
     if (
+      isCount(maxLine) &&
+      isCount(durationMs) &&
       isCount(r.score) &&
       isCount(r.endedAt) &&
       isCount(r.moves) &&
@@ -97,6 +107,8 @@ export function sanitizeHistory(raw: unknown): GameRecord[] {
         lines: r.lines,
         balls: r.balls,
         completed: r.completed,
+        maxLine,
+        durationMs,
       });
     }
   }
