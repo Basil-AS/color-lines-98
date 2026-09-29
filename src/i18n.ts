@@ -184,6 +184,14 @@ const en = {
   'dos.defaultName': 'Player',
   'settings.playerName': 'Your name (Top Ten)',
 
+  'install.button': 'Install',
+  'install.title': 'Install Color Lines',
+  'install.ios.step1': 'Tap the Share button in Safari.',
+  'install.ios.step2': 'Choose "Add to Home Screen".',
+  'install.ios.step3': 'Tap "Add". The game then opens like an app, also offline.',
+  'install.mac.step1': 'In Safari choose File, then "Add to Dock".',
+  'install.mac.step2': 'Confirm the name. The game then opens like an app, also offline.',
+
   'plural.moves_one': '{n} move',
   'plural.moves_few': '{n} moves',
   'plural.moves_many': '{n} moves',
@@ -380,6 +388,14 @@ const ru: Dictionary = {
   'dos.king': 'King',
   'dos.defaultName': 'Игрок',
   'settings.playerName': 'Ваше имя (десятка лучших)',
+
+  'install.button': 'Установить',
+  'install.title': 'Установить «Цветные линии»',
+  'install.ios.step1': 'Нажмите кнопку «Поделиться» в Safari.',
+  'install.ios.step2': 'Выберите «На экран Домой».',
+  'install.ios.step3': 'Нажмите «Добавить». Игра будет открываться как приложение, в том числе без интернета.',
+  'install.mac.step1': 'В Safari выберите «Файл», затем «Добавить в Dock».',
+  'install.mac.step2': 'Подтвердите название. Игра будет открываться как приложение, в том числе без интернета.',
 
   'plural.moves_one': '{n} ход',
   'plural.moves_few': '{n} хода',
