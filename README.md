@@ -43,6 +43,14 @@ and a native Android app, sharing one rule set.
 
 After the first visit the game runs offline.
 
+## Gallery
+
+| Modern dark | Modern light |
+|---|---|
+| ![Modern dark](public/screenshots/wide-modern.png) | ![Modern light](public/screenshots/wide-light.png) |
+| **Lines 98 (Windows)** | **Color Lines 1992 (DOS)** |
+| ![Lines 98](public/screenshots/wide-lines98.png) | ![Color Lines 1992](public/screenshots/wide-dos1992.png) |
+
 ## Repository layout
 
 ```
@@ -68,7 +76,8 @@ After the first visit the game runs offline.
 ### Web
 ```bash
 npm install
-npm test            # Vitest (rules, storage, i18n, progress, full UI flows)
+npm test            # Vitest (rules, storage, i18n, progress, sounds, full UI flows)
+npm run e2e         # Playwright in a real browser (layout of every look, offline PWA, the 1992 screen)
 npm run lint        # oxlint
 npm run typecheck   # TypeScript
 npm run build       # production build in dist/
