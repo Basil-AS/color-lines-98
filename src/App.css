@@ -1507,6 +1507,47 @@ input[role='switch']:focus-visible {
   height: 100%;
   width: auto;
   image-rendering: pixelated;
-  /* The artwork's segments are blue; Lines 98 shows red ones. */
-  filter: hue-rotate(160deg) saturate(1.6) brightness(1.05);
+}
+
+/* Lines 98 header: one black LED panel, best | next | score, cyan segments like the original. */
+.l98-header {
+  padding: 8px;
+  border-bottom: 0;
+}
+
+.l98-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: #000000;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.l98-cell .led-number {
+  height: 30px;
+}
+
+.l98-next {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.win98-menubar button:disabled {
+  color: #808080;
+  cursor: default;
+}
+
+.win98-menubar button:disabled:hover {
+  background: transparent;
+  color: #808080;
+}
+
+.dos-window .footer-row {
+  background: #000000;
+  border-top: 0;
+  color: #aaaaaa;
 }

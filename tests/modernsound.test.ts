@@ -3,7 +3,8 @@ import { modernNotes } from '../src/modernsound';
 import type { SoundKind } from '../src/pcspeaker';
 import { soundProfile } from '../src/themes';
 
-const KINDS: SoundKind[] = ['select', 'jump', 'eat', 'lose', 'win', 'click'];
+import { ALL_SOUND_KINDS } from './soundkinds';
+const KINDS: SoundKind[] = ALL_SOUND_KINDS;
 
 describe('modernNotes', () => {
   it.each(KINDS)('%s is a short, quiet, audible sound', (kind) => {

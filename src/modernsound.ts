@@ -37,5 +37,16 @@ export function modernNotes(kind: SoundKind, points = 0): ModernNote[] {
       return [440, 349, 294, 220].map((f) => n(f, 190, 'triangle', 0.2));
     case 'win':
       return [C5, E5, G5, C6, E6].map((f) => n(f, 130, 'sine', 0.22));
+    case 'blocked':
+      return [n(220, 80, 'triangle', 0.14), n(196, 110, 'triangle', 0.12)];
+    case 'start':
+      return [n(G5, 70), n(C6, 70), n(E6, 110)];
+    case 'levelUp':
+      return [C5, E5, G5, C6, E6].map((f, i) => n(f, 90, 'sine', 0.2 + i * 0.01));
+    case 'achievement':
+      return [n(E6, 70, 'sine', 0.2), n(G5 * 2, 130, 'sine', 0.22)];
+    case 'record':
+    case 'crown':
+      return [C5, E5, G5, C6, G5, C6, E6].map((f, i) => n(f, i === 6 ? 320 : 110, 'sine', 0.22));
   }
 }

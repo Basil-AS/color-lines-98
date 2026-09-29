@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { pcSpeakerNotes } from '../src/pcspeaker';
 import type { SoundKind } from '../src/pcspeaker';
 
-const KINDS: SoundKind[] = ['select', 'jump', 'eat', 'lose', 'win', 'click'];
+import { ALL_SOUND_KINDS } from './soundkinds';
+const KINDS: SoundKind[] = ALL_SOUND_KINDS;
 
 describe('pcSpeakerNotes', () => {
   it.each(KINDS)('%s is a short audible melody', (kind) => {

@@ -2,6 +2,7 @@ import type { SoundProfile } from './themes';
 
 import { modernNotes } from './modernsound';
 import { pcSpeakerNotes } from './pcspeaker';
+import { sampleFor } from './samples';
 import type { SoundKind } from './pcspeaker';
 
 class SoundManager {
@@ -92,39 +93,14 @@ class SoundManager {
     }
   }
 
-  playSelect(): void {
-    if (this.profile !== 'sampled') return this.synth('select');
-    this.playSound('sounds/classic/selectBall.mp3', 0.6);
-  }
-
-  playJump(): void {
-    if (this.profile !== 'sampled') return this.synth('jump');
-    this.playSound('sounds/classic/jump.mp3', 0.6);
-  }
-
-  playEat(points: number): void {
-    if (this.profile !== 'sampled') return this.synth('eat', points);
-    let index = 1;
-    if (points >= 30) index = 5;
-    else if (points >= 20) index = 4;
-    else if (points >= 15) index = 3;
-    else if (points >= 12) index = 2;
-    this.playSound(`sounds/classic/eatScore_${index}.mp3`, 0.8);
-  }
-
-  playLose(): void {
-    if (this.profile !== 'sampled') return this.synth('lose');
-    this.playSound('sounds/classic/Lose.mp3', 0.8);
-  }
-
-  playWin(): void {
-    if (this.profile !== 'sampled') return this.synth('win');
-    this.playSound('sounds/classic/Win.mp3', 0.8);
-  }
-
-  playClick(): void {
-    if (this.profile !== 'sampled') return this.synth('click');
-    this.playSound('sounds/classic/ButtonClick.mp3', 0.4);
+  /** Plays a game event in the voice of the current look: samples, PC-speaker beeps or soft tones. */
+  play(kind: SoundKind, points = 0): void {
+    if (this.profile !== 'sampled') {
+      this.synth(kind, points);
+      return;
+    }
+    const sample = sampleFor(kind, points);
+    this.playSound(sample.path, sample.volume);
   }
 }
 

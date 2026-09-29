@@ -28,7 +28,10 @@ export function isRetroTheme(theme: Theme): boolean {
   return theme === 'lines98' || theme === 'colorlines92';
 }
 
-/** The originals only show the next colours in a panel, so marking the spawn cells is off there. */
+/**
+ * Small balls on the board where the next ones will appear: Lines 98 for Windows does exactly that, the
+ * 1992 DOS original only shows the next colours in a panel, so the DOS look has the markers off.
+ */
 export function defaultSpawnPreview(theme: Theme): boolean {
-  return !isRetroTheme(theme);
+  return theme !== 'colorlines92';
 }
