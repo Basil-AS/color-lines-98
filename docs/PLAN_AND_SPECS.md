@@ -1,6 +1,6 @@
 # Color Lines 98 — Modern Android & Web Project Specification & Execution Plan
 
-**Status**: Approved Specification & Master Plan  
+**Status**: Approved Specification & Master Plan (implemented; see README for the current feature set, the app is now called Basil Lines)  
 **Target Platform**: Android (Modern Native Stack) + Web (GitHub Pages Standalone)  
 **Target Android Version**: Android 8.0+ (API 26+) to Android 15/16 (API 35+)  
 **Repository Standard**: Public GitHub repo, Strict CI/CD, SemVer releases, Conventional Commits, PR-driven workflow.
