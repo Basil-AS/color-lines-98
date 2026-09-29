@@ -144,7 +144,7 @@ describe('language', () => {
     render(<App />);
     expect(screen.getByRole('group', { name: 'Игровое поле' })).toBeInTheDocument();
     expect(document.documentElement.lang).toBe('ru');
-    expect(document.title).toContain('Basil Lines');
+    expect(document.title).toContain('Цветные линии');
   });
 
   it('falls back to English for unsupported languages', () => {
