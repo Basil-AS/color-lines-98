@@ -1,21 +1,29 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { GameEngine } from '../src/engine/gameengine';
+import { defaultSpawnPreview } from '../src/themes';
 import {
   clearGame,
+  clearHall,
   clearHistory,
   clearProgress,
   loadBestScore,
   loadGame,
   loadHistory,
+  loadHall,
   loadLanguagePref,
+  loadPlayerName,
   loadProgress,
+  loadShowNext,
   loadSpawnPreview,
   loadTheme,
   saveBestScore,
   saveGame,
   saveHistory,
+  saveHall,
   saveLanguagePref,
+  savePlayerName,
   saveProgress,
+  saveShowNext,
   saveSpawnPreview,
   saveTheme,
 } from '../src/storage';
@@ -170,13 +178,45 @@ describe('progress storage', () => {
 });
 
 describe('spawn preview setting', () => {
-  it('defaults to on and remembers the choice', () => {
-    expect(loadSpawnPreview()).toBe(true);
+  it('is unset until chosen, then remembers the choice', () => {
+    expect(loadSpawnPreview()).toBeNull();
     saveSpawnPreview(false);
     expect(loadSpawnPreview()).toBe(false);
     saveSpawnPreview(true);
     expect(loadSpawnPreview()).toBe(true);
     store.setItem('colorlines_spawn_preview', 'maybe');
-    expect(loadSpawnPreview()).toBe(true);
+    expect(loadSpawnPreview()).toBeNull();
+  });
+
+  it('defaults per theme: on for the modern looks, off for the originals', () => {
+    expect(defaultSpawnPreview('modern')).toBe(true);
+    expect(defaultSpawnPreview('light')).toBe(true);
+    expect(defaultSpawnPreview('lines98')).toBe(false);
+    expect(defaultSpawnPreview('colorlines92')).toBe(false);
+  });
+});
+
+describe('hall of fame, player name and NEXT toggle', () => {
+  it('round-trips the hall and survives corrupt data', () => {
+    expect(loadHall()).toEqual([]);
+    saveHall([{ name: 'Ann', score: 300, at: 5 }]);
+    expect(loadHall()).toEqual([{ name: 'Ann', score: 300, at: 5 }]);
+    store.setItem('colorlines_hall', '{oops');
+    expect(loadHall()).toEqual([]);
+    saveHall([{ name: 'Ann', score: 300, at: 5 }]);
+    clearHall();
+    expect(loadHall()).toEqual([]);
+  });
+
+  it('keeps the player name (at most 12 characters)', () => {
+    expect(loadPlayerName()).toBe('');
+    savePlayerName('Alexander the Great');
+    expect(loadPlayerName()).toBe('Alexander th');
+  });
+
+  it('shows the next balls by default and remembers F3', () => {
+    expect(loadShowNext()).toBe(true);
+    saveShowNext(false);
+    expect(loadShowNext()).toBe(false);
   });
 });
