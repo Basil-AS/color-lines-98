@@ -15,11 +15,12 @@ export function parseTheme(raw: string | null): Theme {
   return LEGACY_THEMES[raw] ?? DEFAULT_THEME;
 }
 
-/** How a theme sounds: recorded samples, or the beeps of a PC speaker. */
-export type SoundProfile = 'sampled' | 'pcspeaker';
+/** How a theme sounds: recorded samples (Lines 98), PC-speaker beeps (DOS) or soft synthesis (modern). */
+export type SoundProfile = 'sampled' | 'pcspeaker' | 'modern';
 
 export function soundProfile(theme: Theme): SoundProfile {
-  return theme === 'colorlines92' ? 'pcspeaker' : 'sampled';
+  if (theme === 'colorlines92') return 'pcspeaker';
+  return theme === 'lines98' ? 'sampled' : 'modern';
 }
 
 /** Themes drawn with the original game's own sprites and window chrome. */
