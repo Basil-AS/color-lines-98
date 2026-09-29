@@ -309,4 +309,36 @@ class GameEngineTest {
             assertTrue("seed $seed should play several moves", moves > 5)
         }
     }
+
+    @Test
+    fun testSpawnPreviewPlansThreeFreeDistinctCells() {
+        val engine = GameEngine(random = kotlin.random.Random(21))
+        assertEquals(3, engine.nextSpawnPoints.size)
+        assertEquals(3, engine.nextSpawnPoints.toSet().size)
+        assertTrue(engine.nextSpawnPoints.all { engine.board.isEmpty(it) })
+    }
+
+    @Test
+    fun testBallsSpawnWhereAnnouncedAndUndoRestoresThePlan() {
+        val engine = GameEngine(random = kotlin.random.Random(22))
+        val planned = engine.nextSpawnPoints.toSet()
+        val from = (0 until 81).map { Point(it % 9, it / 9) }.first { engine.board[it] != null }
+        val target = engine.board.getEmptyCells().first { it !in planned }
+        val res = engine.moveBall(from, target)
+        assertTrue(res.success)
+        if (res.clearedPoints.isEmpty()) assertEquals(planned, res.spawnedBalls.map { it.point }.toSet())
+        assertTrue(engine.undo())
+        assertEquals(planned, engine.nextSpawnPoints.toSet())
+    }
+
+    @Test
+    fun testMovingOntoAPlannedCellRelocatesIt() {
+        val engine = GameEngine(random = kotlin.random.Random(23))
+        val from = (0 until 81).map { Point(it % 9, it / 9) }.first { engine.board[it] != null }
+        val target = engine.nextSpawnPoints.first()
+        val res = engine.moveBall(from, target)
+        assertTrue(res.success)
+        assertEquals(3, res.spawnedBalls.map { it.point }.toSet().size)
+        assertNotNull(engine.board[target])
+    }
 }
