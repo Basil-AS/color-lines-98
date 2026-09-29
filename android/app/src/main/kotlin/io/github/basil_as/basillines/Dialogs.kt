@@ -5,6 +5,10 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -51,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import io.github.basil_as.basillines.engine.GameRecord
 import io.github.basil_as.basillines.engine.GameStats
+import io.github.basil_as.basillines.engine.Insights
 import io.github.basil_as.basillines.engine.LineDetector
 import io.github.basil_as.basillines.engine.Levels
 import io.github.basil_as.basillines.engine.Progress
@@ -369,6 +374,8 @@ fun StatsDialog(
                     }
                 }
 
+                if (history.isNotEmpty()) InsightsSection(history, progress, level.level, level.xp, now)
+
                 Text(stringResource(R.string.stats_trend), Modifier.padding(top = 8.dp), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (history.size < 2) Text(stringResource(R.string.stats_empty)) else TrendChart(ProgressTracker.scoreTrend(history, 20))
 
@@ -455,4 +462,82 @@ private fun PlayerNameDialog(name: String, onName: (String) -> Unit, onDone: () 
         },
         confirmButton = { TextButton(onClick = onDone) { Text(stringResource(R.string.btn_close)) } }
     )
+}
+
+@Composable
+private fun BarChart(values: List<Int>, labels: List<String>, description: String) {
+    val max = maxOf(values.maxOrNull() ?: 1, 1)
+    val color = MaterialTheme.colorScheme.primary
+    val a11y = description + ": " + labels.zip(values).joinToString(", ") { "${it.first} ${it.second}" }
+    Row(
+        Modifier.fillMaxWidth().height(84.dp).semantics { contentDescription = a11y },
+        horizontalArrangement = Arrangement.spacedBy(3.dp),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        values.forEachIndexed { i, v ->
+            Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .fillMaxHeight(if (v == 0) 0.03f else maxOf(0.1f, v.toFloat() / max) * 0.8f)
+                        .background(color, RoundedCornerShape(topStart = 3.dp, topEnd = 3.dp))
+                )
+                Text(labels[i], fontSize = 9.sp, maxLines = 1, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+@Composable
+private fun InsightsSection(history: List<GameRecord>, progress: Progress, level: Int, xp: Int, now: Long) {
+    val window = 10
+    val trend = Insights.trendOf(history, window)
+    val eff = Insights.efficiency(history)
+    val eta = Insights.levelEta(history, Levels.threshold(level + 1) - xp)
+    val days = Insights.dailyActivity(history, 14, now)
+    val hist = Insights.scoreHistogram(history, 50)
+    val weekdays = Insights.weekdayActivity(history)
+    val steps = Insights.recordProgression(history).takeLast(5)
+    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
+    val weekdayNames = remember {
+        // 2024-01-01 is a Monday.
+        (0 until 7).map { java.time.DayOfWeek.of(it + 1).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()) }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(
+            stringResource(R.string.insights_title), Modifier.padding(top = 8.dp), fontSize = 13.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            if (trend == null) {
+                stringResource(R.string.insights_trend_needMore, maxOf(1, window * 2 - history.size))
+            } else {
+                val id = when (trend.direction) {
+                    Insights.Direction.UP -> R.string.insights_trend_up
+                    Insights.Direction.DOWN -> R.string.insights_trend_down
+                    Insights.Direction.FLAT -> R.string.insights_trend_flat
+                }
+                stringResource(id, window, trend.recentAverage, kotlin.math.abs(trend.changePercent))
+            },
+            fontSize = 14.sp
+        )
+        Text(stringResource(R.string.insights_efficiency, "%.1f".format(eff.average), "%.1f".format(eff.best)), fontSize = 14.sp)
+        if (eta != null) {
+            Text(
+                stringResource(R.string.insights_eta, pluralStringResource(R.plurals.games, eta, eta), level + 1),
+                fontSize = 14.sp
+            )
+        }
+        Text(stringResource(R.string.insights_daily), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        BarChart(days.map { it.games }, days.map { it.day.takeLast(2) }, stringResource(R.string.insights_daily))
+        Text(stringResource(R.string.insights_histogram), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        BarChart(hist.map { it.count }, hist.map { stringResource(R.string.insights_bucketLabel, it.from) }, stringResource(R.string.insights_histogram))
+        Text(stringResource(R.string.insights_weekdays), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        BarChart(weekdays.map { it.average }, weekdayNames, stringResource(R.string.insights_weekdays))
+        if (steps.isNotEmpty()) {
+            Text(stringResource(R.string.insights_records), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            steps.forEach { Text("${it.score} · " + dateFormat.format(Date(it.at)), fontSize = 13.sp) }
+        }
+    }
 }
