@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -63,6 +65,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.basil_as.basillines.engine.BallColor
+import io.github.basil_as.basillines.engine.DosButton
+import io.github.basil_as.basillines.engine.DosEffect
+import io.github.basil_as.basillines.engine.DosState
+import io.github.basil_as.basillines.engine.EffectKind
+import io.github.basil_as.basillines.engine.Hall
+import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.GameEngine
 import io.github.basil_as.basillines.engine.GameStats
 import io.github.basil_as.basillines.engine.Levels
@@ -132,13 +140,21 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var bestScore by remember { mutableIntStateOf(maxOf(storage.bestScore, GameStats.summarize(storage.history).bestScore)) }
     var bestAtGameStart by remember { mutableIntStateOf(bestScore) }
     var soundEnabled by remember { mutableStateOf(soundManager.isEnabled) }
-    var spawnPreview by remember { mutableStateOf(storage.spawnPreview) }
+    var spawnStored by remember { mutableStateOf(storage.spawnPreview) }
+    var hall by remember { mutableStateOf(storage.hall) }
+    var playerName by remember { mutableStateOf(storage.playerName) }
+    var showNext by remember { mutableStateOf(storage.showNext) }
+    var dosWindow by remember { mutableStateOf(DosWindow.NONE) }
+    var effects by remember { mutableStateOf<List<DosEffect>>(emptyList()) }
+    var coronationStart by remember { mutableStateOf<Long?>(if (engine.score > Hall.kingOf(storage.hall).score) Long.MIN_VALUE / 2 else null) }
     var dialog by remember { mutableStateOf(Dialog.NONE) }
     var statsNow by remember { mutableLongStateOf(0L) }
     var lastResult by remember { mutableStateOf(LastResult()) }
     var lastActionAt by remember { mutableLongStateOf(0L) }
 
     val palette = paletteFor(theme)
+    val spawnPreview = spawnStored ?: (palette.cellStyle == CellStyle.ROUNDED)
+    val defaultName = stringResource(R.string.dos_defaultName)
     soundManager.profile = when (theme) {
         AppTheme.LINES_98 -> SoundManager.Profile.SAMPLED
         AppTheme.COLORLINES_92 -> SoundManager.Profile.PC_SPEAKER
@@ -171,6 +187,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         storage.progress = applied.progress
         val levelBefore = Levels.info(ProgressTracker.xpOf(before)).level
         val levelAfter = Levels.info(ProgressTracker.xpOf(applied.progress)).level
+        if (completed) {
+            hall = Hall.insert(hall, HallEntry(playerName.ifBlank { defaultName }, rec.score, rec.endedAt))
+            storage.hall = hall
+        }
         lastResult = LastResult(
             xp = ProgressTracker.xpOf(applied.progress) - ProgressTracker.xpOf(before),
             levelUp = if (levelAfter > levelBefore) levelAfter else null,
@@ -193,6 +213,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             return
         }
         val from = engine.selectedPoint ?: return
+        val before = engine.board.copy()
         val result = engine.moveBall(from, point)
         if (!result.success) {
             soundManager.playClick()
@@ -201,6 +222,18 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         engine.unselect()
         soundManager.playJump()
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+
+        // Remember what appeared and what burst, so the 1992 screen can animate it.
+        val start = clockMs()
+        val movedColor = before[from]
+        val fx = mutableListOf<DosEffect>()
+        for (s in result.spawnedBalls) fx += DosEffect(EffectKind.SPAWN, s.point.x, s.point.y, s.color, start)
+        for (p in result.clearedPoints) {
+            val color = if (p == point) movedColor else before[p] ?: result.spawnedBalls.firstOrNull { it.point == p }?.color
+            if (color != null) fx += DosEffect(EffectKind.BURST, p.x, p.y, color, start)
+        }
+        effects = fx
+        if (engine.score > Hall.kingOf(hall).score && coronationStart == null) coronationStart = start
         if (result.clearedPoints.isNotEmpty()) soundManager.playEat(result.pointsEarned)
         if (engine.score > bestScore) {
             bestScore = engine.score
@@ -217,6 +250,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         // Abandoning a game in progress still counts towards the history.
         if (!engine.isGameOver && engine.moves > 0) record(completed = false)
         engine.startNewGame()
+        effects = emptyList()
+        coronationStart = null
         lastActionAt = 0L
         bestAtGameStart = bestScore
         soundManager.playClick()
@@ -251,7 +286,46 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     MaterialTheme(colorScheme = colorScheme(palette)) {
         Box(Modifier.fillMaxSize().background(palette.background)) {
-            GameScreen(
+            if (theme == AppTheme.COLORLINES_92) {
+                DosGameScreen(
+                    snapshot = snapshot,
+                    score = score,
+                    kingScore = if (coronationStart != null) score else Hall.kingOf(hall).score,
+                    nextColors = nextColors,
+                    showNext = showNext,
+                    soundEnabled = soundEnabled,
+                    effects = effects,
+                    coronationStart = coronationStart,
+                    kingName = if (coronationStart != null) playerName.ifBlank { defaultName } else Hall.kingOf(hall).name,
+                    pretenderName = stringResource(if (coronationStart != null) R.string.dos_king else R.string.dos_pretender),
+                    window = dosWindow,
+                    hall = hall,
+                    canUndo = canUndo,
+                    onCellTap = ::onCellTap,
+                    onButton = { button ->
+                        when (button) {
+                            DosButton.HELP -> dosWindow = if (dosWindow == DosWindow.HELP) DosWindow.NONE else DosWindow.HELP
+                            DosButton.SOUND -> {
+                                soundEnabled = !soundEnabled
+                                soundManager.isEnabled = soundEnabled
+                            }
+                            DosButton.NEXT -> {
+                                showNext = !showNext
+                                storage.showNext = showNext
+                            }
+                            DosButton.RESTART -> onNewGame()
+                        }
+                    },
+                    onCloseWindow = { dosWindow = DosWindow.NONE },
+                    onUndo = ::onUndo,
+                    onTopTen = { dosWindow = if (dosWindow == DosWindow.TOP_TEN) DosWindow.NONE else DosWindow.TOP_TEN },
+                    onStats = {
+                        statsNow = System.currentTimeMillis()
+                        dialog = Dialog.STATS
+                    },
+                    onSettings = { dialog = Dialog.SETTINGS }
+                )
+            } else GameScreen(
                 palette = palette,
                 score = score,
                 best = maxOf(score, bestScore),
@@ -313,8 +387,13 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     },
                     spawnPreview = spawnPreview,
                     onTogglePreview = {
-                        spawnPreview = !spawnPreview
-                        storage.spawnPreview = spawnPreview
+                        spawnStored = !spawnPreview
+                        storage.spawnPreview = spawnStored
+                    },
+                    playerName = playerName,
+                    onPlayerName = {
+                        playerName = it.take(Hall.NAME_LIMIT)
+                        storage.playerName = playerName
                     },
                     onClose = { dialog = Dialog.NONE }
                 )
@@ -499,5 +578,69 @@ private fun StatBox(label: String, value: Int, palette: Palette, live: Boolean =
             color = palette.statValue,
             fontFamily = FontFamily.Monospace
         )
+    }
+}
+
+@Composable
+private fun DosGameScreen(
+    snapshot: BoardSnapshot,
+    score: Int,
+    kingScore: Int,
+    nextColors: List<BallColor>,
+    showNext: Boolean,
+    soundEnabled: Boolean,
+    effects: List<DosEffect>,
+    coronationStart: Long?,
+    kingName: String,
+    pretenderName: String,
+    window: DosWindow,
+    hall: List<HallEntry>,
+    canUndo: Boolean,
+    onCellTap: (Point) -> Unit,
+    onButton: (DosButton) -> Unit,
+    onCloseWindow: () -> Unit,
+    onUndo: () -> Unit,
+    onTopTen: () -> Unit,
+    onStats: () -> Unit,
+    onSettings: () -> Unit
+) {
+    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
+        val margin = 12.dp
+        val toolsHeight = 56.dp
+        val width = minOf(maxWidth - margin * 2, (maxHeight - toolsHeight - margin) * 4f / 3f, 960.dp)
+        Column(
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(margin),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
+        ) {
+            DosScreen(
+                state = DosState(
+                    cells = snapshot.cells,
+                    selected = snapshot.selected,
+                    next = nextColors,
+                    showNext = showNext,
+                    score = score,
+                    kingScore = kingScore,
+                    soundOn = soundEnabled,
+                    nowMs = 0,
+                    effects = effects,
+                    coronationStart = coronationStart
+                ),
+                kingName = kingName,
+                pretenderName = pretenderName,
+                window = window,
+                hall = hall,
+                boardCells = { modifier -> DosBoardCells(snapshot, onCellTap, modifier) },
+                onButton = onButton,
+                onCloseWindow = onCloseWindow,
+                modifier = Modifier.width(width).aspectRatio(4f / 3f)
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+                ActionButton(AppIcons.Trophy, stringResource(R.string.dos_topTen), onTopTen)
+                ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)
+                ActionButton(AppIcons.Settings, stringResource(R.string.btn_settings), onSettings)
+            }
+        }
     }
 }

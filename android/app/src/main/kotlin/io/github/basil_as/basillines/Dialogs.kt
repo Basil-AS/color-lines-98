@@ -23,6 +23,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -226,6 +227,8 @@ fun SettingsDialog(
     onToggleSound: () -> Unit,
     spawnPreview: Boolean,
     onTogglePreview: () -> Unit,
+    playerName: String,
+    onPlayerName: (String) -> Unit,
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
@@ -249,6 +252,17 @@ fun SettingsDialog(
                 }
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
+                var editingName by remember { mutableStateOf(false) }
+                TextButton(onClick = { editingName = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        stringResource(R.string.settings_playerName) + ": " + playerName.ifBlank { "—" },
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Start
+                    )
+                }
+                if (editingName) {
+                    PlayerNameDialog(playerName, onPlayerName, onDone = { editingName = false })
+                }
                 if (Build.VERSION.SDK_INT >= 33) {
                     TextButton(onClick = {
                         context.startActivity(
@@ -424,4 +438,21 @@ private fun Badge(text: String, filled: Boolean) {
             Text(text.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }
+}
+
+@Composable
+private fun PlayerNameDialog(name: String, onName: (String) -> Unit, onDone: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDone,
+        title = { Text(stringResource(R.string.settings_playerName)) },
+        text = {
+            OutlinedTextField(
+                value = name,
+                onValueChange = onName,
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        confirmButton = { TextButton(onClick = onDone) { Text(stringResource(R.string.btn_close)) } }
+    )
 }

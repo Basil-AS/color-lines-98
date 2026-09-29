@@ -224,7 +224,7 @@ private fun DrawScope.drawBall(
 }
 
 @Composable
-private fun CellTarget(
+internal fun CellTarget(
     snapshot: BoardSnapshot,
     point: Point,
     onTap: (Point) -> Unit,
