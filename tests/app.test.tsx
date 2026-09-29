@@ -14,18 +14,14 @@ vi.mock('../src/audio', () => {
       },
       toggle: () => (enabled = !enabled),
       setProfile: vi.fn(),
-      playSelect: vi.fn(),
-      playJump: vi.fn(),
-      playEat: vi.fn(),
-      playLose: vi.fn(),
-      playWin: vi.fn(),
-      playClick: vi.fn(),
+      play: vi.fn(),
     },
   };
 });
 
 import App from '../src/App';
 import { GameEngine } from '../src/engine/gameengine';
+import { soundManager } from '../src/audio';
 import { saveGame } from '../src/storage';
 
 function setLanguages(languages: string[]) {
@@ -44,6 +40,7 @@ async function playOneMove(user: ReturnType<typeof userEvent.setup>) {
 }
 
 beforeEach(() => {
+  vi.mocked(soundManager.play).mockClear();
   localStorage.clear();
   setLanguages(['en-US']);
 });
@@ -114,6 +111,35 @@ describe('board', () => {
     first.unmount();
     render(<App />);
     expect(cells().map((c) => c.getAttribute('aria-label'))).toEqual(before);
+  });
+});
+
+describe('sound events', () => {
+  it('plays select, jump and start for the basic actions', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(ballCells()[0]);
+    expect(soundManager.play).toHaveBeenCalledWith('select');
+    await user.click(reachableCells()[0]);
+    expect(soundManager.play).toHaveBeenCalledWith('jump');
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    expect(soundManager.play).toHaveBeenCalledWith('start');
+  });
+
+  it('plays the "blocked" sound for a move that cannot be made', async () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', () => 0.5);
+    engine.board.clear();
+    // A ball walled in by four others in the corner.
+    engine.board.set(0, 0, 'red');
+    engine.board.set(1, 0, 'green');
+    engine.board.set(0, 1, 'green');
+    engine.board.set(5, 5, 'blue');
+    saveGame(engine);
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 1,/ }));
+    await user.click(screen.getByRole('button', { name: /^Row 9, column 9, empty/ }));
+    expect(soundManager.play).toHaveBeenCalledWith('blocked');
   });
 });
 

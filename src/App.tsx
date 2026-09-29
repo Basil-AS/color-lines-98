@@ -191,11 +191,13 @@ export default function App() {
     }
     const before = levelInfo(xpOf(progress)).level;
     const after = levelInfo(xpOf(applied.progress)).level;
-    setLastResult({
+    const reward = {
       xp: xpOf(applied.progress) - xpOf(progress),
       levelUp: after > before ? after : null,
       unlocked: applied.unlocked,
-    });
+    };
+    setLastResult(reward);
+    return reward;
   };
 
   const changeTheme = (newTheme: Theme) => {
@@ -241,7 +243,7 @@ export default function App() {
         engine.unselect();
       } else {
         engine.select(clickedPoint);
-        soundManager.playSelect();
+        soundManager.play('select');
       }
       commit();
       return;
@@ -253,13 +255,13 @@ export default function App() {
     const before = engine.board.copy();
     const res = engine.moveBall(from, clickedPoint);
     if (!res.success) {
-      soundManager.playClick();
+      soundManager.play('blocked');
       setAnnouncement(t('announce.noPath'));
       return;
     }
 
     engine.unselect();
-    soundManager.playJump();
+    soundManager.play('jump');
 
     // Remember what appeared and what burst, so the 1992 screen can animate it.
     const start = perfNow();
@@ -278,10 +280,13 @@ export default function App() {
       if (color) fx.push({ kind: 'burst', x: p.x, y: p.y, color, start });
     }
     setEffects(fx);
-    if (engine.score > kingOf(hall).score && coronationStart === null) setCoronationStart(start);
+    if (engine.score > kingOf(hall).score && coronationStart === null) {
+      setCoronationStart(start);
+      if (!res.isGameOver) window.setTimeout(() => soundManager.play('crown'), 450);
+    }
 
     if (res.clearedPoints.length > 0) {
-      soundManager.playEat(res.pointsEarned);
+      soundManager.play('eat', res.pointsEarned);
       setAnnouncement(t('announce.lineCleared', { points: res.pointsEarned, score: engine.score }));
       if (res.pointsEarned >= 18 && !prefersReducedMotion()) {
         confetti({ particleCount: 50 + res.pointsEarned * 2, spread: 60, origin: { y: 0.6 } });
@@ -296,9 +301,13 @@ export default function App() {
     }
 
     if (res.isGameOver) {
-      soundManager.playLose();
+      const newBest = isNewRecord(engine.score, bestAtGameStart);
+      soundManager.play(newBest ? 'record' : 'lose');
       setAnnouncement(t('announce.gameOver', { score: engine.score }));
-      recordGame(true);
+      const reward = recordGame(true);
+      // The progress rewards follow the result after a short pause so the sounds do not blur together.
+      if (reward.levelUp !== null) window.setTimeout(() => soundManager.play('levelUp'), 1100);
+      else if (reward.unlocked.length > 0) window.setTimeout(() => soundManager.play('achievement'), 1100);
     }
     commit();
   };
@@ -322,7 +331,7 @@ export default function App() {
   const handleUndo = () => {
     trackTime();
     if (engine.undo()) {
-      soundManager.playClick();
+      soundManager.play('click');
       setAnnouncement(t('announce.undone', { score: engine.score }));
       commit();
     }
@@ -336,7 +345,7 @@ export default function App() {
     setEffects([]);
     setCoronationStart(null);
     setBestAtGameStart(bestScore);
-    soundManager.playClick();
+    soundManager.play('start');
     setAnnouncement(t('announce.newGame'));
     commit();
   };
@@ -523,6 +532,38 @@ export default function App() {
     </>
   );
 
+  const footerNode = (
+    <footer className="footer-row">
+      <span className="footer-credit">{t('app.tagline')}</span>
+      <div className="footer-tools">
+        {installButton}
+        <a
+          href={GITHUB_RELEASES_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="ctrl-btn ctrl-link"
+          title={t('btn.apk')}
+        >
+          <Download size={16} aria-hidden="true" />
+          <span>APK</span>
+        </a>
+        <a
+          href={GITHUB_REPO_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="ctrl-btn ctrl-link"
+          title={t('btn.github')}
+          aria-label={t('btn.github')}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+          </svg>
+          <span>GitHub</span>
+        </a>
+      </div>
+    </footer>
+  );
+
   const dosView = (
     <div className="game-window dos-window">
       <div className="sr-only" role="status" aria-live="polite">
@@ -570,8 +611,8 @@ export default function App() {
         <button type="button" className="ctrl-btn" onClick={() => setDialog('settings')} title={t('btn.settings')} aria-label={t('btn.settings')}>
           <Settings size={20} aria-hidden="true" />
         </button>
-        {installButton}
       </div>
+      {footerNode}
     </div>
   );
 
@@ -618,6 +659,32 @@ export default function App() {
           </>
         )}
 
+        {sprites ? (
+          <header className="hud-header l98-header">
+            {/* Like the original: best score, the next balls and the score on one black LED panel. */}
+            <div className="l98-panel">
+              <div className="l98-cell" role="group" aria-label={t('hud.best')}>
+                <LedNumber value={Math.max(engine.score, bestScore)} />
+              </div>
+              <div
+                className="l98-next"
+                role="img"
+                aria-label={t('next.label', {
+                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                })}
+              >
+                {engine.nextColors.map((color, idx) => (
+                  <div key={idx} className={`ball ball-mini color-${color}`}>
+                    <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
+                  </div>
+                ))}
+              </div>
+              <div className="l98-cell" role="group" aria-label={t('hud.score')}>
+                <LedNumber value={engine.score} />
+              </div>
+            </div>
+          </header>
+        ) : (
         <header className="hud-header">
           <div className="hud-top-row">
             <h1 className="game-title">{t('app.name')}</h1>
@@ -719,6 +786,7 @@ export default function App() {
             </div>
           </div>
         </header>
+        )}
 
         <main className="board-container">
           <div className="board-grid" role="group" aria-label={t('board.label')}>
@@ -726,35 +794,7 @@ export default function App() {
           </div>
         </main>
 
-        <footer className="footer-row">
-          <span className="footer-credit">{t('app.tagline')}</span>
-          <div className="footer-tools">
-            {installButton}
-            <a
-              href={GITHUB_RELEASES_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="ctrl-btn ctrl-link"
-              title={t('btn.apk')}
-            >
-              <Download size={16} aria-hidden="true" />
-              <span>APK</span>
-            </a>
-            <a
-              href={GITHUB_REPO_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="ctrl-btn ctrl-link"
-              title={t('btn.github')}
-              aria-label={t('btn.github')}
-            >
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
-              </svg>
-              <span>GitHub</span>
-            </a>
-          </div>
-        </footer>
+        {footerNode}
       </div>
 
       {dialogs}

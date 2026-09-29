@@ -188,10 +188,10 @@ describe('spawn preview setting', () => {
     expect(loadSpawnPreview()).toBeNull();
   });
 
-  it('defaults per theme: on for the modern looks, off for the originals', () => {
+  it('defaults per theme: on except for the 1992 DOS look, which never marked the cells', () => {
     expect(defaultSpawnPreview('modern')).toBe(true);
     expect(defaultSpawnPreview('light')).toBe(true);
-    expect(defaultSpawnPreview('lines98')).toBe(false);
+    expect(defaultSpawnPreview('lines98')).toBe(true);
     expect(defaultSpawnPreview('colorlines92')).toBe(false);
   });
 });
