@@ -506,3 +506,30 @@ describe('spawn preview (cells where the next balls will appear)', () => {
     }
   });
 });
+
+describe('longest line and play time', () => {
+  it('tracks the longest line cleared and restores it on undo', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(31));
+    engine.board.clear();
+    for (let x = 0; x <= 4; x++) engine.board.set(x, 0, 'red'); // 5 in a row already
+    engine.board.set(5, 0, 'red');
+    engine.board.set(8, 8, 'red');
+    engine.moveBall({ x: 8, y: 8 }, { x: 6, y: 0 }); // makes a line of 7
+    expect(engine.maxLine).toBe(7);
+    engine.undo();
+    expect(engine.maxLine).toBe(0);
+  });
+
+  it('accumulates play time, ignores bad values and round-trips', () => {
+    const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(32));
+    engine.addPlayTime(1500);
+    engine.addPlayTime(-10);
+    engine.addPlayTime(Number.NaN);
+    expect(engine.playMs).toBe(1500);
+    const restored = GameEngine.fromState(JSON.parse(JSON.stringify(engine.getState())));
+    expect(restored!.playMs).toBe(1500);
+    expect(GameEngine.fromState({ ...validState(), playMs: -1 })).toBeNull();
+    engine.startNewGame();
+    expect(engine.playMs).toBe(0);
+  });
+});
