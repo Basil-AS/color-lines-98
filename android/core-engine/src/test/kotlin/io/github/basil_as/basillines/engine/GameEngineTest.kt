@@ -360,4 +360,13 @@ class GameEngineTest {
         engine.startNewGame()
         assertEquals(0L, engine.playMs)
     }
+
+    @Test
+    fun testFreshGameNeverStartsWithAFinishedLine() {
+        for (seed in 1..400) {
+            val engine = GameEngine(random = kotlin.random.Random(seed))
+            assertFalse("seed $seed", LineDetector.findLines(engine.board).hasMatches)
+            assertEquals(5, 81 - engine.board.getEmptyCells().size)
+        }
+    }
 }

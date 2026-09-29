@@ -105,12 +105,15 @@ export class GameEngine {
 
     this.generateNextColors();
 
-    // Spawn 5 initial balls
-    const emptyCells = this.shuffle(this.board.getEmptyCells());
-    const initialCount = Math.min(5, emptyCells.length);
-    for (let i = 0; i < initialCount; i++) {
-      const color = this.randomColor();
-      this.board.set(emptyCells[i].x, emptyCells[i].y, color);
+    // Spawn 5 initial balls; the original never starts with a finished line, so re-deal if one appears.
+    for (let attempt = 0; attempt < 50; attempt++) {
+      this.board.clear();
+      const emptyCells = this.shuffle(this.board.getEmptyCells());
+      const initialCount = Math.min(5, emptyCells.length);
+      for (let i = 0; i < initialCount; i++) {
+        this.board.set(emptyCells[i].x, emptyCells[i].y, this.randomColor());
+      }
+      if (LineDetector.findLines(this.board, this.minLineLength, this.scoringSystem).matchedPoints.length === 0) break;
     }
 
     this.generateNextColors();

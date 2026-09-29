@@ -86,12 +86,15 @@ class GameEngine(
         // Generate first prediction
         generateNextColors()
 
-        // Initial spawn: 3 or 5 balls on clean board (classic is 3 initial balls or 5 balls)
-        val initialEmpty = board.getEmptyCells().shuffled(random)
-        val initialCount = minOf(5, initialEmpty.size)
-        for (i in 0 until initialCount) {
-            val randomColor = BallColor.entries.random(random)
-            board[initialEmpty[i]] = randomColor
+        // Initial spawn: 5 balls; the original never starts with a finished line, so re-deal if one appears.
+        for (attempt in 0 until 50) {
+            board.clear()
+            val initialEmpty = board.getEmptyCells().shuffled(random)
+            val initialCount = minOf(5, initialEmpty.size)
+            for (i in 0 until initialCount) {
+                board[initialEmpty[i]] = BallColor.entries.random(random)
+            }
+            if (!LineDetector.findLines(board, minLineLength, scoringSystem).hasMatches) break
         }
 
         // Generate next turn prediction

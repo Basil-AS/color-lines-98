@@ -533,3 +533,13 @@ describe('longest line and play time', () => {
     expect(engine.playMs).toBe(0);
   });
 });
+
+describe('a fresh game', () => {
+  it('never starts with a completed line, whatever the dice say', () => {
+    for (let seed = 1; seed <= 400; seed++) {
+      const engine = new GameEngine(9, 3, 5, 'gamos', seededRng(seed));
+      expect(LineDetector.findLines(engine.board, 5).matchedPoints).toHaveLength(0);
+      expect(81 - engine.board.getEmptyCells().length).toBe(5);
+    }
+  });
+});
