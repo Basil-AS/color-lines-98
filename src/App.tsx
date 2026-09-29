@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import {
   BarChart3,
   Download,
+  MonitorDown,
   HelpCircle,
   RotateCcw,
   Settings,
@@ -56,6 +57,8 @@ import { DosScreen } from './dos/DosScreen';
 import type { DosWindow } from './dos/DosScreen';
 import type { Effect } from './dos/scene';
 import { insertScore, kingOf } from './dos/hall';
+import { InstallDialog } from './components/InstallDialog';
+import { useInstall } from './pwa/useInstall';
 import { GameOverDialog } from './components/GameOverDialog';
 import { HelpDialog } from './components/HelpDialog';
 import { SettingsDialog } from './components/SettingsDialog';
@@ -356,6 +359,8 @@ export default function App() {
   }, [theme]);
 
   const dos = theme === 'colorlines92';
+  const install = useInstall();
+  const [showInstallHelp, setShowInstallHelp] = useState(false);
 
   // The original keys: F1 help, F2 sound, F3 next, F4 restart.
   useEffect(() => {
@@ -458,8 +463,23 @@ export default function App() {
       })
     );
 
+  const installButton =
+    install.kind === 'prompt' || install.kind === 'ios' || install.kind === 'safari-mac' ? (
+      <button
+        type="button"
+        className="ctrl-btn ctrl-link"
+        onClick={() => (install.kind === 'prompt' ? void install.install() : setShowInstallHelp(true))}
+      >
+        <MonitorDown size={16} aria-hidden="true" />
+        <span>{t('install.button')}</span>
+      </button>
+    ) : null;
+
   const dialogs = (
     <>
+      {showInstallHelp && (install.kind === 'ios' || install.kind === 'safari-mac') && (
+        <InstallDialog lang={lang} kind={install.kind} onClose={() => setShowInstallHelp(false)} />
+      )}
       {engine.isGameOver && (
         <GameOverDialog
           lang={lang}
@@ -549,6 +569,7 @@ export default function App() {
         <button type="button" className="ctrl-btn" onClick={() => setDialog('settings')} title={t('btn.settings')} aria-label={t('btn.settings')}>
           <Settings size={20} aria-hidden="true" />
         </button>
+        {installButton}
       </div>
     </div>
   );
@@ -705,6 +726,7 @@ export default function App() {
         <footer className="footer-row">
           <span className="footer-credit">{t('app.tagline')}</span>
           <div className="footer-tools">
+            {installButton}
             <a
               href={GITHUB_RELEASES_URL}
               target="_blank"
