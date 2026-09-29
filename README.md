@@ -7,7 +7,7 @@
 **Color Lines** (Цветные линии, Lines 98) is a modern port of the classic puzzle: a web version that runs in any browser
 and a native Android app, sharing one rule set.
 
-- **Play in the browser:** <https://basil-as.github.io/color-lines-98/>
+- **Play in the browser:** <https://basil-as.github.io/color-lines-98/> (installable as an app, works offline)
 - **Android app:** `ColorLines-<version>.apk` on the [latest release](https://github.com/Basil-AS/color-lines-98/releases/latest)
   (application id `io.github.basil_as.basillines`)
 
@@ -16,26 +16,41 @@ and a native Android app, sharing one rule set.
 - **Rules:** 9×9 board, 7 colours, 3 new balls per turn, lines of 5 or more clear (horizontal, vertical, diagonal),
   clearing a line is a free turn, scoring `2L² − 20L + 60`, undo.
 - **Spawn preview:** small balls show on the board where the next balls will appear (can be switched off).
-- **Four themes** on both platforms, remembered between launches:
-  - *Modern dark* and *Modern light*;
-  - *Lines 98 (Windows)*: grey window chrome, bevelled cells, black score displays, the original ball sprites;
-  - *Color Lines 1992 (DOS)*: the 16-colour EGA/VGA palette, hard bevels, flat-shaded balls and PC-speaker beeps.
-- **Progress:** levels with titles, 18 achievements, day streaks, personal records, score trend, active play time and
-  the full history of finished games (up to 1000).
+- **Four looks** on both platforms, remembered between launches:
+  - *Modern dark* and *Modern light* with new soft synthesised sounds;
+  - *Lines 98 (Windows)*: grey window chrome, the original bevelled board, red LED digits, the original sprites and sounds;
+  - *Color Lines 1992 (DOS)*: **the original screen from `lines.lib`**, drawn with the original sprites: the red king on
+    his pillar, the magenta pretender who takes the crown when you beat the king, LCD scores, `F1`–`F4` buttons and
+    keys, the original Help window, a Top Ten table, PC-speaker sounds. See [`docs/ORIGINALS.md`](docs/ORIGINALS.md).
+- **Progress and analysis:** levels with titles, 18 achievements, day streaks, personal records, active play time, the
+  full history (up to 1000 games) and an analysis: trend against your previous games, games per day, score
+  distribution, best weekdays, efficiency (points per move), record progression and the games left to the next level.
 - **English and Russian**, picked automatically from the browser or system language (web: also switchable in Settings;
   Android: per-app language in system settings).
 - **Everywhere:** responsive layout for phones, tablets and desktops (portrait and landscape), keyboard play and screen
   reader labels on the web, edge-to-edge with system-bar insets on Android, your game resumes after a restart.
 
-> The 1992 and Windows themes recreate the look and feel of the originals from memory and public descriptions; the
-> original binaries and artwork are not part of this repository, except for the Lines 98 ball sprites and sounds that were
-> already in `assets/`. If you have reference screenshots, the themes can be tuned to match them exactly.
+> The 1992 look uses the original artwork extracted from the game archive and the Windows look uses artwork and sounds
+> from a Lines 98 clone; see the licensing note in [`docs/ORIGINALS.md`](docs/ORIGINALS.md).
+
+## Install as an app (PWA)
+
+| Platform | How |
+|---|---|
+| Android, Windows, macOS/Linux (Chrome, Edge) | press **Install** in the game (or the browser's install icon) |
+| iPhone and iPad (Safari) | Share, then **Add to Home Screen** (the game explains it) |
+| macOS (Safari) | File, then **Add to Dock** |
+
+After the first visit the game runs offline.
 
 ## Repository layout
 
 ```
 ├── src/                 # Web app (React 19 + TypeScript)
 │   ├── engine/          # Game rules (board, path finding, lines, engine)
+│   ├── dos/             # The 1992 screen: sprites, scene, Top Ten, canvas renderer
+│   ├── insights.ts      # Analysis of the recorded games
+│   ├── pwa/             # Install button logic
 │   ├── progress.ts      # Levels, achievements, streaks
 │   ├── stats.ts         # Game history and records
 │   ├── i18n.ts          # English/Russian texts (also the source of the Android strings)

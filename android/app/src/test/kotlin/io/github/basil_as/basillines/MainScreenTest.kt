@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.test.core.app.ApplicationProvider
 import org.junit.Assert.assertEquals
@@ -471,5 +472,44 @@ class DosThemeTest {
         assertEquals(1, hall.size)
         assertEquals("Ann", hall[0].name)
         assertEquals(60, hall[0].score)
+    }
+}
+
+
+@RunWith(RobolectricTestRunner::class)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@Config(sdk = [35], qualifiers = "en-rUS-w411dp-h891dp-port")
+class AnalysisTest {
+
+    @get:Rule
+    val rule = createAndroidComposeRule<MainActivity>()
+
+    private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    private fun seedHistory(count: Int) {
+        val now = System.currentTimeMillis()
+        val history = (0 until count).joinToString(";") { i -> "${200 - i * 4},${now - i * 3_600_000L},40,4,20,1,5,120000" }
+        context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE).edit().clear().putString("history", history).commit()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+    }
+
+    @Test
+    fun showsTheTrendEfficiencyAndCharts() {
+        seedHistory(25)
+        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(hasText("Analysis")).onFirst().assertExists()
+        rule.onAllNodes(hasText("better than the 10 before", substring = true)).onFirst().assertExists()
+        rule.onAllNodes(hasText("points per move", substring = true)).onFirst().assertExists()
+        rule.onAllNodes(hasContentDescription("Games per day, last 14 days", substring = true)).onFirst().assertExists()
+    }
+
+    @Test
+    fun asksForMoreGamesWhileTheHistoryIsShort() {
+        seedHistory(3)
+        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(hasText("Finish 17 more games", substring = true)).onFirst().assertExists()
     }
 }
