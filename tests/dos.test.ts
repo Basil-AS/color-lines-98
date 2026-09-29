@@ -145,3 +145,21 @@ describe('scene', () => {
     expect(label(true).sx).not.toBe(label(false).sx);
   });
 });
+
+import { dosNames } from '../src/dos/names';
+
+describe('who is called what', () => {
+  const base = { kingName: 'Handicap', playerName: 'Ann', pretenderLabel: 'Pretender', defaultPlayerName: 'Player' };
+
+  it('keeps the labels of the original until the king is beaten', () => {
+    expect(dosNames({ ...base, crowned: false })).toEqual({ king: 'Handicap', pretender: 'Pretender' });
+  });
+
+  it('crowns the player: the pretender gets the player name, the dethroned king keeps his own', () => {
+    expect(dosNames({ ...base, crowned: true })).toEqual({ king: 'Handicap', pretender: 'Ann' });
+  });
+
+  it('falls back to a default name when none was entered', () => {
+    expect(dosNames({ ...base, playerName: '  ', crowned: true }).pretender).toBe('Player');
+  });
+});

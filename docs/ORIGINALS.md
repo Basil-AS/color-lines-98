@@ -7,7 +7,7 @@
 | Color Lines (Gamos, 1992, MS-DOS) | Internet Archive: [`lines_eng`](https://archive.org/details/lines_eng), [`msdos_Color_Lines_1992`](https://archive.org/details/msdos_Color_Lines_1992) |
 | Rules and scoring of Lines 98 | <https://lines-98.ru/> (10 / 12 / 18 / 28 / 42 points for 5 to 9 balls, 3 new balls after every move, delayed when a line is cleared) |
 | Description of the game | <https://www.min2win.ru/game/lines-98.html>, [Wikipedia: Color Lines](https://en.wikipedia.org/wiki/Color_Lines) |
-| Lines 98 look and sounds | the reference APKs kept locally (`org.game.line98basic`, Win98 GUI assets, ball atlas, sounds) |
+| Lines 98 look and sounds | the reference APKs kept locally (`org.game.line98basic`, Win98 GUI assets, ball atlas, sounds); the original Windows game [Lines 98 v5.0](https://archive.org/details/lines98v50) (Sorcerersoft) was used as the visual reference (its installer is a closed Wise package, so no assets were taken from it) |
 
 ## Color Lines 1992 (DOS)
 
@@ -41,15 +41,26 @@ The default king is **Handicap with 100 points**; the best entry of the Top Ten 
 | Next 3 colours shown in a panel | yes (`F3` hides them) | yes |
 | Score 10 / 12 / 18 / 28 / 42 for 5 to 9 | yes | `2L^2 - 20L + 60` gives exactly these |
 | Game over when the board is full | yes | yes |
-| Marking *where* the new balls will appear | **no** | optional, off in the original looks |
+| Small balls on the board where the next ones will appear | **DOS 1992: no. Windows Lines 98 v5.0: yes** (small balls stand on the cells) | on by default except in the 1992 DOS look; a setting |
 | Undo | not in the originals | extra, optional |
 
 Not verifiable offline: how the original scores two lines cleared by one move (this port scores each line
 separately) and the exact PC-speaker sounds (approximated, see below).
 
+## Lines 98 (Windows)
+
+The Windows game (Sorcerersoft v5.0 screenshot) has a black LED panel with three parts: the best score on the
+left, the three next balls in the middle and the current score on the right, all in **cyan** seven-segment digits,
+a text menu instead of buttons, and a bevelled grey board. The theme follows that layout with the original digit and
+board images.
+
 ## Sounds
 
-* **Lines 98 (Windows)**: the recorded samples from the reference app.
+Every event of the game has a sound in every look (`start`, `select`, `jump`, `eat` in five sizes, `blocked`, `lose`,
+`record`, `crown`, `level up`, `achievement`); a test makes sure none is missing and that every recorded sample exists.
+
+* **Lines 98 (Windows)**: the recorded samples from the reference app (including the start, level-up and fireworks
+  samples for a new game, a level up and a new record).
 * **Color Lines 1992 (DOS)**: square-wave PC-speaker beeps synthesised in code (the original melodies were not
   extracted).
 * **Modern looks**: new soft synthesised sounds (sine/triangle notes with a smooth decay).
