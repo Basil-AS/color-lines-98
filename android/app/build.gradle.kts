@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.colorlines.app"
+    namespace = "io.github.basil_as.basillines"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.colorlines.app"
+        applicationId = "io.github.basil_as.basillines"
         minSdk = 26
         targetSdk = 35
         versionCode = 2
