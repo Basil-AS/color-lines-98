@@ -42,9 +42,18 @@ describe('theme', () => {
     expect(loadTheme()).toBe('modern');
   });
 
-  it('round-trips a valid theme', () => {
-    saveTheme('retro92');
-    expect(loadTheme()).toBe('retro92');
+  it('round-trips every theme', () => {
+    for (const theme of ['modern', 'light', 'lines98', 'colorlines92'] as const) {
+      saveTheme(theme);
+      expect(loadTheme()).toBe(theme);
+    }
+  });
+
+  it('migrates the theme names used before the redesign', () => {
+    store.setItem('colorlines_theme', 'classic98');
+    expect(loadTheme()).toBe('lines98');
+    store.setItem('colorlines_theme', 'retro92');
+    expect(loadTheme()).toBe('colorlines92');
   });
 });
 

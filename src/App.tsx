@@ -6,6 +6,7 @@ import {
   Download,
   HelpCircle,
   RotateCcw,
+  Settings,
   Undo2,
   Volume2,
   VolumeX,
@@ -15,31 +16,38 @@ import type { BallColor, Point } from './engine/models';
 import { pointsEqual } from './engine/models';
 import { soundManager } from './audio';
 import {
-  LANGUAGES,
   colorName,
   resolveLanguage,
   translate,
 } from './i18n';
 import type { Language, MessageKey } from './i18n';
 import {
-  THEMES,
   clearHistory,
+  clearProgress,
   loadBestScore,
   loadGame,
   loadHistory,
   loadLanguagePref,
+  loadProgress,
+  loadSpawnPreview,
   loadTheme,
   saveBestScore,
   saveGame,
   saveHistory,
   saveLanguagePref,
+  saveProgress,
+  saveSpawnPreview,
   saveTheme,
 } from './storage';
 import type { LanguagePref, Theme } from './storage';
 import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
+import { applyGame, levelInfo, rebuildProgress, xpOf } from './progress';
+import type { Progress } from './progress';
+import { soundProfile } from './themes';
 import { GameOverDialog } from './components/GameOverDialog';
 import { HelpDialog } from './components/HelpDialog';
+import { SettingsDialog } from './components/SettingsDialog';
 import { StatsDialog } from './components/StatsDialog';
 import './App.css';
 
@@ -55,9 +63,23 @@ function browserLanguages(): readonly string[] {
   return navigator.languages?.length ? navigator.languages : [navigator.language];
 }
 
+const clock = (): number => Date.now();
+
 function applyDocumentLanguage(lang: Language): void {
   document.documentElement.lang = lang;
   document.title = translate(lang, 'app.docTitle');
+}
+
+const THEME_COLORS: Record<Theme, string> = {
+  modern: '#121217',
+  light: '#e9ecf5',
+  lines98: '#008080',
+  colorlines92: '#000000',
+};
+
+function applyDocumentTheme(theme: Theme): void {
+  document.body.className = `theme-${theme}`;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme]);
 }
 
 function withRecord(history: readonly GameRecord[], engine: GameEngine, completed: boolean) {
@@ -65,7 +87,8 @@ function withRecord(history: readonly GameRecord[], engine: GameEngine, complete
 }
 
 function ballThemeClass(theme: Theme): string {
-  return theme === 'classic98' ? '' : theme === 'retro92' ? 'ball-retro' : 'ball-modern';
+  if (theme === 'lines98') return '';
+  return theme === 'colorlines92' ? 'ball-dos' : 'ball-modern';
 }
 
 function getSpriteUrl(color: BallColor): string {
@@ -88,8 +111,21 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [langPref, setLangPref] = useState<LanguagePref>(loadLanguagePref);
   const [soundEnabled, setSoundEnabled] = useState(() => soundManager.isEnabled);
-  const [dialog, setDialog] = useState<'help' | 'stats' | null>(null);
+  const [dialog, setDialog] = useState<'help' | 'stats' | 'settings' | null>(null);
   const [history, setHistory] = useState(loadHistory);
+  const [progress, setProgress] = useState<Progress>(() => {
+    const saved = loadProgress();
+    const past = loadHistory();
+    // Saves made before profiles existed: rebuild the profile from the recorded games.
+    return saved.totalGames === 0 && past.length > 0 ? rebuildProgress(past) : saved;
+  });
+  const [spawnPreview, setSpawnPreview] = useState(loadSpawnPreview);
+  const [lastResult, setLastResult] = useState<{ xp: number; levelUp: number | null; unlocked: string[] }>({
+    xp: 0,
+    levelUp: null,
+    unlocked: [],
+  });
+  const lastActionAt = useRef(0);
   const [bestScore, setBestScore] = useState(() =>
     Math.max(loadBestScore(), summarize(loadHistory()).bestScore)
   );
@@ -108,10 +144,28 @@ export default function App() {
     saveGame(engine);
   }, [engine]);
 
+  // Counts active time between actions; long pauses (a forgotten tab) are capped.
+  const trackTime = () => {
+    const now = clock();
+    if (lastActionAt.current > 0) engine.addPlayTime(Math.min(now - lastActionAt.current, 60_000));
+    lastActionAt.current = now;
+  };
+
   const recordGame = (completed: boolean) => {
-    const next = withRecord(history, engine, completed);
-    setHistory(next);
-    saveHistory(next);
+    const record = withRecord(history, engine, completed)[0];
+    const nextHistory = addRecord(history, record);
+    const applied = applyGame(progress, record);
+    setHistory(nextHistory);
+    saveHistory(nextHistory);
+    setProgress(applied.progress);
+    saveProgress(applied.progress);
+    const before = levelInfo(xpOf(progress)).level;
+    const after = levelInfo(xpOf(applied.progress)).level;
+    setLastResult({
+      xp: xpOf(applied.progress) - xpOf(progress),
+      levelUp: after > before ? after : null,
+      unlocked: applied.unlocked,
+    });
   };
 
   const changeTheme = (newTheme: Theme) => {
@@ -128,9 +182,17 @@ export default function App() {
     setSoundEnabled(soundManager.toggle());
   };
 
+  const togglePreview = () => {
+    setSpawnPreview((on) => {
+      saveSpawnPreview(!on);
+      return !on;
+    });
+  };
+
   const handleCellClick = (x: number, y: number) => {
     setFocusCell({ x, y });
     if (engine.isGameOver) return;
+    trackTime();
 
     const clickedPoint: Point = { x, y };
 
@@ -197,6 +259,7 @@ export default function App() {
   };
 
   const handleUndo = () => {
+    trackTime();
     if (engine.undo()) {
       soundManager.playClick();
       setAnnouncement(t('announce.undone', { score: engine.score }));
@@ -208,6 +271,7 @@ export default function App() {
     // Abandoning a game in progress still counts towards the history.
     if (!engine.isGameOver && engine.moves > 0) recordGame(false);
     engine.startNewGame();
+    lastActionAt.current = 0;
     setBestAtGameStart(bestScore);
     soundManager.playClick();
     setAnnouncement(t('announce.newGame'));
@@ -215,14 +279,25 @@ export default function App() {
   };
 
   const closeDialog = useCallback(() => setDialog(null), []);
+  const [statsNow, setStatsNow] = useState(0);
+  const openStats = () => {
+    setStatsNow(clock());
+    setDialog('stats');
+  };
 
   const handleClearHistory = () => {
     clearHistory();
+    clearProgress();
     setHistory([]);
+    setProgress(loadProgress());
   };
 
   useEffect(() => {
-    document.body.className = `theme-${theme}`;
+    applyDocumentTheme(theme);
+  }, [theme]);
+
+  useEffect(() => {
+    soundManager.setProfile(soundProfile(theme));
   }, [theme]);
 
   useEffect(() => {
@@ -231,13 +306,30 @@ export default function App() {
 
   const reachableCells = engine.getReachableCells();
   const newRecord = engine.isGameOver && isNewRecord(engine.score, bestAtGameStart);
-  const cellText = (x: number, y: number, color: BallColor | null, sel: boolean, reach: boolean) =>
+  const incoming = new Map<string, BallColor>();
+  if (spawnPreview && !engine.isGameOver) {
+    engine.nextSpawnPoints.forEach((p, i) => {
+      const color = engine.nextColors[i];
+      if (color) incoming.set(`${p.x},${p.y}`, color);
+    });
+  }
+  const cellText = (
+    x: number,
+    y: number,
+    color: BallColor | null,
+    sel: boolean,
+    reach: boolean,
+    coming: BallColor | undefined
+  ) =>
     t('cell.description', {
       row: y + 1,
       col: x + 1,
       content: color ? t('cell.ball', { color: colorName(lang, color) }) : t('cell.empty'),
-      state: `${sel ? t('cell.selected') : ''}${reach ? t('cell.reachable') : ''}`,
+      state: `${sel ? t('cell.selected') : ''}${reach ? t('cell.reachable') : ''}${
+        coming ? t('cell.incoming', { color: colorName(lang, coming) }) : ''
+      }`,
     });
+  const sprites = theme === 'lines98';
 
   return (
     <div className={`app-container theme-${theme}`}>
@@ -246,20 +338,36 @@ export default function App() {
           {announcement}
         </div>
 
-        {theme === 'classic98' && (
-          <div className="win98-titlebar">
-            <span>{t('app.name')}</span>
-            <div className="win98-titlebar-buttons">
-              <button
-                type="button"
-                className="win98-btn"
-                onClick={() => setDialog('help')}
-                aria-label={t('btn.help')}
-              >
-                ?
-              </button>
+        {theme === 'lines98' && (
+          <>
+            <div className="win98-titlebar">
+              <span>{t('app.name')}</span>
+              <div className="win98-titlebar-buttons">
+                <button
+                  type="button"
+                  className="win98-btn"
+                  onClick={() => setDialog('help')}
+                  aria-label={t('btn.help')}
+                >
+                  ?
+                </button>
+              </div>
             </div>
-          </div>
+            <nav className="win98-menubar" aria-label={t('menu.game')}>
+              <button type="button" onClick={handleNewGame}>
+                {t('menu.game')}
+              </button>
+              <button type="button" onClick={openStats}>
+                {t('btn.stats')}
+              </button>
+              <button type="button" onClick={() => setDialog('settings')}>
+                {t('btn.settings')}
+              </button>
+              <button type="button" onClick={() => setDialog('help')}>
+                {t('btn.help')}
+              </button>
+            </nav>
+          </>
         )}
 
         <header className="hud-header">
@@ -291,9 +399,7 @@ export default function App() {
               <div className="next-balls-list" aria-hidden="true">
                 {engine.nextColors.map((color, idx) => (
                   <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
-                    {theme === 'classic98' && (
-                      <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
-                    )}
+                    {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
                   </div>
                 ))}
               </div>
@@ -322,7 +428,7 @@ export default function App() {
               <button
                 type="button"
                 className="ctrl-btn"
-                onClick={() => setDialog('stats')}
+                onClick={openStats}
                 title={t('btn.stats')}
                 aria-label={t('btn.stats')}
               >
@@ -345,6 +451,15 @@ export default function App() {
               <button
                 type="button"
                 className="ctrl-btn"
+                onClick={() => setDialog('settings')}
+                title={t('btn.settings')}
+                aria-label={t('btn.settings')}
+              >
+                <Settings size={20} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="ctrl-btn"
                 onClick={() => setDialog('help')}
                 title={t('btn.help')}
                 aria-label={t('btn.help')}
@@ -362,6 +477,7 @@ export default function App() {
                 const color = engine.board.get(x, y);
                 const isSelected = engine.selectedPoint?.x === x && engine.selectedPoint?.y === y;
                 const isReachable = !color && reachableCells.has(`${x},${y}`);
+                const coming = color ? undefined : incoming.get(`${x},${y}`);
                 const isFocusStop = focusCell.x === x && focusCell.y === y;
 
                 return (
@@ -372,11 +488,9 @@ export default function App() {
                       cellRefs.current[y * BOARD_SIZE + x] = el;
                     }}
                     tabIndex={isFocusStop ? 0 : -1}
-                    aria-label={cellText(x, y, color, isSelected, isReachable)}
+                    aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
                     aria-pressed={color ? isSelected : undefined}
-                    className={`board-cell ${isSelected ? 'selected' : ''} ${
-                      isReachable ? 'reachable' : ''
-                    }`}
+                    className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''}`}
                     onClick={() => handleCellClick(x, y)}
                     onKeyDown={(e) => handleCellKeyDown(e, x, y)}
                   >
@@ -387,9 +501,15 @@ export default function App() {
                           theme
                         )} color-${color}`}
                       >
-                        {theme === 'classic98' && (
-                          <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
-                        )}
+                        {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
+                      </div>
+                    )}
+                    {coming && (
+                      <div
+                        aria-hidden="true"
+                        className={`ball ball-preview ${ballThemeClass(theme)} color-${coming}`}
+                      >
+                        {sprites && <img src={getSpriteUrl(coming)} alt="" className="ball-classic" />}
                       </div>
                     )}
                   </button>
@@ -400,35 +520,8 @@ export default function App() {
         </main>
 
         <footer className="footer-row">
-          <div className="theme-selector" role="group" aria-label={t('theme.group')}>
-            {THEMES.map((id) => (
-              <button
-                type="button"
-                key={id}
-                className={`theme-opt-btn ${theme === id ? 'active' : ''}`}
-                onClick={() => changeTheme(id)}
-                aria-pressed={theme === id}
-              >
-                {t(`theme.${id}` as MessageKey)}
-              </button>
-            ))}
-          </div>
-
+          <span className="footer-credit">{t('app.tagline')}</span>
           <div className="footer-tools">
-            <label className="lang-select">
-              <span className="sr-only">{t('lang.label')}</span>
-              <select
-                value={langPref}
-                onChange={(e) => changeLanguage(e.target.value as LanguagePref)}
-              >
-                <option value="auto">{t('lang.auto')}</option>
-                {LANGUAGES.map((l) => (
-                  <option key={l} value={l}>
-                    {t(`lang.${l}` as MessageKey)}
-                  </option>
-                ))}
-              </select>
-            </label>
             <a
               href={GITHUB_RELEASES_URL}
               target="_blank"
@@ -462,6 +555,9 @@ export default function App() {
           score={engine.score}
           best={Math.max(engine.score, bestScore)}
           newRecord={newRecord}
+          xpGained={lastResult.xp}
+          levelUp={lastResult.levelUp}
+          unlocked={lastResult.unlocked}
           onPlayAgain={handleNewGame}
         />
       )}
@@ -470,7 +566,23 @@ export default function App() {
         <StatsDialog
           lang={lang}
           history={history}
+          progress={progress}
+          now={statsNow}
           onClear={handleClearHistory}
+          onClose={closeDialog}
+        />
+      )}
+      {!engine.isGameOver && dialog === 'settings' && (
+        <SettingsDialog
+          lang={lang}
+          theme={theme}
+          onTheme={changeTheme}
+          langPref={langPref}
+          onLangPref={changeLanguage}
+          soundEnabled={soundEnabled}
+          onToggleSound={toggleSound}
+          spawnPreview={spawnPreview}
+          onTogglePreview={togglePreview}
           onClose={closeDialog}
         />
       )}

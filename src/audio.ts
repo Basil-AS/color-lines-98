@@ -1,5 +1,12 @@
+import type { SoundProfile } from './themes';
+
+import { pcSpeakerNotes } from './pcspeaker';
+import type { SoundKind } from './pcspeaker';
+
 class SoundManager {
   private enabled: boolean = true;
+  private profile: SoundProfile = 'sampled';
+  private context: AudioContext | null = null;
   private audioCache: Map<string, HTMLAudioElement> = new Map();
 
   constructor() {
@@ -21,6 +28,33 @@ class SoundManager {
   toggle(): boolean {
     this.setSoundEnabled(!this.enabled);
     return this.enabled;
+  }
+
+  setProfile(profile: SoundProfile): void {
+    this.profile = profile;
+  }
+
+  private beep(kind: SoundKind, points = 0): void {
+    if (!this.enabled) return;
+    try {
+      this.context ??= new AudioContext();
+      const ctx = this.context;
+      void ctx.resume();
+      let t = ctx.currentTime;
+      for (const note of pcSpeakerNotes(kind, points)) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.value = note.freq;
+        gain.gain.value = 0.06;
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(t);
+        osc.stop(t + note.ms / 1000);
+        t += note.ms / 1000;
+      }
+    } catch {
+      // Audio can be unavailable (no output device, blocked before a gesture); the game goes on silently.
+    }
   }
 
   private playSound(path: string, volume = 0.7): void {
@@ -45,14 +79,17 @@ class SoundManager {
   }
 
   playSelect(): void {
+    if (this.profile === 'pcspeaker') return this.beep('select');
     this.playSound('sounds/classic/selectBall.mp3', 0.6);
   }
 
   playJump(): void {
+    if (this.profile === 'pcspeaker') return this.beep('jump');
     this.playSound('sounds/classic/jump.mp3', 0.6);
   }
 
   playEat(points: number): void {
+    if (this.profile === 'pcspeaker') return this.beep('eat', points);
     let index = 1;
     if (points >= 30) index = 5;
     else if (points >= 20) index = 4;
@@ -62,14 +99,17 @@ class SoundManager {
   }
 
   playLose(): void {
+    if (this.profile === 'pcspeaker') return this.beep('lose');
     this.playSound('sounds/classic/Lose.mp3', 0.8);
   }
 
   playWin(): void {
+    if (this.profile === 'pcspeaker') return this.beep('win');
     this.playSound('sounds/classic/Win.mp3', 0.8);
   }
 
   playClick(): void {
+    if (this.profile === 'pcspeaker') return this.beep('click');
     this.playSound('sounds/classic/ButtonClick.mp3', 0.4);
   }
 }

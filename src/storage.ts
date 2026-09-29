@@ -4,8 +4,11 @@ import type { Progress } from './progress';
 import { sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 
-export const THEMES = ['modern', 'classic98', 'retro92'] as const;
-export type Theme = (typeof THEMES)[number];
+import { parseTheme } from './themes';
+import type { Theme } from './themes';
+
+export { THEMES } from './themes';
+export type { Theme } from './themes';
 
 const THEME_KEY = 'colorlines_theme';
 const BEST_KEY = 'colorlines_best_score';
@@ -37,8 +40,7 @@ function write(key: string, value: string): void {
 }
 
 export function loadTheme(): Theme {
-  const raw = read(THEME_KEY);
-  return (THEMES as readonly string[]).includes(raw ?? '') ? (raw as Theme) : 'modern';
+  return parseTheme(read(THEME_KEY));
 }
 
 export function saveTheme(theme: Theme): void {
