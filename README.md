@@ -1,14 +1,14 @@
-# Basil Lines
+# Color Lines
 
 [![Web CI & GitHub Pages Deploy](https://github.com/Basil-AS/color-lines-98/actions/workflows/web-ci.yml/badge.svg)](https://github.com/Basil-AS/color-lines-98/actions/workflows/web-ci.yml)
 [![Android CI](https://github.com/Basil-AS/color-lines-98/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Basil-AS/color-lines-98/actions/workflows/android-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Basil Lines** is a modern take on the classic puzzle **Color Lines** (Линии 98): a web version that runs in any browser
+**Color Lines** (Цветные линии, Lines 98) is a modern port of the classic puzzle: a web version that runs in any browser
 and a native Android app, sharing one rule set.
 
 - **Play in the browser:** <https://basil-as.github.io/color-lines-98/>
-- **Android app:** `BasilLines-<version>.apk` on the [latest release](https://github.com/Basil-AS/color-lines-98/releases/latest)
+- **Android app:** `ColorLines-<version>.apk` on the [latest release](https://github.com/Basil-AS/color-lines-98/releases/latest)
   (application id `io.github.basil_as.basillines`)
 
 ## Features
@@ -75,7 +75,7 @@ Android strings are generated from `src/i18n.ts`; after changing texts run
 ## Releases
 
 Push a tag `vX.Y.Z` that matches `package.json` and `versionName` in `android/app/build.gradle.kts`. The release
-workflow tests everything and publishes `BasilLines-X.Y.Z.apk` and `BasilLines-X.Y.Z-web.zip`. Every push to `main`
+workflow tests everything and publishes `ColorLines-X.Y.Z.apk` and `ColorLines-X.Y.Z-web.zip`. Every push to `main`
 deploys the web app to GitHub Pages.
 
 ## Credits

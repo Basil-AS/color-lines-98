@@ -4,9 +4,9 @@ export type Language = 'en' | 'ru';
 export const LANGUAGES: readonly Language[] = ['en', 'ru'];
 
 const en = {
-  'app.name': 'Basil Lines',
-  'app.tagline': 'Classic colour-lines puzzle',
-  'app.docTitle': 'Basil Lines — classic colour-lines puzzle',
+  'app.name': 'Color Lines',
+  'app.tagline': 'The classic puzzle with coloured balls',
+  'app.docTitle': 'Color Lines — the classic ball puzzle',
 
   'hud.score': 'Score',
   'hud.best': 'Best',
@@ -191,9 +191,9 @@ const en = {
 type Dictionary = { readonly [K in keyof typeof en]: string };
 
 const ru: Dictionary = {
-  'app.name': 'Basil Lines',
-  'app.tagline': 'Классическая головоломка с шарами',
-  'app.docTitle': 'Basil Lines — классическая головоломка с шарами',
+  'app.name': 'Цветные линии',
+  'app.tagline': 'Классическая головоломка с цветными шарами',
+  'app.docTitle': 'Цветные линии — классическая головоломка с шарами',
 
   'hud.score': 'Счёт',
   'hud.best': 'Рекорд',
