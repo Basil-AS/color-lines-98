@@ -232,6 +232,39 @@ describe('statistics', () => {
   });
 });
 
+describe('analysis', () => {
+  const history = Array.from({ length: 25 }, (_, i) => ({
+    score: 200 - i * 4, // newest first: the player is improving
+    endedAt: Date.now() - i * 3_600_000,
+    moves: 40,
+    lines: 4,
+    balls: 20,
+    completed: true,
+    maxLine: 5,
+    durationMs: 120_000,
+  }));
+
+  it('shows the trend, charts and efficiency once there are enough games', async () => {
+    localStorage.setItem('colorlines_history', JSON.stringify(history));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Statistics' }));
+    expect(screen.getByRole('region', { name: 'Analysis' })).toBeInTheDocument();
+    expect(screen.getByText(/better than the 10 before/)).toBeInTheDocument();
+    expect(screen.getByText(/points per move/)).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /Games per day, last 14 days/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /How your scores are spread/ })).toBeInTheDocument();
+  });
+
+  it('asks for more games while the history is short', async () => {
+    localStorage.setItem('colorlines_history', JSON.stringify(history.slice(0, 3)));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Statistics' }));
+    expect(screen.getByText(/Finish 17 more games/)).toBeInTheDocument();
+  });
+});
+
 describe('dialogs', () => {
   it('closes with Escape and gives the focus back', async () => {
     const user = userEvent.setup();
