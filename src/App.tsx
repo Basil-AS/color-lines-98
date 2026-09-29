@@ -58,6 +58,7 @@ import type { DosWindow } from './dos/DosScreen';
 import type { Effect } from './dos/scene';
 import { insertScore, kingOf } from './dos/hall';
 import { InstallDialog } from './components/InstallDialog';
+import { LedNumber } from './components/LedNumber';
 import { useInstall } from './pwa/useInstall';
 import { GameOverDialog } from './components/GameOverDialog';
 import { HelpDialog } from './components/HelpDialog';
@@ -623,11 +624,13 @@ export default function App() {
             <div className="hud-stats">
               <div className="stat-box">
                 <div className="stat-label">{t('hud.score')}</div>
-                <div className="stat-value">{engine.score}</div>
+                <div className="stat-value">{sprites ? <LedNumber value={engine.score} /> : engine.score}</div>
               </div>
               <div className="stat-box">
                 <div className="stat-label">{t('hud.best')}</div>
-                <div className="stat-value">{Math.max(engine.score, bestScore)}</div>
+                <div className="stat-value">
+                  {sprites ? <LedNumber value={Math.max(engine.score, bestScore)} /> : Math.max(engine.score, bestScore)}
+                </div>
               </div>
             </div>
           </div>
