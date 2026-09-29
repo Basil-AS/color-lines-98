@@ -139,7 +139,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var lastActionAt by remember { mutableLongStateOf(0L) }
 
     val palette = paletteFor(theme)
-    soundManager.pcSpeaker = theme == AppTheme.COLORLINES_92
+    soundManager.profile = when (theme) {
+        AppTheme.LINES_98 -> SoundManager.Profile.SAMPLED
+        AppTheme.COLORLINES_92 -> SoundManager.Profile.PC_SPEAKER
+        else -> SoundManager.Profile.MODERN
+    }
     DisposableEffect(theme) {
         onSystemBars(palette.dark || palette.background == Color(0xFF008080) || palette.background == Color.Black)
         onDispose { }

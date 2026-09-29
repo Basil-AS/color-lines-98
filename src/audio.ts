@@ -1,5 +1,6 @@
 import type { SoundProfile } from './themes';
 
+import { modernNotes } from './modernsound';
 import { pcSpeakerNotes } from './pcspeaker';
 import type { SoundKind } from './pcspeaker';
 
@@ -34,23 +35,36 @@ class SoundManager {
     this.profile = profile;
   }
 
-  private beep(kind: SoundKind, points = 0): void {
+  /** Plays synthesised notes: square beeps for the PC speaker, soft tones for the modern themes. */
+  private synth(kind: SoundKind, points = 0): void {
     if (!this.enabled) return;
     try {
       this.context ??= new AudioContext();
       const ctx = this.context;
       void ctx.resume();
       let t = ctx.currentTime;
-      for (const note of pcSpeakerNotes(kind, points)) {
+      const notes =
+        this.profile === 'pcspeaker'
+          ? pcSpeakerNotes(kind, points).map((b) => ({ freq: b.freq, ms: b.ms, wave: 'square' as const, gain: 0.06 }))
+          : modernNotes(kind, points);
+      for (const note of notes) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
-        osc.type = 'square';
+        osc.type = note.wave;
         osc.frequency.value = note.freq;
-        gain.gain.value = 0.06;
+        const end = t + note.ms / 1000;
+        if (note.wave === 'square') {
+          gain.gain.value = note.gain;
+        } else {
+          // A quick attack and a smooth decay keep the soft tones free of clicks.
+          gain.gain.setValueAtTime(0.0001, t);
+          gain.gain.linearRampToValueAtTime(note.gain, t + 0.008);
+          gain.gain.exponentialRampToValueAtTime(0.0001, end);
+        }
         osc.connect(gain).connect(ctx.destination);
         osc.start(t);
-        osc.stop(t + note.ms / 1000);
-        t += note.ms / 1000;
+        osc.stop(end + 0.02);
+        t = end;
       }
     } catch {
       // Audio can be unavailable (no output device, blocked before a gesture); the game goes on silently.
@@ -79,17 +93,17 @@ class SoundManager {
   }
 
   playSelect(): void {
-    if (this.profile === 'pcspeaker') return this.beep('select');
+    if (this.profile !== 'sampled') return this.synth('select');
     this.playSound('sounds/classic/selectBall.mp3', 0.6);
   }
 
   playJump(): void {
-    if (this.profile === 'pcspeaker') return this.beep('jump');
+    if (this.profile !== 'sampled') return this.synth('jump');
     this.playSound('sounds/classic/jump.mp3', 0.6);
   }
 
   playEat(points: number): void {
-    if (this.profile === 'pcspeaker') return this.beep('eat', points);
+    if (this.profile !== 'sampled') return this.synth('eat', points);
     let index = 1;
     if (points >= 30) index = 5;
     else if (points >= 20) index = 4;
@@ -99,17 +113,17 @@ class SoundManager {
   }
 
   playLose(): void {
-    if (this.profile === 'pcspeaker') return this.beep('lose');
+    if (this.profile !== 'sampled') return this.synth('lose');
     this.playSound('sounds/classic/Lose.mp3', 0.8);
   }
 
   playWin(): void {
-    if (this.profile === 'pcspeaker') return this.beep('win');
+    if (this.profile !== 'sampled') return this.synth('win');
     this.playSound('sounds/classic/Win.mp3', 0.8);
   }
 
   playClick(): void {
-    if (this.profile === 'pcspeaker') return this.beep('click');
+    if (this.profile !== 'sampled') return this.synth('click');
     this.playSound('sounds/classic/ButtonClick.mp3', 0.4);
   }
 }

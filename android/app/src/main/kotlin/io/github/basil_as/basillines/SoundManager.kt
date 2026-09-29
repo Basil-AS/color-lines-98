@@ -5,6 +5,7 @@ import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
 import android.media.SoundPool
+import io.github.basil_as.basillines.engine.ModernSounds
 import io.github.basil_as.basillines.engine.PcSpeaker
 import io.github.basil_as.basillines.engine.SoundKind
 
@@ -16,8 +17,10 @@ class SoundManager(private val context: Context) {
             prefs.edit().putBoolean("sound_enabled", value).apply()
         }
 
-    /** The DOS theme beeps like a PC speaker instead of playing recorded samples. */
-    var pcSpeaker: Boolean = false
+    /** Recorded samples (Lines 98), PC-speaker beeps (DOS look) or soft synthesis (modern looks). */
+    enum class Profile { SAMPLED, PC_SPEAKER, MODERN }
+
+    var profile: Profile = Profile.MODERN
 
     private val soundPool: SoundPool = SoundPool.Builder()
         .setMaxStreams(5)
@@ -47,7 +50,11 @@ class SoundManager(private val context: Context) {
 
     private fun beep(kind: SoundKind, points: Int = 0) {
         if (!isEnabled) return
-        val pcm = PcSpeaker.render(PcSpeaker.notes(kind, points))
+        val pcm = if (profile == Profile.PC_SPEAKER) {
+            PcSpeaker.render(PcSpeaker.notes(kind, points))
+        } else {
+            ModernSounds.render(ModernSounds.notes(kind, points))
+        }
         if (pcm.isEmpty()) return
         val track = AudioTrack.Builder()
             .setAudioAttributes(
@@ -80,11 +87,11 @@ class SoundManager(private val context: Context) {
         track.play()
     }
 
-    fun playSelect() = if (pcSpeaker) beep(SoundKind.SELECT) else play(selectSoundId, 0.7f)
-    fun playJump() = if (pcSpeaker) beep(SoundKind.JUMP) else play(jumpSoundId, 0.7f)
+    fun playSelect() = if (profile != Profile.SAMPLED) beep(SoundKind.SELECT) else play(selectSoundId, 0.7f)
+    fun playJump() = if (profile != Profile.SAMPLED) beep(SoundKind.JUMP) else play(jumpSoundId, 0.7f)
 
     fun playEat(points: Int) {
-        if (pcSpeaker) return beep(SoundKind.EAT, points)
+        if (profile != Profile.SAMPLED) return beep(SoundKind.EAT, points)
         val soundId = when {
             points >= 30 -> eat5SoundId
             points >= 20 -> eat4SoundId
@@ -95,9 +102,9 @@ class SoundManager(private val context: Context) {
         play(soundId, 0.9f)
     }
 
-    fun playLose() = if (pcSpeaker) beep(SoundKind.LOSE) else play(loseSoundId, 0.9f)
-    fun playWin() = if (pcSpeaker) beep(SoundKind.WIN) else play(winSoundId, 0.9f)
-    fun playClick() = if (pcSpeaker) beep(SoundKind.CLICK) else play(clickSoundId, 0.5f)
+    fun playLose() = if (profile != Profile.SAMPLED) beep(SoundKind.LOSE) else play(loseSoundId, 0.9f)
+    fun playWin() = if (profile != Profile.SAMPLED) beep(SoundKind.WIN) else play(winSoundId, 0.9f)
+    fun playClick() = if (profile != Profile.SAMPLED) beep(SoundKind.CLICK) else play(clickSoundId, 0.5f)
 
     fun release() {
         soundPool.release()
