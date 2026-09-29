@@ -3,6 +3,7 @@ import { LineDetector } from './linedetector';
 import type { ScoringSystem } from './linedetector';
 import { ALL_COLORS } from './models';
 import type { BallColor, Point } from './models';
+import { pointKey } from './models';
 import { PathFinder } from './pathfinder';
 
 export interface SpawnedBall {
@@ -30,6 +31,8 @@ export interface GameState {
   nextColors: BallColor[];
   isGameOver: boolean;
   /** Optional so saves written before these counters existed still load. */
+  /** Cells where the next balls will appear. Optional so older saves still load. */
+  nextPoints?: Point[];
   moves?: number;
   linesCleared?: number;
   ballsCleared?: number;
@@ -39,6 +42,7 @@ interface GameSnapshot {
   board: Board;
   score: number;
   nextColors: BallColor[];
+  nextPoints: Point[];
   moves: number;
   linesCleared: number;
   ballsCleared: number;
@@ -59,6 +63,7 @@ export class GameEngine {
   isGameOver: boolean = false;
   selectedPoint: Point | null = null;
   nextColors: BallColor[] = [];
+  nextSpawnPoints: Point[] = [];
 
   private undoStack: GameSnapshot[] = [];
   private readonly rng: Rng;
@@ -100,6 +105,28 @@ export class GameEngine {
     }
 
     this.generateNextColors();
+    this.planSpawnPoints();
+  }
+
+  /** Chooses the cells where the next balls will appear, so the UI can preview them. */
+  private planSpawnPoints(): void {
+    const empty = this.shuffle(this.board.getEmptyCells());
+    this.nextSpawnPoints = empty.slice(0, Math.min(this.ballsPerSpawn, empty.length));
+  }
+
+  /** Keeps the still-free planned cells and replaces those the player just occupied. */
+  private repairSpawnPlan(): void {
+    const kept = this.nextSpawnPoints.filter((p) => this.board.isEmpty(p.x, p.y));
+    const used = new Set(kept.map(pointKey));
+    const empty = this.board.getEmptyCells();
+    const want = Math.min(this.ballsPerSpawn, empty.length);
+    if (kept.length < want) {
+      for (const c of this.shuffle(empty)) {
+        if (kept.length >= want) break;
+        if (!used.has(pointKey(c))) kept.push(c);
+      }
+    }
+    this.nextSpawnPoints = kept;
   }
 
   private randomColor(): BallColor {
@@ -133,6 +160,7 @@ export class GameEngine {
       board,
       score: this.score,
       nextColors: [...this.nextColors],
+      nextPoints: this.nextSpawnPoints.map((p) => ({ ...p })),
       isGameOver: this.isGameOver,
       moves: this.moves,
       linesCleared: this.linesCleared,
@@ -165,6 +193,25 @@ export class GameEngine {
     if (!Array.isArray(s.nextColors) || s.nextColors.length !== engine.ballsPerSpawn) return null;
     if (!s.nextColors.every(isColor)) return null;
 
+    let nextPoints: Point[] | null = null;
+    if (s.nextPoints !== undefined) {
+      if (!Array.isArray(s.nextPoints)) return null;
+      const seen = new Set<string>();
+      let emptyCount = 0;
+      for (const row of s.board) for (const c of row) if (c === null) emptyCount++;
+      if (s.nextPoints.length !== Math.min(engine.ballsPerSpawn, emptyCount)) return null;
+      for (const p of s.nextPoints) {
+        const q = p as Partial<Point> | null;
+        if (!q || !Number.isInteger(q.x) || !Number.isInteger(q.y)) return null;
+        const x = q.x as number;
+        const y = q.y as number;
+        if (x < 0 || y < 0 || x >= s.size || y >= s.size) return null;
+        if (s.board[y][x] !== null || seen.has(pointKey({ x, y }))) return null;
+        seen.add(pointKey({ x, y }));
+      }
+      nextPoints = s.nextPoints.map((p) => ({ x: p.x, y: p.y }));
+    }
+
     engine.board.clear();
     s.board.forEach((row, y) => row.forEach((c, x) => engine.board.set(x, y, c)));
     engine.score = s.score;
@@ -174,6 +221,8 @@ export class GameEngine {
     engine.linesCleared = linesCleared;
     engine.ballsCleared = ballsCleared;
     engine.undoStack = [];
+    if (nextPoints) engine.nextSpawnPoints = nextPoints;
+    else engine.planSpawnPoints();
     return engine;
   }
 
@@ -239,6 +288,7 @@ export class GameEngine {
     this.moves++;
     this.board.set(from.x, from.y, null);
     this.board.set(to.x, to.y, movingColor);
+    this.repairSpawnPlan();
 
     // 1. Check lines
     const match = LineDetector.findLines(this.board, this.minLineLength, this.scoringSystem);
@@ -265,12 +315,11 @@ export class GameEngine {
     }
 
     // 2. Spawn 3 new balls
-    const empty = this.shuffle(this.board.getEmptyCells());
     const spawned: SpawnedBall[] = [];
-    const count = Math.min(this.nextColors.length, empty.length);
+    const count = Math.min(this.nextColors.length, this.nextSpawnPoints.length);
 
     for (let i = 0; i < count; i++) {
-      const pt = empty[i];
+      const pt = this.nextSpawnPoints[i];
       const color = this.nextColors[i];
       this.board.set(pt.x, pt.y, color);
       spawned.push({ point: pt, color });
@@ -292,8 +341,9 @@ export class GameEngine {
       }
     }
 
-    // 4. Update next turn colors
+    // 4. Update next turn colors and where they will appear
     this.generateNextColors();
+    this.planSpawnPoints();
 
     if (this.board.getEmptyCells().length === 0) {
       this.isGameOver = true;
@@ -317,6 +367,7 @@ export class GameEngine {
       board: this.board.copy(),
       score: this.score,
       nextColors: [...this.nextColors],
+      nextPoints: this.nextSpawnPoints.map((p) => ({ ...p })),
       moves: this.moves,
       linesCleared: this.linesCleared,
       ballsCleared: this.ballsCleared
@@ -336,6 +387,7 @@ export class GameEngine {
     this.linesCleared = snap.linesCleared;
     this.ballsCleared = snap.ballsCleared;
     this.nextColors = [...snap.nextColors];
+    this.nextSpawnPoints = snap.nextPoints.map((p) => ({ ...p }));
     this.selectedPoint = null;
     this.isGameOver = false;
     return true;
