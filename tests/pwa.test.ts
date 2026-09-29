@@ -23,6 +23,12 @@ describe('web app manifest', () => {
     for (const icon of manifest.icons) expect(existsSync('public/' + icon.src.replace(/^\.\//, ''))).toBe(true);
   });
 
+  it('lists store screenshots that exist, for wide and narrow screens', () => {
+    const forms = manifest.screenshots.map((s: { form_factor: string }) => s.form_factor);
+    expect(forms).toEqual(expect.arrayContaining(['wide', 'narrow']));
+    for (const shot of manifest.screenshots) expect(existsSync('public/' + shot.src.replace(/^\.\//, ''))).toBe(true);
+  });
+
   it('is linked from index.html together with the iOS and Windows hints', () => {
     const html = readFileSync('index.html', 'utf8');
     expect(html).toContain('rel="manifest"');

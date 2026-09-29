@@ -57,6 +57,7 @@ import { DosScreen } from './dos/DosScreen';
 import type { DosWindow } from './dos/DosScreen';
 import type { Effect } from './dos/scene';
 import { insertScore, kingOf } from './dos/hall';
+import { dosNames } from './dos/names';
 import { InstallDialog } from './components/InstallDialog';
 import { LedNumber } from './components/LedNumber';
 import { useInstall } from './pwa/useInstall';
@@ -564,6 +565,14 @@ export default function App() {
     </footer>
   );
 
+  const names = dosNames({
+    kingName: kingOf(hall).name,
+    crowned: coronationStart !== null,
+    playerName,
+    pretenderLabel: t('dos.pretender'),
+    defaultPlayerName: t('dos.defaultName'),
+  });
+
   const dosView = (
     <div className="game-window dos-window">
       <div className="sr-only" role="status" aria-live="polite">
@@ -576,13 +585,14 @@ export default function App() {
           next: engine.nextColors,
           showNext,
           score: engine.score,
-          kingScore: coronationStart !== null ? engine.score : kingOf(hall).score,
+          kingScore: kingOf(hall).score,
           soundOn: soundEnabled,
           effects,
           coronationStart,
         }}
-        kingName={coronationStart !== null ? playerName || t('dos.defaultName') : kingOf(hall).name}
-        pretenderName={coronationStart !== null ? t('dos.king') : t('dos.pretender')}
+        // The dethroned king keeps his name and record; the crowned pretender is the player.
+        kingName={names.king}
+        pretenderName={names.pretender}
         window={dosWindow}
         hall={hall}
         labels={{ help: t('dos.help'), sound: t('dos.sound'), next: t('dos.next'), restart: t('dos.restart') }}

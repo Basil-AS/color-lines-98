@@ -180,7 +180,6 @@ const en = {
   'dos.restart': 'Restart',
   'dos.topTen': 'Top Ten',
   'dos.pretender': 'Pretender',
-  'dos.king': 'King',
   'dos.defaultName': 'Player',
   'settings.playerName': 'Your name (Top Ten)',
 
@@ -399,7 +398,6 @@ const ru: Dictionary = {
   'dos.restart': 'Заново',
   'dos.topTen': 'Десятка лучших',
   'dos.pretender': 'Pretender',
-  'dos.king': 'King',
   'dos.defaultName': 'Игрок',
   'settings.playerName': 'Ваше имя (десятка лучших)',
 

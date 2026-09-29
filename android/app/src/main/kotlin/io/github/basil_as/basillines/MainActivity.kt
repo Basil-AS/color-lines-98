@@ -314,14 +314,15 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 DosGameScreen(
                     snapshot = snapshot,
                     score = score,
-                    kingScore = if (coronationStart != null) score else Hall.kingOf(hall).score,
+                    kingScore = Hall.kingOf(hall).score,
                     nextColors = nextColors,
                     showNext = showNext,
                     soundEnabled = soundEnabled,
                     effects = effects,
                     coronationStart = coronationStart,
-                    kingName = if (coronationStart != null) playerName.ifBlank { defaultName } else Hall.kingOf(hall).name,
-                    pretenderName = stringResource(if (coronationStart != null) R.string.dos_king else R.string.dos_pretender),
+                    // The dethroned king keeps his name and record; the crowned pretender is the player.
+                    kingName = Hall.kingOf(hall).name,
+                    pretenderName = if (coronationStart != null) playerName.ifBlank { defaultName } else stringResource(R.string.dos_pretender),
                     window = dosWindow,
                     hall = hall,
                     canUndo = canUndo,
