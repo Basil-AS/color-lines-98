@@ -41,6 +41,10 @@ class SoundManager(private val context: Context) {
     private val eat5SoundId = soundPool.load(context, R.raw.eat_score_5, 1)
     private val loseSoundId = soundPool.load(context, R.raw.lose, 1)
     private val winSoundId = soundPool.load(context, R.raw.win, 1)
+    private val startSoundId = soundPool.load(context, R.raw.start_game, 1)
+    private val levelUpSoundId = soundPool.load(context, R.raw.level_up, 1)
+    private val fireworksSoundId = soundPool.load(context, R.raw.fireworks, 1)
+    private val bonusSoundId = soundPool.load(context, R.raw.jump_bonus, 1)
     private val clickSoundId = soundPool.load(context, R.raw.button_click, 1)
 
     private fun play(soundId: Int, volume: Float = 0.8f) {
@@ -87,24 +91,35 @@ class SoundManager(private val context: Context) {
         track.play()
     }
 
-    fun playSelect() = if (profile != Profile.SAMPLED) beep(SoundKind.SELECT) else play(selectSoundId, 0.7f)
-    fun playJump() = if (profile != Profile.SAMPLED) beep(SoundKind.JUMP) else play(jumpSoundId, 0.7f)
-
-    fun playEat(points: Int) {
-        if (profile != Profile.SAMPLED) return beep(SoundKind.EAT, points)
-        val soundId = when {
-            points >= 30 -> eat5SoundId
-            points >= 20 -> eat4SoundId
-            points >= 15 -> eat3SoundId
-            points >= 12 -> eat2SoundId
-            else -> eat1SoundId
+    /** Plays a game event in the voice of the current look: samples, PC-speaker beeps or soft tones. */
+    fun play(kind: SoundKind, points: Int = 0) {
+        if (profile != Profile.SAMPLED) {
+            beep(kind, points)
+            return
         }
-        play(soundId, 0.9f)
+        when (kind) {
+            SoundKind.SELECT -> play(selectSoundId, 0.7f)
+            SoundKind.JUMP -> play(jumpSoundId, 0.7f)
+            SoundKind.EAT -> play(
+                when {
+                    points >= 30 -> eat5SoundId
+                    points >= 20 -> eat4SoundId
+                    points >= 15 -> eat3SoundId
+                    points >= 12 -> eat2SoundId
+                    else -> eat1SoundId
+                },
+                0.9f
+            )
+            SoundKind.LOSE -> play(loseSoundId, 0.9f)
+            SoundKind.WIN, SoundKind.CROWN -> play(winSoundId, 0.9f)
+            SoundKind.CLICK -> play(clickSoundId, 0.5f)
+            SoundKind.BLOCKED -> play(clickSoundId, 0.3f)
+            SoundKind.START -> play(startSoundId, 0.7f)
+            SoundKind.LEVEL_UP -> play(levelUpSoundId, 0.8f)
+            SoundKind.RECORD -> play(fireworksSoundId, 0.8f)
+            SoundKind.ACHIEVEMENT -> play(bonusSoundId, 0.8f)
+        }
     }
-
-    fun playLose() = if (profile != Profile.SAMPLED) beep(SoundKind.LOSE) else play(loseSoundId, 0.9f)
-    fun playWin() = if (profile != Profile.SAMPLED) beep(SoundKind.WIN) else play(winSoundId, 0.9f)
-    fun playClick() = if (profile != Profile.SAMPLED) beep(SoundKind.CLICK) else play(clickSoundId, 0.5f)
 
     fun release() {
         soundPool.release()

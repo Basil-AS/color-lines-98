@@ -32,6 +32,12 @@ object ModernSounds {
         }
         SoundKind.LOSE -> listOf(440, 349, 294, 220).map { n(it, 190, Wave.TRIANGLE, 0.2) }
         SoundKind.WIN -> listOf(C5, E5, G5, C6, E6).map { n(it, 130, Wave.SINE, 0.22) }
+        SoundKind.BLOCKED -> listOf(n(220, 80, Wave.TRIANGLE, 0.14), n(196, 110, Wave.TRIANGLE, 0.12))
+        SoundKind.START -> listOf(n(G5, 70), n(C6, 70), n(E6, 110))
+        SoundKind.LEVEL_UP -> listOf(C5, E5, G5, C6, E6).mapIndexed { i, f -> n(f, 90, Wave.SINE, 0.2 + i * 0.01) }
+        SoundKind.ACHIEVEMENT -> listOf(n(E6, 70, Wave.SINE, 0.2), n(G5 * 2, 130, Wave.SINE, 0.22))
+        SoundKind.RECORD, SoundKind.CROWN ->
+            listOf(C5, E5, G5, C6, G5, C6, E6).mapIndexed { i, f -> n(f, if (i == 6) 320 else 110, Wave.SINE, 0.22) }
     }
 
     /** Signed 16-bit mono PCM with a short attack and a smooth decay on every note. */

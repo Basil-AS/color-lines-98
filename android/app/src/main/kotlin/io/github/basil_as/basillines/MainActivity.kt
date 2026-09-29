@@ -8,6 +8,7 @@ import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -75,6 +77,7 @@ import io.github.basil_as.basillines.engine.GameEngine
 import io.github.basil_as.basillines.engine.GameStats
 import io.github.basil_as.basillines.engine.Levels
 import io.github.basil_as.basillines.engine.Point
+import io.github.basil_as.basillines.engine.SoundKind
 import io.github.basil_as.basillines.engine.Progress
 import io.github.basil_as.basillines.engine.ProgressTracker
 
@@ -130,6 +133,7 @@ private enum class Dialog { NONE, HELP, STATS, SETTINGS }
 @Composable
 fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars: (Boolean) -> Unit = {}) {
     val haptic = LocalHapticFeedback.current
+    val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
     var theme by remember { mutableStateOf(storage.theme) }
     val engine = remember { storage.loadGame() ?: GameEngine() }
@@ -153,7 +157,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var lastActionAt by remember { mutableLongStateOf(0L) }
 
     val palette = paletteFor(theme)
-    val spawnPreview = spawnStored ?: (palette.cellStyle == CellStyle.ROUNDED)
+    val spawnPreview = spawnStored ?: (theme != AppTheme.COLORLINES_92)
     val defaultName = stringResource(R.string.dos_defaultName)
     soundManager.profile = when (theme) {
         AppTheme.LINES_98 -> SoundManager.Profile.SAMPLED
@@ -206,7 +210,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 engine.unselect()
             } else {
                 engine.selectCell(point)
-                soundManager.playSelect()
+                soundManager.play(SoundKind.SELECT)
                 haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
             }
             commit()
@@ -216,11 +220,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         val before = engine.board.copy()
         val result = engine.moveBall(from, point)
         if (!result.success) {
-            soundManager.playClick()
+            soundManager.play(SoundKind.BLOCKED)
             return
         }
         engine.unselect()
-        soundManager.playJump()
+        soundManager.play(SoundKind.JUMP)
         haptic.performHapticFeedback(HapticFeedbackType.LongPress)
 
         // Remember what appeared and what burst, so the 1992 screen can animate it.
@@ -233,15 +237,25 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             if (color != null) fx += DosEffect(EffectKind.BURST, p.x, p.y, color, start)
         }
         effects = fx
-        if (engine.score > Hall.kingOf(hall).score && coronationStart == null) coronationStart = start
-        if (result.clearedPoints.isNotEmpty()) soundManager.playEat(result.pointsEarned)
+        if (engine.score > Hall.kingOf(hall).score && coronationStart == null) {
+            coronationStart = start
+            if (!result.isGameOver) handler.postDelayed({ soundManager.play(SoundKind.CROWN) }, 450)
+        }
+        if (result.clearedPoints.isNotEmpty()) soundManager.play(SoundKind.EAT, result.pointsEarned)
         if (engine.score > bestScore) {
             bestScore = engine.score
             storage.bestScore = bestScore
         }
         if (result.isGameOver) {
-            soundManager.playLose()
+            soundManager.play(if (GameStats.isNewRecord(engine.score, bestAtGameStart)) SoundKind.RECORD else SoundKind.LOSE)
             record(completed = true)
+            // The progress rewards follow the result after a short pause so the sounds do not blur together.
+            val followUp = when {
+                lastResult.levelUp != null -> SoundKind.LEVEL_UP
+                lastResult.unlocked.isNotEmpty() -> SoundKind.ACHIEVEMENT
+                else -> null
+            }
+            if (followUp != null) handler.postDelayed({ soundManager.play(followUp) }, 1100)
         }
         commit()
     }
@@ -254,14 +268,14 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         coronationStart = null
         lastActionAt = 0L
         bestAtGameStart = bestScore
-        soundManager.playClick()
+        soundManager.play(SoundKind.START)
         commit()
     }
 
     fun onUndo() {
         trackTime()
         if (engine.undo()) {
-            soundManager.playClick()
+            soundManager.play(SoundKind.CLICK)
             commit()
         }
     }
@@ -284,7 +298,17 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val canUndo = remember(version) { engine.canUndo }
     val gameOver = remember(version) { engine.isGameOver }
 
-    MaterialTheme(colorScheme = colorScheme(palette)) {
+    MaterialTheme(
+        colorScheme = colorScheme(palette),
+        // The retro looks have no rounded corners anywhere: buttons, cards and dialogs are square.
+        shapes = if (palette.square) androidx.compose.material3.Shapes(
+            androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
+            androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
+            androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
+            androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
+            androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
+        ) else MaterialTheme.shapes
+    ) {
         Box(Modifier.fillMaxSize().background(palette.background)) {
             if (theme == AppTheme.COLORLINES_92) {
                 DosGameScreen(
@@ -487,6 +511,10 @@ private fun HeaderCard(
                 Text(stringResource(R.string.app_name), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
             }
         }
+        if (palette.windowTitleBar) {
+            Lines98Panel(score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound)
+            return@Card
+        }
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(
                 Modifier.fillMaxWidth(),
@@ -643,4 +671,93 @@ private fun DosGameScreen(
             }
         }
     }
+}
+
+private val LED_DIGITS = listOf(
+    R.drawable.led_0, R.drawable.led_1, R.drawable.led_2, R.drawable.led_3, R.drawable.led_4,
+    R.drawable.led_5, R.drawable.led_6, R.drawable.led_7, R.drawable.led_8, R.drawable.led_9
+)
+
+/** A number drawn with the LED digit images of Lines 98 (zero padded to [digits]). */
+@Composable
+private fun LedNumber(value: Int, digits: Int = 5) {
+    val text = maxOf(0, value).toString().padStart(digits, '0')
+    Row(Modifier.height(30.dp).semantics { contentDescription = value.toString() }) {
+        text.forEach { ch ->
+            androidx.compose.foundation.Image(
+                painter = androidx.compose.ui.res.painterResource(LED_DIGITS[ch - '0']),
+                contentDescription = null,
+                modifier = Modifier.fillMaxHeight()
+            )
+        }
+    }
+}
+
+/** Lines 98 for Windows: best | next | score on one black LED panel, and a text menu instead of icons. */
+@Composable
+private fun Lines98Panel(
+    score: Int,
+    best: Int,
+    nextColors: List<BallColor>,
+    canUndo: Boolean,
+    soundEnabled: Boolean,
+    onUndo: () -> Unit,
+    onNewGame: () -> Unit,
+    onStats: () -> Unit,
+    onSettings: () -> Unit,
+    onHelp: () -> Unit,
+    onToggleSound: () -> Unit
+) {
+    val names = nextColors.map { colorLabel(it) }.joinToString(", ")
+    val nextDescription = stringResource(R.string.next_label, names)
+    Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            Modifier.fillMaxWidth().background(Color.Black).padding(horizontal = 10.dp, vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(Modifier.semantics { contentDescription = "" }) { LedNumber(best) }
+            Row(
+                Modifier.semantics(mergeDescendants = true) { contentDescription = nextDescription },
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                nextColors.forEach { color ->
+                    androidx.compose.foundation.Image(
+                        painter = androidx.compose.ui.res.painterResource(
+                            when (spriteIndex(color)) {
+                                0 -> R.drawable.ball_sprite_0
+                                1 -> R.drawable.ball_sprite_1
+                                2 -> R.drawable.ball_sprite_2
+                                3 -> R.drawable.ball_sprite_3
+                                4 -> R.drawable.ball_sprite_4
+                                5 -> R.drawable.ball_sprite_5
+                                else -> R.drawable.ball_sprite_6
+                            }
+                        ),
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+            Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) { LedNumber(score) }
+        }
+        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
+            MenuItem(stringResource(R.string.btn_newGame), onNewGame)
+            MenuItem(stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+            MenuItem(stringResource(if (soundEnabled) R.string.btn_mute else R.string.btn_unmute), onToggleSound)
+            MenuItem(stringResource(R.string.btn_stats), onStats)
+            MenuItem(stringResource(R.string.btn_settings), onSettings)
+            MenuItem(stringResource(R.string.btn_help), onHelp)
+        }
+    }
+}
+
+@Composable
+private fun MenuItem(label: String, onClick: () -> Unit, enabled: Boolean = true) {
+    androidx.compose.material3.TextButton(
+        onClick = onClick,
+        enabled = enabled,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+    ) { Text(label, fontSize = 13.sp, color = if (enabled) Color.Black else Color(0xFF808080)) }
 }

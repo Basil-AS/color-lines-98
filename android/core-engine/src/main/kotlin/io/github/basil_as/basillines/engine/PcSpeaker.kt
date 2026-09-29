@@ -1,6 +1,10 @@
 package io.github.basil_as.basillines.engine
 
-enum class SoundKind { SELECT, JUMP, EAT, LOSE, WIN, CLICK }
+/**
+ * Everything the game can say: SELECT/JUMP/EAT/LOSE/CLICK are the moves, BLOCKED a refused move, START a new
+ * game, RECORD a new best score, CROWN the pretender taking the throne, LEVEL_UP and ACHIEVEMENT the rewards.
+ */
+enum class SoundKind { SELECT, JUMP, EAT, LOSE, WIN, CLICK, BLOCKED, START, RECORD, CROWN, LEVEL_UP, ACHIEVEMENT }
 
 data class Beep(val freq: Int, val ms: Int)
 
@@ -25,6 +29,14 @@ object PcSpeaker {
         }
         SoundKind.LOSE -> listOf(A5, G5, E5, C5, 262).map { Beep(it, 140) }
         SoundKind.WIN -> listOf(C5, E5, G5, C6).map { Beep(it, 110) }
+        SoundKind.BLOCKED -> listOf(Beep(196, 70), Beep(147, 90))
+        SoundKind.START -> listOf(C5, G5, C6).map { Beep(it, 70) }
+        SoundKind.LEVEL_UP -> listOf(C5, E5, G5, C6, E6).map { Beep(it, 75) }
+        SoundKind.ACHIEVEMENT -> listOf(Beep(E6, 60), Beep(G6, 110))
+        // The trumpet fanfare of the original characters: a short triple, then the rising chord.
+        SoundKind.RECORD, SoundKind.CROWN -> listOf(
+            Beep(C5, 90), Beep(C5, 90), Beep(C5, 90), Beep(E5, 160), Beep(G5, 120), Beep(C6, 320)
+        )
     }
 
     /** Signed 16-bit mono PCM of a square wave for the given beeps. */
