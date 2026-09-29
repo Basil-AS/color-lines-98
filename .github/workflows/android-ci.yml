@@ -43,5 +43,5 @@ jobs:
       - name: Upload debug APK
         uses: actions/upload-artifact@v4
         with:
-          name: BasilLines-debug-apk
+          name: ColorLines-debug-apk
           path: android/app/build/outputs/apk/debug/*.apk

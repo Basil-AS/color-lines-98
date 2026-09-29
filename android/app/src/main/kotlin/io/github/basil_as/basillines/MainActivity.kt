@@ -80,7 +80,7 @@ class MainActivity : ComponentActivity() {
         soundManager = SoundManager(this)
         val storage = GameStorage(this)
         setContent {
-            BasilLinesApp(storage, soundManager, onSystemBars = ::applySystemBars)
+            ColorLinesApp(storage, soundManager, onSystemBars = ::applySystemBars)
         }
     }
 
@@ -120,7 +120,7 @@ private data class LastResult(val xp: Int = 0, val levelUp: Int? = null, val unl
 private enum class Dialog { NONE, HELP, STATS, SETTINGS }
 
 @Composable
-fun BasilLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars: (Boolean) -> Unit = {}) {
+fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars: (Boolean) -> Unit = {}) {
     val haptic = LocalHapticFeedback.current
 
     var theme by remember { mutableStateOf(storage.theme) }

@@ -46,7 +46,7 @@ jobs:
       - name: Package the web app
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          (cd dist && zip -qr "../BasilLines-${VERSION}-web.zip" .)
+          (cd dist && zip -qr "../ColorLines-${VERSION}-web.zip" .)
 
       - name: Test and build the Android app
         working-directory: android
@@ -55,14 +55,14 @@ jobs:
       - name: Name the release files
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          cp android/app/build/outputs/apk/release/app-release.apk "BasilLines-${VERSION}.apk"
-          ls -l BasilLines-*
+          cp android/app/build/outputs/apk/release/app-release.apk "ColorLines-${VERSION}.apk"
+          ls -l ColorLines-*
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Basil Lines ${{ github.ref_name }}
+          name: Color Lines ${{ github.ref_name }}
           files: |
-            BasilLines-*.apk
-            BasilLines-*-web.zip
+            ColorLines-*.apk
+            ColorLines-*-web.zip
           generate_release_notes: true

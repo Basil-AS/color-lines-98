@@ -53,7 +53,7 @@ class MainScreenTest {
     @Test
     fun showsTitleAndAFullBoard() {
         rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
-        rule.onAllNodes(hasText("Basil Lines")).onFirst().assertIsDisplayed()
+        rule.onAllNodes(hasText("Color Lines")).onFirst().assertIsDisplayed()
         assertEquals(81, ballCount() + emptyCells().fetchSemanticsNodes().size)
         assertEquals(5, ballCount())
     }
@@ -146,7 +146,7 @@ class MainScreenTest {
         // The Windows theme adds a title bar next to the game title.
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
         rule.waitForIdle()
-        assertTrue(rule.onAllNodes(hasText("Basil Lines")).fetchSemanticsNodes().size >= 2)
+        assertTrue(rule.onAllNodes(hasText("Color Lines")).fetchSemanticsNodes().size >= 2)
         // And every theme still plays.
         rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
     }
@@ -324,9 +324,9 @@ class AppIdentityTest {
     }
 
     @Test
-    fun appNameIsBasilLinesInBothLanguages() {
+    fun appNameIsColorLines() {
         val context = ApplicationProvider.getApplicationContext<Context>()
-        assertEquals("Basil Lines", context.getString(R.string.app_name))
+        assertEquals("Color Lines", context.getString(R.string.app_name))
     }
 }
 
