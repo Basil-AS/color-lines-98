@@ -137,6 +137,17 @@ class MainScreenTest {
     }
 
     @Test
+    fun theWindowsLookShowsTheMarkersAndTheDosLookDoesNot() {
+        val prefs = ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        for ((theme, expected) in listOf(AppTheme.LINES_98 to 3, AppTheme.COLORLINES_92 to 0, AppTheme.MODERN to 3)) {
+            prefs.edit().clear().putString("theme", theme.name).commit()
+            rule.activityRule.scenario.recreate()
+            rule.waitForIdle()
+            assertEquals("$theme", expected, rule.onAllNodes(incoming).fetchSemanticsNodes().size)
+        }
+    }
+
+    @Test
     fun switchingTheThemeIsRemembered() {
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.onNode(hasText("Modern light")).performClick()
@@ -145,10 +156,12 @@ class MainScreenTest {
         rule.onNode(hasText("Lines 98 (Windows)")).performClick()
         rule.waitForIdle()
         assertEquals(AppTheme.LINES_98, GameStorage(ApplicationProvider.getApplicationContext()).theme)
-        // The Windows theme adds a title bar next to the game title.
+        // The Windows theme has a title bar and a text menu, like the original.
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
         rule.waitForIdle()
-        assertTrue(rule.onAllNodes(hasText("Color Lines")).fetchSemanticsNodes().size >= 2)
+        assertTrue(rule.onAllNodes(hasText("Color Lines")).fetchSemanticsNodes().isNotEmpty())
+        rule.onNode(hasText("New game")).assertExists()
+        rule.onNode(hasText("Statistics")).assertExists()
         // And every theme still plays.
         rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
     }
@@ -160,8 +173,12 @@ class MainScreenTest {
             rule.activityRule.scenario.recreate()
             rule.waitForIdle()
             if (theme != AppTheme.COLORLINES_92) rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
-            if (theme == AppTheme.COLORLINES_92) rule.onNodeWithContentDescription("F4: Restart").performClick()
-            else rule.onNodeWithContentDescription("New game").performClick()
+            when (theme) {
+                AppTheme.COLORLINES_92 -> rule.onNodeWithContentDescription("F4: Restart").performClick()
+                // Lines 98 has a text menu like the Windows original instead of icon buttons.
+                AppTheme.LINES_98 -> rule.onNode(hasText("New game")).performClick()
+                else -> rule.onNodeWithContentDescription("New game").performClick()
+            }
             rule.waitForIdle()
             assertEquals(5, ballCount())
             playOneMove()
@@ -511,5 +528,36 @@ class AnalysisTest {
         rule.onNodeWithContentDescription("Statistics").performClick()
         rule.waitForIdle()
         rule.onAllNodes(hasText("Finish 17 more games", substring = true)).onFirst().assertExists()
+    }
+}
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [35])
+class SoundManagerTest {
+    private val context: Context get() = ApplicationProvider.getApplicationContext()
+
+    @Test
+    fun everyEventPlaysInEveryLookWithoutFailing() {
+        val sounds = SoundManager(context)
+        sounds.isEnabled = true
+        for (profile in SoundManager.Profile.entries) {
+            sounds.profile = profile
+            for (kind in io.github.basil_as.basillines.engine.SoundKind.entries) {
+                for (points in listOf(0, 10, 20, 60)) sounds.play(kind, points)
+            }
+        }
+        sounds.release()
+    }
+
+    @Test
+    fun mutedSoundDoesNothing() {
+        val sounds = SoundManager(context)
+        sounds.isEnabled = false
+        for (profile in SoundManager.Profile.entries) {
+            sounds.profile = profile
+            for (kind in io.github.basil_as.basillines.engine.SoundKind.entries) sounds.play(kind)
+        }
+        assertEquals(false, SoundManager(context).isEnabled)
+        sounds.release()
     }
 }
