@@ -237,6 +237,9 @@
     <string name="install_ios_step1">Tap the Share button in Safari.</string>
     <string name="install_ios_step2">Choose \"Add to Home Screen\".</string>
     <string name="install_ios_step3">Tap \"Add\". The game then opens like an app, also offline.</string>
+    <string name="install_manual_step1">Open the browser menu (three dots, or the install icon in the address bar).</string>
+    <string name="install_manual_step2">Choose \"Install app\", \"Install Color Lines\" or \"Add to Home screen\".</string>
+    <string name="install_manual_step3">Confirm. The game then opens like an app, also offline. On Android you can also download the APK below.</string>
     <string name="install_mac_step1">In Safari choose File, then \"Add to Dock\".</string>
     <string name="install_mac_step2">Confirm the name. The game then opens like an app, also offline.</string>
     <string name="insights_title">Analysis</string>
