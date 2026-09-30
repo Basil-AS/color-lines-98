@@ -23,6 +23,7 @@ import App from '../src/App';
 import { GameEngine } from '../src/engine/gameengine';
 import { soundManager } from '../src/audio';
 import { saveGame } from '../src/storage';
+import { THEMES } from '../src/themes';
 
 function setLanguages(languages: string[]) {
   Object.defineProperty(window.navigator, 'languages', { value: languages, configurable: true });
@@ -136,6 +137,39 @@ describe('hint', () => {
     await startNewGame(user);
     expect(hint()).toHaveAccessibleName('Hint (3 left)');
   });
+});
+
+describe('consistency between themes', () => {
+  const ACTIONS: [string, RegExp][] = [
+    ['new game', /^(New game|F4: Restart)/],
+    ['undo', /^Undo move$/],
+    ['hint', /^Hint \(\d left\)$/],
+    ['statistics', /^Statistics$/],
+    ['settings', /^Settings$/],
+  ];
+
+  for (const theme of THEMES) {
+    it(`${theme}: shows a full board and offers every action`, async () => {
+      const user = userEvent.setup();
+      localStorage.setItem('colorlines_theme', theme);
+      render(<App />);
+      expect(cells()).toHaveLength(81);
+      const menubar = screen.queryByRole('menubar');
+      for (const [what, name] of ACTIONS) {
+        let found = screen.queryByRole('button', { name }) !== null;
+        if (!found && menubar) {
+          // The Windows look keeps its actions in drop-down menus.
+          for (const trigger of within(menubar).getAllByRole('menuitem')) {
+            await user.click(trigger);
+            if (screen.queryByRole('menuitem', { name }) !== null) found = true;
+            await user.keyboard('{Escape}');
+            if (found) break;
+          }
+        }
+        expect(found, `${theme} lacks "${what}"`).toBe(true);
+      }
+    });
+  }
 });
 
 describe('sound events', () => {

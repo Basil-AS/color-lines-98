@@ -16,8 +16,15 @@ and a native Android app, sharing one rule set.
 - **Rules:** 9×9 board, 7 colours, 3 new balls per turn, lines of 5 or more clear (horizontal, vertical, diagonal),
   clearing a line is a free turn, scoring `2L² − 20L + 60`, undo.
 - **Spawn preview:** small balls show on the board where the next balls will appear (can be switched off).
-- **Four looks** on both platforms, remembered between launches:
-  - *Modern dark* and *Modern light* with new soft synthesised sounds;
+- **Modes** (same on the web and Android): *Classic*, *Easy* (5 colours), *Blitz* (3 minutes) and the *Daily challenge*
+  (everyone gets the same start each day, on both platforms). Starting a game while another one is in progress warns
+  that it will be counted as unfinished.
+- **Goals that adapt:** three daily goals derived from your own recent games (score, longest line, efficiency, beat your
+  previous best), with bonus XP and a goal streak, so they stay a fair challenge as you improve.
+- **Hint:** marks a ball and where to put it (a clearing move if there is one), three per game.
+- **Seven looks** (web; Android has the same seven), remembered between launches:
+  - *Modern dark*, *Modern light*, *Material*, *Neon* and *High contrast* (every colour also has its own shape) with
+    new soft synthesised sounds;
   - *Lines 98 (Windows)*: grey window chrome, the original bevelled board, red LED digits, the original sprites and sounds;
   - *Color Lines 1992 (DOS)*: **the original screen from `lines.lib`**, drawn with the original sprites: the red king on
     his pillar, the magenta pretender who takes the crown when you beat the king, LCD scores, `F1`–`F4` buttons and
@@ -26,7 +33,7 @@ and a native Android app, sharing one rule set.
   full history (up to 1000 games) and an analysis: trend against your previous games, games per day, score
   distribution, best weekdays, efficiency (points per move), record progression and the games left to the next level.
 - **English and Russian**, picked automatically from the browser or system language (web: also switchable in Settings;
-  Android: per-app language in system settings).
+  Android: Auto / English / Русский inside the game).
 - **Everywhere:** responsive layout for phones, tablets and desktops (portrait and landscape), keyboard play and screen
   reader labels on the web, edge-to-edge with system-bar insets on Android, your game resumes after a restart.
 
