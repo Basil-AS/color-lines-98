@@ -205,6 +205,17 @@ const en = {
   'insights.bucketLabel': '{from}+',
   'insights.games': '{n} games',
 
+  'ach.daily_first.name': 'Challenger',
+  'ach.daily_first.desc': 'Finish a daily challenge.',
+  'ach.all_modes.name': 'All-rounder',
+  'ach.all_modes.desc': 'Finish a game in every mode.',
+  'ach.goal_first.name': 'On target',
+  'ach.goal_first.desc': 'Complete a daily goal.',
+  'ach.goal_day.name': 'Perfect day',
+  'ach.goal_day.desc': 'Complete all three daily goals in one day.',
+  'ach.goals_7.name': 'Relentless',
+  'ach.goals_7.desc': 'Complete all daily goals 7 days in a row.',
+
   'plural.moves_one': '{n} move',
   'plural.moves_few': '{n} moves',
   'plural.moves_many': '{n} moves',
@@ -222,9 +233,9 @@ const en = {
 type Dictionary = { readonly [K in keyof typeof en]: string };
 
 const ru: Dictionary = {
-  'app.name': 'Цветные линии',
+  'app.name': 'Color Lines',
   'app.tagline': 'Классическая головоломка с цветными шарами',
-  'app.docTitle': 'Цветные линии — классическая головоломка с шарами',
+  'app.docTitle': 'Color Lines — классическая головоломка с шарами',
 
   'hud.score': 'Счёт',
   'hud.best': 'Рекорд',
@@ -402,7 +413,7 @@ const ru: Dictionary = {
   'settings.playerName': 'Ваше имя (десятка лучших)',
 
   'install.button': 'Установить',
-  'install.title': 'Установить «Цветные линии»',
+  'install.title': 'Установить Color Lines',
   'install.ios.step1': 'Нажмите кнопку «Поделиться» в Safari.',
   'install.ios.step2': 'Выберите «На экран Домой».',
   'install.ios.step3': 'Нажмите «Добавить». Игра будет открываться как приложение, в том числе без интернета.',
@@ -422,6 +433,17 @@ const ru: Dictionary = {
   'insights.records': 'История рекордов',
   'insights.bucketLabel': '{from}+',
   'insights.games': '{n} партий',
+
+  'ach.daily_first.name': 'Претендент дня',
+  'ach.daily_first.desc': 'Закончите ежедневный вызов.',
+  'ach.all_modes.name': 'Универсал',
+  'ach.all_modes.desc': 'Закончите партию в каждом режиме.',
+  'ach.goal_first.name': 'В цель',
+  'ach.goal_first.desc': 'Выполните ежедневную цель.',
+  'ach.goal_day.name': 'Идеальный день',
+  'ach.goal_day.desc': 'Выполните все три цели за один день.',
+  'ach.goals_7.name': 'Неудержимый',
+  'ach.goals_7.desc': 'Выполняйте все цели 7 дней подряд.',
 
   'plural.moves_one': '{n} ход',
   'plural.moves_few': '{n} хода',

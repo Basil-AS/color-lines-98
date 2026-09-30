@@ -110,7 +110,7 @@ describe('unavailable storage', () => {
 });
 
 describe('history storage', () => {
-  const record = { score: 42, endedAt: 1_700_000_000_000, moves: 9, lines: 2, balls: 10, completed: true, maxLine: 5, durationMs: 90_000 };
+  const record = { score: 42, endedAt: 1_700_000_000_000, moves: 9, lines: 2, balls: 10, completed: true, maxLine: 5, durationMs: 90_000, mode: 'classic' as const };
 
   it('is empty by default and after corrupt data', () => {
     expect(loadHistory()).toEqual([]);
@@ -155,7 +155,7 @@ describe('progress storage', () => {
     expect(loadProgress()).toEqual(emptyProgress());
     const played = applyGame(emptyProgress(), {
       score: 60, endedAt: new Date(2026, 8, 29, 12).getTime(), moves: 20, lines: 2, balls: 10,
-      completed: true, maxLine: 5, durationMs: 1000,
+      completed: true, maxLine: 5, durationMs: 1000, mode: 'classic',
     }).progress;
     saveProgress(played);
     expect(loadProgress()).toEqual(played);

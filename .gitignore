@@ -40,7 +40,6 @@ AGENT.local.md
 .agents/runtime/
 .agents/tmp/
 # END UNIVERSAL AGENT KIT
-
 # Playwright
 test-results/
 playwright-report/

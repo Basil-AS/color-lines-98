@@ -1,4 +1,6 @@
 import type { GameEngine } from './engine/gameengine';
+import { isModeId } from './engine/modes';
+import type { ModeId } from './engine/modes';
 
 export const HISTORY_LIMIT = 1000;
 
@@ -17,6 +19,8 @@ export interface GameRecord {
   maxLine: number;
   /** Active play time in milliseconds. */
   durationMs: number;
+  /** Which mode was played. */
+  mode: ModeId;
 }
 
 export interface StatsSummary {
@@ -41,6 +45,7 @@ export function recordFromEngine(engine: GameEngine, completed: boolean, now: nu
     completed,
     maxLine: engine.maxLine,
     durationMs: engine.playMs,
+    mode: engine.mode,
   };
 }
 
@@ -90,7 +95,9 @@ export function sanitizeHistory(raw: unknown): GameRecord[] {
     const r = item as Partial<GameRecord>;
     const maxLine = r.maxLine === undefined ? 0 : r.maxLine;
     const durationMs = r.durationMs === undefined ? 0 : r.durationMs;
+    const mode = r.mode === undefined ? 'classic' : r.mode;
     if (
+      isModeId(mode) &&
       isCount(maxLine) &&
       isCount(durationMs) &&
       isCount(r.score) &&
@@ -109,6 +116,7 @@ export function sanitizeHistory(raw: unknown): GameRecord[] {
         completed: r.completed,
         maxLine,
         durationMs,
+        mode,
       });
     }
   }

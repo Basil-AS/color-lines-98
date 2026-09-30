@@ -17,6 +17,7 @@ const rec = (score: number, over: Partial<GameRecord> = {}): GameRecord => ({
   completed: true,
   maxLine: 5,
   durationMs: 60_000,
+  mode: 'classic',
   ...over,
 });
 
@@ -100,8 +101,9 @@ describe('sanitizeHistory', () => {
   });
 
   it('accepts older records without maxLine and durationMs', () => {
-    const { maxLine: _m, durationMs: _d, ...old } = rec(7);
-    expect(sanitizeHistory([old])).toEqual([{ ...old, maxLine: 0, durationMs: 0 }]);
+    const { maxLine: _m, durationMs: _d, mode: _mode, ...old } = rec(7);
+    expect(sanitizeHistory([old])).toEqual([{ ...old, maxLine: 0, durationMs: 0, mode: 'classic' }]);
+    expect(sanitizeHistory([{ ...rec(7), mode: 'chaos' }])).toEqual([]);
   });
 
   it('caps the length', () => {
