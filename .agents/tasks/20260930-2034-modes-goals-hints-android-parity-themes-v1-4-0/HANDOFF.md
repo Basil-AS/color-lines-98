@@ -57,3 +57,5 @@ update task/journal/handoff → PR or documented local fallback.
 
 Status: code complete on agent/feat-modes-goals-themes, version 1.4.0. Next: PR, CI, merge, tag v1.4.0 from main.
 Not ported to Android: adaptive goals panel and per-mode stats UI (records keep the mode).
+
+Status v1.5.0: PR open from agent/feat-stats-export-compare; merge publishes the release.
