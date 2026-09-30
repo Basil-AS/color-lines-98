@@ -1,0 +1,13 @@
+name: Idea
+description: A mode, theme, sound or feature you would like
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: The idea
+    validations: { required: true }
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it makes the game better

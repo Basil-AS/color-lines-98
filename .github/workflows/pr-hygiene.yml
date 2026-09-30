@@ -1,0 +1,28 @@
+name: Pull request hygiene
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Title follows "type(scope): summary"
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          if ! [[ "$TITLE" =~ ^(feat|fix|refactor|perf|test|docs|build|ci|chore|revert|style)(\([a-z0-9._/-]+\))?!?:\ .+ ]]; then
+            echo "::error::PR title must look like 'feat(scope): summary' (got: $TITLE)"
+            exit 1
+          fi
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@v5
+        with:
+          sync-labels: true

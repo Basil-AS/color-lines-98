@@ -1,0 +1,17 @@
+changelog:
+  exclude:
+    labels: [skip-changelog]
+    authors: [dependabot]
+  categories:
+    - title: "New"
+      labels: [enhancement, feature]
+    - title: "Fixes"
+      labels: [bug]
+    - title: "Android"
+      labels: [android]
+    - title: "Web"
+      labels: [web]
+    - title: "Docs and CI"
+      labels: [docs, ci, tests]
+    - title: "Other"
+      labels: ["*"]

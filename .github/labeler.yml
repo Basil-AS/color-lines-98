@@ -1,0 +1,18 @@
+web:
+  - changed-files:
+      - any-glob-to-any-file: ['src/**', 'public/**', 'index.html', 'vite.config.ts', 'package.json']
+android:
+  - changed-files:
+      - any-glob-to-any-file: ['android/**']
+tests:
+  - changed-files:
+      - any-glob-to-any-file: ['tests/**', 'e2e/**', 'android/**/src/test/**']
+docs:
+  - changed-files:
+      - any-glob-to-any-file: ['docs/**', 'README.md', '**/*.md']
+ci:
+  - changed-files:
+      - any-glob-to-any-file: ['.github/**']
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file: ['package-lock.json', 'android/gradle/libs.versions.toml']
