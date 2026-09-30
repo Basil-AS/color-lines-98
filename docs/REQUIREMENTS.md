@@ -1,57 +1,62 @@
-# Требования и как они закрыты
+[Русская версия](REQUIREMENTS.ru.md)
 
-Сверка всех пожеланий из работы над проектом. «Проверено» значит, что есть автоматический тест, скриншот в браузере
-или прогон на CI. Что проверить нечем, помечено отдельно.
+# Requirements and how they are met
 
-| # | Требование | Статус | Чем подтверждено |
+Every wish from the work on this project. "Verified" means an automated test, a browser screenshot or a CI run exists. What could not be checked is marked.
+
+| # | Requirement | Status | Evidence |
 |---|---|---|---|
-| 1 | Изучить проект, довести до ума | сделано | ветки, PR, релизы v1.0.0–v1.3.0 |
-| 2 | Правила рабочей станции для любого запуска Claude | сделано | хуки `~/.claude/hooks/workstation-guard.sh` (запись в `~/System/CHANGELOG.md`) |
-| 3 | Релизы, GitHub Pages, CI/CD, PR, ветки, коммиты | сделано | пайплайны `ci`, `web-ci` (+ e2e), `android-ci`, `release`; PR #1–#N |
-| 4 | Серьёзные тесты, все ошибки | проверено | веб ≈440 (Vitest), 26 в браузере (Playwright), движок Kotlin 95, Android UI 37 |
-| 5 | Окно по центру, без горизонтальной прокрутки, на ПК, планшете и телефоне | проверено | `e2e/layout.spec.ts`: 4 вида × 5 размеров экрана |
-| 6 | Нормальное название игры и файла релиза | сделано | «Color Lines» на любом языке; `ColorLines-<версия>.apk`, `...-web.zip` |
-| 7 | Пакет Android с моим именем и префиксом `io` | сделано | `io.github.basil_as.basillines` (проверено в собранном APK) |
-| 8 | История, рекорды, прогресс, статистика с анализом | проверено | уровни, 18 достижений, серии дней, тренд, графики; тесты на обеих платформах |
-| 9 | Все результаты писать | сделано | до 1000 партий, зал славы Top Ten |
-| 10 | Русский язык, язык по системе | проверено | автоопределение; `e2e/game.spec.ts`, тесты словарей |
-| 11 | Иконка приложения, favicon | сделано | адаптивная иконка Android, PNG/SVG для сайта и PWA |
-| 12 | Android: отступы под системные панели | проверено тестами | `safeDrawing`, edge-to-edge; **на устройстве не запускалось** |
-| 13 | Кнопка New на Android не оставляет старое поле | проверено | тест `aMoveSpawnsBallsAndNewGameReplacesTheWholeBoard` |
-| 14 | Светлая современная тема | сделано | тема «Modern light» на вебе и Android |
-| 15 | Настройки запоминаются (веб и приложение) | проверено | тема, язык, звук, метки, имя, NEXT |
-| 16 | Все темы на телефоне | сделано | 4 темы в Android |
-| 17 | Темы повторяют оригиналы Color Lines (1992) и Lines 98 | сделано | экран 1992 из `lines.lib`; Lines 98: LED-панель, доска, меню |
-| 18 | Рыцарь и король, оформление счётчика | сделано | оригинальные спрайты и LCD |
-| 19 | Звуки старых версий, новые для новой | сделано | семплы Lines 98; писк PC-спикера (DOS); новые мягкие тона |
-| 20 | Проверить звуки | проверено | тест: у каждого события есть звук во всех видах, все семплы существуют |
-| 21 | Метки, где появятся шарики — «как в оригинале?» | уточнено | в DOS 1992 нет, в Windows Lines 98 есть; по умолчанию вкл., кроме DOS |
-| 22 | Проверить механику и алгоритмы | проверено | `tests/rules.test.ts`, `RulesConformanceTest.kt`, `docs/ORIGINALS.md` |
-| 23 | PWA для iOS, Android, Windows, macOS | проверено | манифест, офлайн (e2e), кнопка «Установить», инструкции для Safari |
-| 24 | Единый стиль | сделано | одинаковые диалоги и элементы по темам, подвал, шапка Lines 98 на обеих платформах |
-| 25 | Игра должна быть всегда интересной, не только скриптовые задания | сделано | режимы Classic / Easy / Blitz / Daily (один и тот же старт у всех на веб и Android), адаптивные цели по вашей же истории, подсказка (3 за партию) |
-| 26 | Сброс истории надёжно спрашивает подтверждение | проверено | веб: окно-предупреждение + галочка, кнопка неактивна до неё; Android: отдельный шаг подтверждения |
-| 27 | После выбитой линии шарики не появляются? | проверено | не появляются, ход бесплатный (как в оригинале); `tests/rules.test.ts`, `RulesConformanceTest.kt` |
-| 28 | Название на английском, пакет с basil-as | сделано | «Color Lines» в любом языке; пакет `io.github.basil_as.basillines` |
-| 29 | Единство веба и Android | проверено | строки генерируются из одного словаря; одинаковые режимы, подсказка, темы, тот же генератор ежедневной партии (тест совпадения значений) |
-| 30 | Язык менять в самой игре на Android | проверено | Авто / English / Русский в настройках, перезапуск экрана; тест Robolectric |
-| 31 | Android в портрете: максимально широкое поле | сделано | поле на всю ширину, компактная шапка без заголовка |
-| 32 | Ещё темы, Material | сделано | Material, Neon, High contrast (у каждого цвета своя фигура) на веб и Android |
-| 33 | Локализация DOS-вида и старого интерфейса | проверено | русские подписи кнопок, справка, «Десятка лучших», «Иван» / «Претендент» поверх оригинальных спрайтов |
-| 34 | Живой фон DOS: анимация не только слева | исправлено | претендент справа поднимает меч (чаще, когда счёт близок к рекорду) |
-| 35 | Согласованность функций между темами | проверено | тест `consistency between themes`: все действия есть в каждой из 7 тем |
-| 36 | «Функционал рейтинга» | нет такой функции | онлайн-рейтинга нет и не нужно (нет сервера); локально работает «Десятка лучших» и история |
-| 37 | Название вкладки везде английское | исправлено | `Color Lines — the classic ball puzzle` на любом языке; тест `the name of the game` |
-| 38 | Минимум 6 разных тем, старые и новые, у каждой свои звуки | сделано | 12 тем: + Synthwave, Ocean, Paper, Game Boy (1989), Amber terminal; 10 «голосов» синтеза, семплы Lines 98, PC-спикер; тесты на уникальность и совпадение веб/Android |
-| 39 | Контраст новых тем | проверено | расчёт WCAG по парам текст/фон; у Game Boy подняты подписи до 4.5:1 |
-| 40 | Всё, что теряет данные, с явным подтверждением | проверено | новая игра (предупреждение + «Продолжить» по умолчанию), сброс истории (галочка); DOS F4, меню Windows, смена режима идут через то же окно |
+| 1 | Study the project and bring it to a finished state | done | branches, PRs, releases v1.0.0 to v1.5.1 |
+| 2 | Workstation rules for every Claude launch | done | hook `~/.claude/hooks/workstation-guard.sh` (logged in `~/System/CHANGELOG.md`) |
+| 3 | Releases, GitHub Pages, CI/CD, PRs, branches, commits | done | pipelines `ci`, `web-ci` (+ e2e), `android-ci`, `release` |
+| 4 | Serious tests, all errors fixed | verified | hundreds of Vitest tests, Playwright in a real browser, Kotlin engine tests, Android UI tests |
+| 5 | Window centred, no horizontal scroll, on desktop, tablet and phone | verified | `e2e/layout.spec.ts`: every look at 5 screen sizes |
+| 6 | A proper name for the game and the release file | done | "Color Lines" in every language; `ColorLines-<version>.apk`, `...-web.zip` |
+| 7 | Android package with my name and the `io` prefix | done | `io.github.basil_as.basillines` (checked in the built APK) |
+| 8 | History, records, progress, statistics with analysis | verified | levels, achievements, streaks, trend, charts; tests on both platforms |
+| 9 | Record every result | done | up to 1000 games plus the permanent day ledger, Top Ten |
+| 10 | Russian, language follows the system | verified | auto-detection; `e2e/game.spec.ts`, dictionary tests |
+| 11 | App icon, favicon | done | adaptive Android icon, PNG/SVG for the site and PWA |
+| 12 | Android: insets under system bars | verified by tests | `safeDrawing`, edge-to-edge; **not run on a device** |
+| 13 | The New button on Android must not keep the old board | verified | test `aMoveSpawnsBallsAndNewGameReplacesTheWholeBoard` |
+| 14 | A light modern theme | done | "Modern light" on web and Android |
+| 15 | Settings are remembered (web and app) | verified | theme, language, sound, preview marks, name, NEXT |
+| 16 | All themes on the phone | done | 12 looks on Android |
+| 17 | Looks that repeat the originals Color Lines (1992) and Lines 98 | done | the 1992 screen from `lines.lib`; Lines 98: LED panel, board, menu |
+| 18 | The knight and the king, the look of the score display | done | original sprites and LCD |
+| 19 | Sounds of the old versions, new ones for the new | done | Lines 98 samples; PC-speaker beeps (DOS); new soft tones |
+| 20 | Check the sounds | verified | test: every event has a sound in every look, every sample exists |
+| 21 | Marks where balls will appear: "as in the original?" | clarified | not in DOS 1992, yes in Windows Lines 98; on by default except DOS |
+| 22 | Check the mechanics and algorithms | verified | `tests/rules.test.ts`, `RulesConformanceTest.kt`, `docs/ORIGINALS.md` |
+| 23 | PWA for iOS, Android, Windows, macOS | verified | manifest, offline (e2e), Install button, Safari instructions |
+| 24 | One style everywhere | done | same dialogs and elements across looks |
+| 25 | The game must stay interesting, not only scripted tasks | done | modes Classic / Easy / Blitz / Daily (same on web and Android), adaptive goals from your own history, hints |
+| 26 | Reset asks for confirmation reliably | verified | web: warning plus checkbox; Android: a separate confirmation step |
+| 27 | Should balls spawn after a cleared line? | verified | no, the turn is free (as in the original); `tests/rules.test.ts`, `RulesConformanceTest.kt` |
+| 28 | Game name in English, package with basil-as | done | "Color Lines" in any language; package `io.github.basil_as.basillines` |
+| 29 | Web and Android in step | verified | strings generated from one dictionary; same modes, hint, themes, goals, daily game (value-for-value test) |
+| 30 | Change the language inside the game on Android | verified | Auto / English / Русский in Settings; Robolectric test |
+| 31 | Android portrait: the widest possible board | done | full-width board, compact HUD; also for the DOS look |
+| 32 | More looks, Material | done | Material, Neon, Synthwave, Ocean, Paper, Game Boy, Amber terminal, High contrast |
+| 33 | Localisation of the DOS look and old interface | verified | Russian labels, help, Top Ten over the original sprites; captions stay English |
+| 34 | A living DOS background: animation on both sides | fixed | the pretender lifts his sword (more often near the record); web and Android |
+| 35 | Functions consistent across looks | verified | test `consistency between themes`: every action in each look |
+| 36 | "Rating" feature | none | there is no online rating and no server; the local Top Ten and history work |
+| 37 | Tab title in English everywhere | fixed | `Color Lines — the classic ball puzzle` in any language |
+| 38 | At least 6 different looks, each with its own sound | done | 12 looks; 10 synthesised voices, Lines 98 samples, PC speaker; uniqueness test |
+| 39 | Contrast of the new looks | verified | WCAG ratios by pair; axe audit of all looks and dialogs |
+| 40 | Everything that loses data asks explicitly | verified | new game (warning, safe default), history reset (checkbox), backup replace (checkbox), DOS F4 and the Windows menu use the same dialog, `?new=1` shortcut opens the dialog |
+| 41 | PWA installation must work | fixed | the install event is kept from page load; a menu hint when the browser offers no prompt; `tests/earlyinstall.test.ts`; **not tried on a real phone** |
+| 42 | The download button gives the newest APK directly | done | `releases/latest/download/ColorLines.apk`: every release carries a fixed-name file |
+| 43 | Check and resolve all PRs on GitHub | done | merged #8, #10, #15 to #17; #9 and #11 to #14 closed with a reason (need AGP 9 / Gradle 9 / TypeScript 7 migration) |
+| 44 | Use GitHub's mechanisms to the maximum | done | signed release on merge, CodeQL, Dependabot with auto-merge, labels, PR title check, Lighthouse, protected `main`, templates |
+| 45 | Permanent statistics, results moved by file | done | day ledger, seasons, milestones, heatmap, records; JSON/CSV, import with confirmation; files readable by both platforms |
+| 46 | Code and quality reviewed with the workstation skills | done | `docs/SECURITY_REVIEW.md`; axe over 12 looks and dialogs (`e2e/quality.spec.ts`); independent diff review |
 
-## Что не проверено или приближено
+## Not verified or approximated
 
-* **Android на устройстве или эмуляторе** не запускался (эмулятор исключён по вашей просьбе): только тесты на JVM
-  (Robolectric) и сборки. Внешний вид и отступы под системные панели проверяются глазами на телефоне.
-* **Звуки DOS 1992** синтезированы (оригинальные мелодии не извлечены).
-* **Оригинальный Windows Lines 98** упакован установщиком Wise; ассеты из него не брались, он использован как эталон
-  вида по скриншоту.
-* **Заметки для agy** не читались: база сессий агентов закрыта правилами рабочей станции без вашего разрешения.
-* **Подпись APK** отладочная: боевого ключа нет, создавать его без вас нельзя.
+* **The apps on a device or emulator** were never run (the emulator was ruled out): JVM tests (Robolectric), browser tests and builds only. Looks, insets and the PWA install flow need a real phone.
+* **DOS 1992 sounds** are synthesised (the original melodies were not extracted).
+* **The original Windows Lines 98** ships in a closed installer; its look was taken from a screenshot, no assets.
+* **APK signing:** releases from 1.4.0 are signed with the project key (in repository secrets, a copy with the owner); 1.3 and older used the debug key and cannot be updated in place.
+* **DOS screen captions** stay English on purpose, like the original.

@@ -2,9 +2,19 @@ package io.github.basil_as.basillines.engine
 
 enum class DosImage { LAYOUT, SHEET }
 
+enum class DosFont { MONO, SERIF }
+
+enum class DosAlign { LEFT, CENTER, RIGHT }
+
 sealed interface DosDraw {
     data class Image(val img: DosImage, val src: SpriteRect, val dx: Int, val dy: Int) : DosDraw
     data class Fill(val x: Int, val y: Int, val w: Int, val h: Int, val argb: Long) : DosDraw
+
+    /** Text in scene pixels (the Russian overlay of the original labels); [y] is the baseline. */
+    data class Text(
+        val text: String, val x: Int, val y: Int, val argb: Long, val size: Int,
+        val align: DosAlign, val font: DosFont, val shadowArgb: Long? = null
+    ) : DosDraw
 }
 
 enum class EffectKind { SPAWN, BURST }
@@ -23,11 +33,53 @@ data class DosState(
     val effects: List<DosEffect> = emptyList(),
     /** When the pretender started taking the throne; null while the king still reigns. */
     val coronationStart: Long? = null,
-    val pressed: Set<DosButton> = emptySet()
+    val pressed: Set<DosButton> = emptySet(),
+    /** Russian labels over the original English ones (the hero captions always stay English). */
+    val russian: Boolean = false
 )
 
 /** Everything to draw for one frame of the 1992 screen, back to front. */
 object DosScene {
+    private val RU_BUTTONS = mapOf(DosButton.HELP to "ПОМОЩЬ", DosButton.SOUND to "ЗВУК", DosButton.NEXT to "ДАЛЕЕ", DosButton.RESTART to "ЗАНОВО")
+    private const val RU_HELP =
+        "Цель игры набрать больше очков, чем «король». Очки растут, когда вы выстраиваете по горизонтали, вертикали или диагонали линию из пяти и более шаров одного цвета. Линии строятся перемещением шаров по свободным клеткам. Желаем успеха!"
+
+    /** Splits [text] at word boundaries into lines of at most [max] characters. */
+    fun wrapText(text: String, max: Int): List<String> {
+        val lines = mutableListOf<String>()
+        var line = ""
+        for (word in text.split(" ")) {
+            val next = if (line.isEmpty()) word else "$line $word"
+            if (next.length > max && line.isNotEmpty()) { lines += line; line = word } else line = next
+        }
+        if (line.isNotEmpty()) lines += line
+        return lines
+    }
+
+    /** The Russian text over the Help or Top Ten window (empty for English, which the window picture already holds). */
+    fun windowText(top10: Boolean, russian: Boolean, hall: List<HallEntry>): List<DosDraw> {
+        if (!russian) return emptyList()
+        val (x, y) = DosSprites.WINDOW_POS
+        val out = mutableListOf<DosDraw>()
+        if (!top10) {
+            out += DosDraw.Fill(x + 88, y + 6, 60, 18, 0xFFAAAAAA)
+            out += DosDraw.Text("Справка", x + 118, y + 20, 0xFFFF5555, 14, DosAlign.CENTER, DosFont.SERIF, 0xFFFFFFFF)
+            out += DosDraw.Fill(x + 18, y + 28, 200, 122, 0xFF000000)
+            wrapText(RU_HELP, 26).forEachIndexed { i, l -> out += DosDraw.Text(l, x + 118, y + 40 + i * 11, 0xFF00AA00, 9, DosAlign.CENTER, DosFont.MONO) }
+        } else {
+            out += DosDraw.Fill(x + 70, y + 5, 100, 18, 0xFFAAAAAA)
+            out += DosDraw.Text("Десятка лучших", x + 120, y + 20, 0xFFFF5555, 13, DosAlign.CENTER, DosFont.SERIF, 0xFFFFFFFF)
+            out += DosDraw.Fill(x + 12, y + 143, 92, 15, 0xFFAAAAAA)
+            out += DosDraw.Text("Ваше имя", x + 16, y + 155, 0xFFFF5555, 12, DosAlign.LEFT, DosFont.SERIF)
+            hall.take(10).forEachIndexed { i, h ->
+                val line = (y + 39 + i * 11.6).toInt()
+                out += DosDraw.Text(h.name, x + 52, line, 0xFF00AA00, 9, DosAlign.LEFT, DosFont.MONO)
+                out += DosDraw.Text(h.score.toString(), x + 210, line, 0xFF00AA00, 9, DosAlign.RIGHT, DosFont.MONO)
+            }
+        }
+        return out
+    }
+
     val SPAWN_FRAMES = listOf(BallFrame.SMALL, BallFrame.MEDIUM, BallFrame.WIDE)
     val BURST_FRAMES = listOf(BallFrame.BURST1, BallFrame.BURST2)
     const val SPAWN_STEP = 70L
@@ -109,7 +161,21 @@ object DosScene {
             DosButton.RESTART to (DosButton.RESTART in state.pressed)
         )
         for (button in DosButton.entries) {
-            draws += DosDraw.Image(DosImage.SHEET, DosSprites.labelRect(button, lit.getValue(button)), DosSprites.buttonX(button), DosSprites.LABEL_Y)
+            if (!state.russian) {
+                draws += DosDraw.Image(DosImage.SHEET, DosSprites.labelRect(button, lit.getValue(button)), DosSprites.buttonX(button), DosSprites.LABEL_Y)
+                continue
+            }
+            // Cover the English label with the black display and write the Russian word in the same colours.
+            val bx = DosSprites.buttonX(button)
+            draws += DosDraw.Fill(bx, DosSprites.BUTTON_Y, 73, 13, 0xFF000000)
+            draws += DosDraw.Text(RU_BUTTONS.getValue(button), bx + 36, DosSprites.BUTTON_Y + 10, if (lit.getValue(button)) 0xFF00AA00 else 0xFF555555, 11, DosAlign.CENTER, DosFont.MONO)
+        }
+        if (state.russian) {
+            // "Next" and "Colors" are part of the layout picture: cover them and write "Далее" and "цвета".
+            draws += DosDraw.Fill(208, 8, 46, 20, 0xFFAAAAAA)
+            draws += DosDraw.Fill(388, 8, 60, 20, 0xFFAAAAAA)
+            draws += DosDraw.Text("Далее", 231, 24, 0xFFFFFFFF, 15, DosAlign.CENTER, DosFont.SERIF, 0xFF555555)
+            draws += DosDraw.Text("цвета", 418, 24, 0xFFFFFFFF, 15, DosAlign.CENTER, DosFont.SERIF, 0xFF555555)
         }
         return draws
     }

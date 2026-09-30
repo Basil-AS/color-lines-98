@@ -1,3 +1,5 @@
+[Русская версия](ORIGINALS.ru.md)
+
 # The original games and what this port keeps
 
 ## Sources

@@ -139,4 +139,26 @@ class DosSceneTest {
         assertEquals(DosSprites.pretenderRect(0), frame(0))
         assertEquals(DosSprites.pretenderRect(5), frame(3700))
     }
+
+    @Test
+    fun russianLabelsReplaceTheEnglishOnesAndOnlyThose() {
+        val st = DosState(List(81) { null }, null, emptyList(), true, 0, 100, true, 0, russian = true)
+        val texts = DosScene.build(st).filterIsInstance<DosDraw.Text>().map { it.text }
+        assertEquals(listOf("ПОМОЩЬ", "ЗВУК", "ДАЛЕЕ", "ЗАНОВО", "Далее", "цвета"), texts)
+        // English keeps the original label pictures and draws no text at all.
+        assertEquals(0, DosScene.build(st.copy(russian = false)).filterIsInstance<DosDraw.Text>().size)
+        assertEquals(emptyList<DosDraw>(), DosScene.windowText(false, false, emptyList()))
+        val help = DosScene.windowText(false, true, emptyList()).filterIsInstance<DosDraw.Text>().map { it.text }
+        assertEquals("Справка", help.first())
+        assertEquals(true, help.drop(1).all { it.length <= 26 })
+        val top = DosScene.windowText(true, true, listOf(HallEntry("Ann", 300, 1))).filterIsInstance<DosDraw.Text>().map { it.text }
+        assertEquals(listOf("Десятка лучших", "Ваше имя", "Ann", "300"), top)
+    }
+
+    @Test
+    fun wrapTextBreaksAtWordsAndNeverExceedsTheWidth() {
+        val lines = DosScene.wrapText("Цель игры набрать больше очков чем король", 14)
+        assertEquals(true, lines.all { it.length <= 14 })
+        assertEquals("Цель игры набрать больше очков чем король", lines.joinToString(" "))
+    }
 }
