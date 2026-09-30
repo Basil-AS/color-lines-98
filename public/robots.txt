@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://basil-as.github.io/color-lines-98/sitemap.xml

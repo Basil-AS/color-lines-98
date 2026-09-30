@@ -17,11 +17,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#121217" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="description" content="Color Lines (Lines 98): the classic ball puzzle in your browser. Modern, Windows 98 and 1992 DOS looks, English and Russian, works on phone and desktop, installable, remembers your game and records." />
+    <meta name="description" content="Color Lines (Lines 98): the classic ball puzzle in your browser. Four modes including a daily challenge, twelve looks from the 1992 DOS original to Game Boy, hints, long-term statistics, English and Russian, works offline and installs as an app." />
+    <meta name="referrer" content="no-referrer" />
+    <link rel="canonical" href="https://basil-as.github.io/color-lines-98/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Color Lines: the classic ball puzzle" />
+    <meta property="og:description" content="Play Color Lines (Lines 98) in your browser or on Android: modes, daily challenge, twelve looks, statistics that last." />
+    <meta property="og:url" content="https://basil-as.github.io/color-lines-98/" />
+    <meta property="og:image" content="https://basil-as.github.io/color-lines-98/screenshots/wide-modern.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "VideoGame",
+        "name": "Color Lines",
+        "alternateName": "Lines 98",
+        "url": "https://basil-as.github.io/color-lines-98/",
+        "genre": "Puzzle",
+        "applicationCategory": "Game",
+        "operatingSystem": "Any (web browser), Android",
+        "inLanguage": ["en", "ru"],
+        "isAccessibleForFree": true,
+        "license": "https://opensource.org/licenses/MIT",
+        "downloadUrl": "https://github.com/Basil-AS/color-lines-98/releases/latest/download/ColorLines.apk"
+      }
+    </script>
     <title>Color Lines — the classic ball puzzle</title>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Shown until the app starts, and to crawlers and readers without JavaScript. -->
+      <main>
+        <h1>Color Lines</h1>
+        <p>The classic ball puzzle: move balls on a 9×9 board and make lines of five or more of one colour.</p>
+        <noscript><p>This game needs JavaScript. Enable it to play.</p></noscript>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
