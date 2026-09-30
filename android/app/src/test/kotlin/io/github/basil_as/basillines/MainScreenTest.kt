@@ -222,6 +222,15 @@ class MainScreenTest {
     }
 
     @Test
+    fun todaysGoalsAreShownWithProgress() {
+        rule.onNode(hasText("Goals 0/3")).assertExists().performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Today\'s goals".replace("\\", ""))).assertExists()
+        rule.onNode(hasText("Goals are built from your own recent results", substring = true)).assertExists()
+        rule.onNode(hasText("+25 XP for each goal")).assertExists()
+    }
+
+    @Test
     fun aFreshGameHasNoWarning() {
         rule.onNodeWithContentDescription("New game").performClick()
         rule.waitForIdle()
