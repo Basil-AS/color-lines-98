@@ -14,7 +14,7 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { GameEngine } from './engine/gameengine';
-import { MODES } from './engine/modes';
+import { MODES, MODE_IDS } from './engine/modes';
 import type { ModeId } from './engine/modes';
 import { createEngine, remainingMs, todayKey } from './modes';
 import { dailyGoals, evaluateGoals, goalBonus } from './goals';
@@ -72,6 +72,7 @@ import { LedNumber } from './components/LedNumber';
 import { useInstall } from './pwa/useInstall';
 import { GameOverDialog } from './components/GameOverDialog';
 import { GoalsDialog } from './components/GoalsDialog';
+import { WinMenu } from './components/WinMenu';
 import { GoalsPanel } from './components/GoalsPanel';
 import { NewGameDialog } from './components/NewGameDialog';
 import { HelpDialog } from './components/HelpDialog';
@@ -825,20 +826,40 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <nav className="win98-menubar" aria-label={t('menu.game')}>
-              <button type="button" onClick={handleNewGame}>
-                {t('menu.game')}
-              </button>
-              <button type="button" onClick={openStats}>
-                {t('btn.stats')}
-              </button>
-              <button type="button" onClick={() => setDialog('settings')}>
-                {t('btn.settings')}
-              </button>
-              <button type="button" onClick={() => setDialog('help')}>
-                {t('btn.help')}
-              </button>
-            </nav>
+            <WinMenu
+              label={t('menu.game')}
+              groups={[
+                {
+                  label: t('menu.game'),
+                  items: [
+                    { label: t('newgame.title'), onSelect: requestNewGame },
+                    { label: t('btn.undo'), onSelect: handleUndo, disabled: !engine.canUndo },
+                    ...MODE_IDS.map((id, i) => ({
+                      label: t(`mode.${id}` as MessageKey),
+                      checked: engine.mode === id,
+                      separatorBefore: i === 0,
+                      onSelect: () => {
+                        setNewGameMode(id);
+                        setDialog('newgame');
+                      },
+                    })),
+                    { label: t('settings.sound'), checked: soundEnabled, onSelect: toggleSound, separatorBefore: true },
+                    { label: t('btn.settings'), onSelect: () => setDialog('settings') },
+                  ],
+                },
+                {
+                  label: t('menu.score'),
+                  items: [
+                    { label: t('btn.stats'), onSelect: openStats },
+                    { label: t('goals.title'), onSelect: () => setDialog('goals') },
+                  ],
+                },
+                {
+                  label: t('menu.help'),
+                  items: [{ label: t('btn.help'), onSelect: () => setDialog('help') }],
+                },
+              ]}
+            />
           </>
         )}
 

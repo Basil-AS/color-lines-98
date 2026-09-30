@@ -1975,3 +1975,68 @@ input[role='switch']:focus-visible {
 .swatch-material { background: radial-gradient(circle at 25% 50%, #e53935 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #1e88e5 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #43a047 0 8px, transparent 9px), #e8def8; border-radius: 18px; }
 .swatch-neon { background: radial-gradient(circle at 25% 50%, #ff2a55 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #00f0ff 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ff3cdc 0 8px, transparent 9px), linear-gradient(135deg, #0e0b1f, #24103f); box-shadow: 0 0 10px rgba(0, 240, 255, 0.5); }
 .swatch-contrast { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #ffe600 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #00e5ff 0 8px, transparent 9px), #000000; border: 2px solid #ffffff; }
+
+/* ---- Windows drop-down menus ---- */
+.win-menu {
+  position: relative;
+}
+
+.win98-menubar > .win-menu > button.open {
+  background: #000080;
+  color: #ffffff;
+}
+
+.win-menu-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 60;
+  min-width: 210px;
+  list-style: none;
+  padding: 2px;
+  background: #c0c0c0;
+  border: 2px solid;
+  border-color: #ffffff #000000 #000000 #ffffff;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.win-menu-list li.separator {
+  margin-top: 3px;
+  padding-top: 3px;
+  border-top: 1px solid #808080;
+  box-shadow: 0 -1px 0 #ffffff;
+}
+
+.win-menu-list button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 26px;
+  padding: 3px 14px 3px 4px;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  color: #000000;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.win-menu-list button:hover:not(:disabled),
+.win-menu-list button:focus-visible {
+  background: #000080;
+  color: #ffffff;
+  outline: 0;
+}
+
+.win-menu-list button:disabled {
+  color: #808080;
+  cursor: default;
+}
+
+.win-check {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+}
