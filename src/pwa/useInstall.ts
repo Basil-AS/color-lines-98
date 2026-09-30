@@ -1,11 +1,8 @@
 import { useEffect, useState } from 'react';
 import { installKind } from './install';
+import { clearInstallPrompt, onInstallPrompt, savedInstallPrompt } from './earlyInstall';
+import type { BeforeInstallPromptEvent } from './earlyInstall';
 import type { InstallKind } from './install';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
 
 function isStandalone(): boolean {
   const iosStandalone = (navigator as Navigator & { standalone?: boolean }).standalone === true;
@@ -14,22 +11,17 @@ function isStandalone(): boolean {
 
 /** Tracks whether and how the app can be installed in this browser. */
 export function useInstall(): { kind: InstallKind; install: () => Promise<void> } {
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(savedInstallPrompt);
   const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setPromptEvent(e as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => {
-      setInstalled(true);
-      setPromptEvent(null);
-    };
-    window.addEventListener('beforeinstallprompt', onPrompt);
+    const off = onInstallPrompt(setPromptEvent);
+    const onInstalled = () => setInstalled(true);
     window.addEventListener('appinstalled', onInstalled);
+    // The event may have arrived between the first render and this effect.
+    setPromptEvent(savedInstallPrompt());
     return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt);
+      off();
       window.removeEventListener('appinstalled', onInstalled);
     };
   }, []);
@@ -45,7 +37,7 @@ export function useInstall(): { kind: InstallKind; install: () => Promise<void> 
     if (!promptEvent) return;
     await promptEvent.prompt();
     await promptEvent.userChoice;
-    setPromptEvent(null);
+    clearInstallPrompt();
   };
 
   return { kind, install };

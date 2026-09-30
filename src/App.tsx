@@ -93,7 +93,8 @@ import './App.css';
 
 const BOARD_SIZE = 9;
 const GITHUB_REPO_URL = 'https://github.com/Basil-AS/color-lines-98';
-const GITHUB_RELEASES_URL = `${GITHUB_REPO_URL}/releases/latest`;
+/** A stable name on every release, so this link always downloads the newest APK. */
+const LATEST_APK_URL = `${GITHUB_REPO_URL}/releases/latest/download/ColorLines.apk`;
 
 function prefersReducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -714,7 +715,7 @@ export default function App() {
     );
 
   const installButton =
-    install.kind === 'prompt' || install.kind === 'ios' || install.kind === 'safari-mac' ? (
+    install.kind === 'prompt' || install.kind === 'ios' || install.kind === 'safari-mac' || install.kind === 'manual' ? (
       <button
         type="button"
         className="ctrl-btn ctrl-link"
@@ -761,7 +762,7 @@ export default function App() {
 
   const dialogs = (
     <>
-      {showInstallHelp && (install.kind === 'ios' || install.kind === 'safari-mac') && (
+      {showInstallHelp && (install.kind === 'ios' || install.kind === 'safari-mac' || install.kind === 'manual') && (
         <InstallDialog lang={lang} kind={install.kind} onClose={() => setShowInstallHelp(false)} />
       )}
       {dialog === 'newgame' && (
@@ -838,8 +839,8 @@ export default function App() {
       <div className="footer-tools">
         {installButton}
         <a
-          href={GITHUB_RELEASES_URL}
-          target="_blank"
+          href={LATEST_APK_URL}
+          download="ColorLines.apk"
           rel="noreferrer"
           className="ctrl-btn ctrl-link"
           title={t('btn.apk')}

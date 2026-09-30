@@ -101,7 +101,9 @@ jobs:
       - name: Name the files and checksum them
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk "ColorLines-${VERSION}.apk"
-          sha256sum ColorLines-* > SHA256SUMS.txt
+          # The same file under a fixed name, so releases/latest/download/ColorLines.apk is always the newest APK.
+          cp "ColorLines-${VERSION}.apk" ColorLines.apk
+          sha256sum ColorLines-* ColorLines.apk > SHA256SUMS.txt
           cat SHA256SUMS.txt
 
       - name: Attest build provenance
@@ -121,5 +123,6 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             ColorLines-*.apk
+            ColorLines.apk
             ColorLines-*-web.zip
             SHA256SUMS.txt
