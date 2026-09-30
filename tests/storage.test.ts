@@ -50,12 +50,12 @@ beforeEach(() => {
 describe('theme', () => {
   it('defaults to modern and ignores unknown values', () => {
     expect(loadTheme()).toBe('modern');
-    store.setItem('colorlines_theme', 'neon');
+    store.setItem('colorlines_theme', 'glitter');
     expect(loadTheme()).toBe('modern');
   });
 
   it('round-trips every theme', () => {
-    for (const theme of ['modern', 'light', 'lines98', 'colorlines92'] as const) {
+    for (const theme of ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'] as const) {
       saveTheme(theme);
       expect(loadTheme()).toBe(theme);
     }

@@ -1,4 +1,4 @@
-export const THEMES = ['modern', 'light', 'lines98', 'colorlines92'] as const;
+export const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const DEFAULT_THEME: Theme = 'modern';

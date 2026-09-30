@@ -102,6 +102,9 @@ function applyDocumentLanguage(lang: Language): void {
 const THEME_COLORS: Record<Theme, string> = {
   modern: '#121217',
   light: '#e9ecf5',
+  material: '#fef7ff',
+  neon: '#07060f',
+  contrast: '#000000',
   lines98: '#008080',
   colorlines92: '#000000',
 };
@@ -127,7 +130,10 @@ function formatClock(ms: number): string {
 
 function ballThemeClass(theme: Theme): string {
   if (theme === 'lines98') return '';
-  return theme === 'colorlines92' ? 'ball-dos' : 'ball-modern';
+  if (theme === 'colorlines92') return 'ball-dos';
+  if (theme === 'neon') return 'ball-neon';
+  if (theme === 'contrast') return 'ball-contrast';
+  return 'ball-modern';
 }
 
 function getSpriteUrl(color: BallColor): string {

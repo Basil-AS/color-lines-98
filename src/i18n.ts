@@ -97,6 +97,9 @@ const en = {
   'settings.preview': 'Show where new balls will appear',
 
   'theme.light': 'Modern light',
+  'theme.material': 'Material',
+  'theme.neon': 'Neon',
+  'theme.contrast': 'High contrast',
   'theme.lines98': 'Lines 98 (Windows)',
   'theme.colorlines92': 'Color Lines 1992 (DOS)',
 
@@ -367,6 +370,9 @@ const ru: Dictionary = {
   'settings.preview': 'Показывать, где появятся новые шары',
 
   'theme.light': 'Современная светлая',
+  'theme.material': 'Material',
+  'theme.neon': 'Неон',
+  'theme.contrast': 'Высокий контраст',
   'theme.lines98': 'Lines 98 (Windows)',
   'theme.colorlines92': 'Color Lines 1992 (DOS)',
 
