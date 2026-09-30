@@ -30,8 +30,15 @@ class GameEngine(
     val ballsPerSpawn: Int = 3,
     val minLineLength: Int = 5,
     val scoringSystem: ScoringSystem = ScoringSystem.GAMOS_1992,
-    private val random: Random = Random.Default
+    random: Random = Random.Default,
+    /** The colours in play (easy mode uses five). */
+    val colors: List<BallColor> = BallColor.entries.toList(),
+    val mode: ModeId = ModeId.CLASSIC,
+    /** Seeded games (the daily challenge) draw every turn from a generator that depends only on this and the move number. */
+    val seed: Long? = null
 ) {
+    private var rng: Rng = { random.nextDouble() }
+
     val board: Board = Board(size)
     var score: Int = 0
         private set
@@ -73,8 +80,9 @@ class GameEngine(
 
     fun startNewGame() {
         board.clear()
-        score = 0
         moves = 0
+        reseedTurn()
+        score = 0
         linesCleared = 0
         ballsCleared = 0
         maxLine = 0
@@ -89,10 +97,10 @@ class GameEngine(
         // Initial spawn: 5 balls; the original never starts with a finished line, so re-deal if one appears.
         for (attempt in 0 until 50) {
             board.clear()
-            val initialEmpty = board.getEmptyCells().shuffled(random)
+            val initialEmpty = shuffle(board.getEmptyCells())
             val initialCount = minOf(5, initialEmpty.size)
             for (i in 0 until initialCount) {
-                board[initialEmpty[i]] = BallColor.entries.random(random)
+                board[initialEmpty[i]] = randomColor()
             }
             if (!LineDetector.findLines(board, minLineLength, scoringSystem).hasMatches) break
         }
@@ -103,7 +111,7 @@ class GameEngine(
     }
 
     private fun planSpawnPoints() {
-        val empty = board.getEmptyCells().shuffled(random)
+        val empty = shuffle(board.getEmptyCells())
         nextSpawnPoints = empty.take(minOf(ballsPerSpawn, empty.size))
     }
 
@@ -113,7 +121,7 @@ class GameEngine(
         val empty = board.getEmptyCells()
         val want = minOf(ballsPerSpawn, empty.size)
         if (kept.size < want) {
-            for (c in empty.shuffled(random)) {
+            for (c in shuffle(empty)) {
                 if (kept.size >= want) break
                 if (c !in kept) kept.add(c)
             }
@@ -121,8 +129,31 @@ class GameEngine(
         nextSpawnPoints = kept
     }
 
+    private fun randomColor(): BallColor = colors[(rng() * colors.size).toInt()]
+
     private fun generateNextColors() {
-        nextColors = List(ballsPerSpawn) { BallColor.entries.random(random) }
+        nextColors = List(ballsPerSpawn) { randomColor() }
+    }
+
+    /** Fisher-Yates from the end, exactly like the web engine, so seeded games match. */
+    private fun <T> shuffle(list: List<T>): List<T> {
+        val arr = list.toMutableList()
+        for (i in arr.size - 1 downTo 1) {
+            val j = (rng() * (i + 1)).toInt()
+            val tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp
+        }
+        return arr
+    }
+
+    private fun reseedTurn() {
+        if (seed != null) rng = mulberry32(mixSeed(seed, moves))
+    }
+
+    /** Ends the game right now (a timed mode ran out of time). */
+    fun endGame() {
+        isGameOver = true
+        selectedPoint = null
+        undoStack.clear()
     }
 
     fun selectCell(point: Point): Boolean {
@@ -173,6 +204,7 @@ class GameEngine(
 
         // Execute move
         moves++
+        reseedTurn()
         board[from] = null
         board[to] = movingColor
         repairSpawnPlan()
@@ -294,6 +326,7 @@ class GameEngine(
         }
         score = snapshot.score
         moves = snapshot.moves
+        reseedTurn()
         linesCleared = snapshot.linesCleared
         ballsCleared = snapshot.ballsCleared
         maxLine = snapshot.maxLine
@@ -321,6 +354,7 @@ class GameEngine(
         for (y in 0 until size) for (x in 0 until size) board[x, y] = cells[y * size + x]
         this.score = score
         this.moves = moves
+        reseedTurn()
         this.linesCleared = linesCleared
         this.ballsCleared = ballsCleared
         this.maxLine = maxLine
