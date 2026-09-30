@@ -1,8 +1,8 @@
 # Current agent state
 
-ACTIVE_TASK: .agents/tasks/20260930-0200-unify-style-audit
-STATUS: review
-BRANCH: agent/fix-unify-style-audit
-LAST_VERIFIED_COMMIT: 5b19825
-UPDATED_AT: 2026-09-30T02:00:52+03:00
-NEXT_ACTION: Merge the PR, tag v1.3.0, verify Pages and release assets.
+ACTIVE_TASK: .agents/tasks/20260930-2034-modes-goals-hints-android-parity-themes-v1-4-0
+STATUS: wip
+BRANCH: agent/feat-modes-goals-themes
+LAST_VERIFIED_COMMIT: -
+UPDATED_AT: 2026-09-30T20:34:13+03:00
+NEXT_ACTION: Read TASK.md and refine scope, DoD and verification before editing.
