@@ -97,7 +97,11 @@ describe('installKind', () => {
     expect(installKind({ userAgent: macSafari, standalone: false, hasPrompt: false, touchPoints: 0 })).toBe('safari-mac');
   });
 
-  it('offers nothing where installing is not possible', () => {
-    expect(installKind({ userAgent: chrome, standalone: false, hasPrompt: false, touchPoints: 0 })).toBe('none');
+  it('explains the browser menu where Chrome has no prompt to offer (dismissed, or not yet)', () => {
+    expect(installKind({ userAgent: chrome, standalone: false, hasPrompt: false, touchPoints: 0 })).toBe('manual');
+  });
+
+  it('offers nothing in a browser that cannot install at all', () => {
+    expect(installKind({ userAgent: 'SomeOldBrowser/1.0', standalone: false, hasPrompt: false, touchPoints: 0 })).toBe('none');
   });
 });

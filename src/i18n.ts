@@ -268,6 +268,9 @@ const en = {
   'install.ios.step1': 'Tap the Share button in Safari.',
   'install.ios.step2': 'Choose "Add to Home Screen".',
   'install.ios.step3': 'Tap "Add". The game then opens like an app, also offline.',
+  'install.manual.step1': 'Open the browser menu (three dots, or the install icon in the address bar).',
+  'install.manual.step2': 'Choose "Install app", "Install Color Lines" or "Add to Home screen".',
+  'install.manual.step3': 'Confirm. The game then opens like an app, also offline. On Android you can also download the APK below.',
   'install.mac.step1': 'In Safari choose File, then "Add to Dock".',
   'install.mac.step2': 'Confirm the name. The game then opens like an app, also offline.',
 
@@ -633,6 +636,9 @@ const ru: Dictionary = {
   'install.ios.step1': 'Нажмите кнопку «Поделиться» в Safari.',
   'install.ios.step2': 'Выберите «На экран Домой».',
   'install.ios.step3': 'Нажмите «Добавить». Игра будет открываться как приложение, в том числе без интернета.',
+  'install.manual.step1': 'Откройте меню браузера (три точки или значок установки в адресной строке).',
+  'install.manual.step2': 'Выберите «Установить приложение», «Установить Color Lines» или «Добавить на главный экран».',
+  'install.manual.step3': 'Подтвердите. Игра будет открываться как приложение, в том числе без интернета. На Android можно также скачать APK ниже.',
   'install.mac.step1': 'В Safari выберите «Файл», затем «Добавить в Dock».',
   'install.mac.step2': 'Подтвердите название. Игра будет открываться как приложение, в том числе без интернета.',
 
