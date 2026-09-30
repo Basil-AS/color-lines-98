@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import io.github.basil_as.basillines.engine.BallColor
 
 enum class CellStyle { ROUNDED, WIN98, DOS }
-enum class BallStyle { GLOSSY, SPRITE, DOS }
+enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST }
 
 data class Palette(
     val background: Color,
@@ -71,9 +71,45 @@ private val ColorLines92 = Palette(
     dark = false, cellStyle = CellStyle.DOS, ballStyle = BallStyle.DOS, windowTitleBar = false
 )
 
+/** Material: Material 3 baseline purple, large radii, tonal surfaces (same tokens as the web theme). */
+private val Material = Palette(
+    background = Color(0xFFFEF7FF), panel = Color(0xFFF7F2FA), chip = Color(0xFFE8DEF8),
+    boardBackground = Color(0xFFE7E0EC), cell = Color(0xFFFEF7FF),
+    text = Color(0xFF1D1B20), textMuted = Color(0xFF49454F),
+    statBackground = Color(0xFFE8DEF8), statLabel = Color(0xFF49454F), statValue = Color(0xFF1D1B20),
+    accent = Color(0xFF6750A4), onAccent = Color.White, danger = Color(0xFFB3261E),
+    reachableDot = Color(0xFF6750A4).copy(alpha = 0.7f),
+    dark = false, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.GLOSSY, windowTitleBar = false
+)
+
+/** Neon: dark violet with cyan and magenta glow. */
+private val Neon = Palette(
+    background = Color(0xFF07060F), panel = Color(0xFF0E0B1F), chip = Color(0xFF211A45),
+    boardBackground = Color(0xFF0A0818), cell = Color(0xFF15102E),
+    text = Color(0xFFF5F0FF), textMuted = Color(0xFFB7A8E6),
+    statBackground = Color(0xFF0A0818), statLabel = Color(0xFFB7A8E6), statValue = Color(0xFF00F0FF),
+    accent = Color(0xFF00F0FF), onAccent = Color(0xFF001A1D), danger = Color(0xFFFF3D71),
+    reachableDot = Color(0xFF00F0FF).copy(alpha = 0.8f),
+    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.NEON, windowTitleBar = false
+)
+
+/** High contrast: black and white with yellow accents; every colour also has its own shape. */
+private val Contrast = Palette(
+    background = Color.Black, panel = Color.Black, chip = Color(0xFF333333),
+    boardBackground = Color.Black, cell = Color(0xFF0D0D0D),
+    text = Color.White, textMuted = Color(0xFFE6E6E6),
+    statBackground = Color.Black, statLabel = Color(0xFFE6E6E6), statValue = Color(0xFFFFE600),
+    accent = Color(0xFFFFE600), onAccent = Color.Black, danger = Color(0xFFFF6B6B),
+    reachableDot = Color(0xFF00E5FF),
+    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false
+)
+
 fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.MODERN -> Modern
     AppTheme.LIGHT -> Light
+    AppTheme.MATERIAL -> Material
+    AppTheme.NEON -> Neon
+    AppTheme.CONTRAST -> Contrast
     AppTheme.LINES_98 -> Lines98
     AppTheme.COLORLINES_92 -> ColorLines92
 }
@@ -109,4 +145,26 @@ fun spriteIndex(ball: BallColor): Int = when (ball) {
     BallColor.MAGENTA -> 4
     BallColor.YELLOW -> 5
     BallColor.BROWN -> 6
+}
+
+/** Neon glow colour of a ball (brighter than the glossy one). */
+fun neonColor(ball: BallColor): Color = when (ball) {
+    BallColor.RED -> Color(0xFFFF2A55)
+    BallColor.GREEN -> Color(0xFF2BFF5E)
+    BallColor.BLUE -> Color(0xFF3A5BFF)
+    BallColor.CYAN -> Color(0xFF00F0FF)
+    BallColor.MAGENTA -> Color(0xFFFF3CDC)
+    BallColor.YELLOW -> Color(0xFFFFE600)
+    BallColor.BROWN -> Color(0xFFFF9A3C)
+}
+
+/** High-contrast fill of a ball; the shape on it (see [contrastSymbol]) carries the meaning too. */
+fun contrastColor(ball: BallColor): Color = when (ball) {
+    BallColor.RED -> Color(0xFFFF3B30)
+    BallColor.GREEN -> Color(0xFF34C759)
+    BallColor.BLUE -> Color(0xFF5AA9FF)
+    BallColor.CYAN -> Color(0xFF00E5FF)
+    BallColor.MAGENTA -> Color(0xFFFF5CF0)
+    BallColor.YELLOW -> Color(0xFFFFE600)
+    BallColor.BROWN -> Color(0xFFD9A066)
 }

@@ -43,6 +43,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -52,6 +53,7 @@ import io.github.basil_as.basillines.engine.GameRecord
 import io.github.basil_as.basillines.engine.GameStats
 import io.github.basil_as.basillines.engine.Insights
 import io.github.basil_as.basillines.engine.LineDetector
+import io.github.basil_as.basillines.engine.ModeId
 import io.github.basil_as.basillines.engine.Levels
 import io.github.basil_as.basillines.engine.Progress
 import io.github.basil_as.basillines.engine.ProgressTracker
@@ -90,6 +92,9 @@ val ACHIEVEMENT_TEXT: Map<String, Pair<Int, Int>> = mapOf(
 private val THEME_NAMES = listOf(
     AppTheme.MODERN to R.string.theme_modern,
     AppTheme.LIGHT to R.string.theme_light,
+    AppTheme.MATERIAL to R.string.theme_material,
+    AppTheme.NEON to R.string.theme_neon,
+    AppTheme.CONTRAST to R.string.theme_contrast,
     AppTheme.LINES_98 to R.string.theme_lines98,
     AppTheme.COLORLINES_92 to R.string.theme_colorlines92
 )
@@ -545,4 +550,76 @@ private fun InsightsSection(history: List<GameRecord>, progress: Progress, level
             steps.forEach { Text("${it.score} · " + dateFormat.format(Date(it.at)), fontSize = 13.sp) }
         }
     }
+}
+
+/** Starting a game: the mode, and a warning that is impossible to miss when a game is in progress. */
+@Composable
+fun NewGameDialog(
+    current: ModeId,
+    onPick: (ModeId) -> Unit,
+    inProgress: Boolean,
+    score: Int,
+    moves: Int,
+    onStart: () -> Unit,
+    onKeep: () -> Unit
+) {
+    val modes = listOf(
+        Triple(ModeId.CLASSIC, R.string.mode_classic, R.string.mode_classic_desc),
+        Triple(ModeId.EASY, R.string.mode_easy, R.string.mode_easy_desc),
+        Triple(ModeId.BLITZ, R.string.mode_blitz, R.string.mode_blitz_desc),
+        Triple(ModeId.DAILY, R.string.mode_daily, R.string.mode_daily_desc)
+    )
+    AlertDialog(
+        onDismissRequest = onKeep,
+        title = { Text(stringResource(R.string.newgame_title)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState())) {
+                if (inProgress) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp).semantics {
+                            liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Assertive
+                        }
+                    ) {
+                        Text(
+                            stringResource(R.string.newgame_warning, score.toString(), pluralStringResource(R.plurals.moves, moves, moves)),
+                            Modifier.padding(12.dp),
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                }
+                Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                modes.forEach { (mode, name, desc) ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(selected = current == mode, role = Role.RadioButton, onClick = { onPick(mode) })
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = current == mode, onClick = null)
+                        Column(Modifier.padding(start = 12.dp)) {
+                            Text(stringResource(name), fontWeight = FontWeight.SemiBold)
+                            Text(stringResource(desc), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                }
+            }
+        },
+        // With a game in progress the safe choice is the focused, prominent one.
+        confirmButton = {
+            if (inProgress) {
+                Button(onClick = onKeep) { Text(stringResource(R.string.newgame_keep)) }
+            } else {
+                Button(onClick = onStart) { Text(stringResource(R.string.newgame_start)) }
+            }
+        },
+        dismissButton = {
+            if (inProgress) {
+                OutlinedButton(onClick = onStart) { Text(stringResource(R.string.newgame_start)) }
+            }
+        }
+    )
 }
