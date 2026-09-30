@@ -53,9 +53,10 @@ class MainScreenTest {
     }
 
     @Test
-    fun showsTitleAndAFullBoard() {
+    fun showsScoreAndAFullBoard() {
         rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
-        rule.onAllNodes(hasText("Color Lines")).onFirst().assertIsDisplayed()
+        // Portrait keeps the HUD compact: no title, the score is what must be visible.
+        rule.onAllNodes(hasText("Score")).onFirst().assertIsDisplayed()
         assertEquals(81, ballCount() + emptyCells().fetchSemanticsNodes().size)
         assertEquals(5, ballCount())
     }
@@ -145,6 +146,17 @@ class MainScreenTest {
             rule.waitForIdle()
             assertEquals("$theme", expected, rule.onAllNodes(incoming).fetchSemanticsNodes().size)
         }
+    }
+
+    @Test
+    fun theLanguageCanBeSwitchedInsideTheGame() {
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.onNode(hasText("Русский")).performClick()
+        rule.waitForIdle()
+        assertEquals(AppLanguage.RU, GameStorage(ApplicationProvider.getApplicationContext()).language)
+        // The activity is recreated with the chosen language, whatever the system uses.
+        assertTrue(rule.onAllNodes(hasText("Счёт")).fetchSemanticsNodes().isNotEmpty())
+        GameStorage(ApplicationProvider.getApplicationContext()).language = AppLanguage.AUTO
     }
 
     @Test

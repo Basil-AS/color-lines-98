@@ -1,6 +1,7 @@
 package io.github.basil_as.basillines
 
 import android.graphics.Color as AndroidColor
+import android.content.Context
 import android.os.Bundle
 import android.os.SystemClock
 import androidx.activity.ComponentActivity
@@ -84,6 +85,10 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 class MainActivity : ComponentActivity() {
     private lateinit var soundManager: SoundManager
 
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(GameStorage.localized(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Draw behind the system bars; the UI keeps clear of them with WindowInsets.safeDrawing.
@@ -132,6 +137,7 @@ private enum class Dialog { NONE, HELP, STATS, SETTINGS }
 
 @Composable
 fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars: (Boolean) -> Unit = {}) {
+    val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
@@ -415,6 +421,13 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                         spawnStored = !spawnPreview
                         storage.spawnPreview = spawnStored
                     },
+                    language = storage.language,
+                    onLanguage = { picked ->
+                        if (picked != storage.language) {
+                            storage.language = picked
+                            (context as? android.app.Activity)?.recreate()
+                        }
+                    },
                     playerName = playerName,
                     onPlayerName = {
                         playerName = it.take(Hall.NAME_LIMIT)
@@ -446,7 +459,7 @@ private fun GameScreen(
     onToggleSound: () -> Unit
 ) {
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-        val margin = 12.dp
+        val margin = if (maxWidth > maxHeight) 12.dp else 6.dp
         if (maxWidth > maxHeight) {
             // Landscape: board on the left, panel on the right.
             val boardSize = minOf(maxHeight - margin * 2, maxWidth * 0.58f)
@@ -464,14 +477,15 @@ private fun GameScreen(
                 }
             }
         } else {
-            val boardSize = minOf(maxWidth - margin * 2, 560.dp, (maxHeight - 250.dp).coerceAtLeast(240.dp))
+            // Portrait: the board takes the full width; the HUD is one compact card above it.
+            val boardSize = minOf(maxWidth - margin * 2, 720.dp, (maxHeight - 160.dp - margin * 3).coerceAtLeast(240.dp))
             Column(
                 Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(margin),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(margin, Alignment.CenterVertically)
             ) {
-                Box(Modifier.widthIn(max = 560.dp).fillMaxWidth()) {
-                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound)
+                Box(Modifier.widthIn(max = boardSize).fillMaxWidth()) {
+                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, compact = true)
                 }
                 BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize))
             }
@@ -492,7 +506,8 @@ private fun HeaderCard(
     onStats: () -> Unit,
     onSettings: () -> Unit,
     onHelp: () -> Unit,
-    onToggleSound: () -> Unit
+    onToggleSound: () -> Unit,
+    compact: Boolean = false
 ) {
     val shape = if (palette.square) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp)
     val font = if (palette.cellStyle == CellStyle.ROUNDED) FontFamily.Default else FontFamily.Monospace
@@ -516,8 +531,19 @@ private fun HeaderCard(
             Lines98Panel(score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound)
             return@Card
         }
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(
+        Column(Modifier.padding(if (compact) 8.dp else 14.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 12.dp)) {
+            if (compact) {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    NextPreview(palette, nextColors)
+                    Spacer(Modifier.weight(1f))
+                    StatBox(stringResource(R.string.hud_score), score, palette, live = true)
+                    StatBox(stringResource(R.string.hud_best), best, palette)
+                }
+            } else Row(
                 Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -543,8 +569,11 @@ private fun HeaderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                NextPreview(palette, nextColors)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (!compact) NextPreview(palette, nextColors)
+                Row(
+                    Modifier.then(if (compact) Modifier.fillMaxWidth() else Modifier),
+                    horizontalArrangement = if (compact) Arrangement.SpaceBetween else Arrangement.spacedBy(4.dp)
+                ) {
                     ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
                     ActionButton(AppIcons.Refresh, stringResource(R.string.btn_newGame), onNewGame)
                     ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)

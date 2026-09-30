@@ -8,6 +8,10 @@
     <string name="hud_best">Рекорд</string>
     <string name="hud_next">Далее</string>
     <string name="btn_undo">Отменить ход</string>
+    <string name="btn_hint">Подсказка (осталось %1$s)</string>
+    <string name="hint_none">Полезного хода не нашлось.</string>
+    <string name="hint_clear">Перенесите отмеченный шар в отмеченную клетку: уберёт %1$s шаров, и следующий ход бесплатный.</string>
+    <string name="hint_build">Перенесите отмеченный шар в отмеченную клетку, чтобы собрать ряд из %1$s.</string>
     <string name="btn_newGame">Новая игра</string>
     <string name="btn_mute">Выключить звук</string>
     <string name="btn_unmute">Включить звук</string>

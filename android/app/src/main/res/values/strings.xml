@@ -8,6 +8,10 @@
     <string name="hud_best">Best</string>
     <string name="hud_next">Next</string>
     <string name="btn_undo">Undo move</string>
+    <string name="btn_hint">Hint (%1$s left)</string>
+    <string name="hint_none">No useful move found.</string>
+    <string name="hint_clear">Move the marked ball to the marked cell: it clears %1$s balls and earns a free turn.</string>
+    <string name="hint_build">Move the marked ball to the marked cell to build a run of %1$s.</string>
     <string name="btn_newGame">New game</string>
     <string name="btn_mute">Mute sound</string>
     <string name="btn_unmute">Unmute sound</string>
