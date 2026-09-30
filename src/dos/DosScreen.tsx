@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
 import type { ReactNode } from 'react';
 import '@fontsource/unifrakturcook';
-import { buildScene } from './scene';
-import type { DosState, Effect } from './scene';
-import { BOARD, BUTTONS, BUTTON_X, BUTTON_Y, CELL, HELP_WINDOW, SCREEN, TOP_TEN_WINDOW, WINDOW_POS, glyphRect } from './sprites';
+import '@fontsource/ruslan-display';
+import { buildScene, buildWindow } from './scene';
+import type { Draw, DosState, Effect } from './scene';
+import { BOARD, BUTTONS, BUTTON_X, BUTTON_Y, CELL, SCREEN, WINDOW_POS } from './sprites';
 import type { ButtonId } from './sprites';
 import type { HallEntry } from './hall';
 
@@ -13,6 +14,7 @@ interface DosScreenProps {
   state: Omit<DosState, 'now'>;
   kingName: string;
   pretenderName: string;
+  lang: 'en' | 'ru';
   window: DosWindow;
   hall: readonly HallEntry[];
   labels: Record<ButtonId, string>;
@@ -32,28 +34,42 @@ function loadImage(name: string): HTMLImageElement {
 
 const pct = (v: number, total: number) => `${(v / total) * 100}%`;
 
-function drawText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, align: CanvasTextAlign) {
-  ctx.save();
-  ctx.font = '22px UnifrakturCook, "Old English Text MT", fantasy';
-  ctx.fillStyle = '#ffff55';
-  ctx.textAlign = align;
-  ctx.translate(x, y);
-  ctx.scale(1, 0.73); // the screen is stretched 1.37x vertically, keep the letters upright
-  ctx.fillText(text, 0, 0);
-  ctx.restore();
-}
+const FONTS = {
+  gothic: '"UnifrakturCook", "Ruslan Display", "Old English Text MT", fantasy',
+  mono: '"Courier New", Courier, monospace',
+  serif: '"Times New Roman", "Ruslan Display", serif',
+} as const;
 
-function drawPixelText(ctx: CanvasRenderingContext2D, sheet: HTMLImageElement, text: string, x: number, y: number) {
-  [...text].forEach((ch, i) => {
-    const g = glyphRect(ch);
-    if (g) ctx.drawImage(sheet, g[0], g[1], g[2], g[3], x + i * 9, y, g[2], g[3]);
-  });
+/** Runs the drawing commands of the scene. Text is squeezed vertically so it looks upright on the 4:3 stretch. */
+function paint(ctx: CanvasRenderingContext2D, draws: readonly Draw[], layout: HTMLImageElement, sheet: HTMLImageElement) {
+  for (const d of draws) {
+    if (d.kind === 'fill') {
+      ctx.fillStyle = d.color;
+      ctx.fillRect(d.x, d.y, d.w, d.h);
+    } else if (d.kind === 'image') {
+      ctx.drawImage(d.img === 'layout' ? layout : sheet, d.sx, d.sy, d.sw, d.sh, d.dx, d.dy, d.sw, d.sh);
+    } else {
+      ctx.save();
+      ctx.font = `${d.font === 'gothic' ? '' : 'bold '}${d.size}px ${FONTS[d.font]}`;
+      ctx.textAlign = d.align;
+      ctx.translate(d.x, d.y);
+      ctx.scale(1, 0.73);
+      if (d.shadow) {
+        ctx.fillStyle = d.shadow;
+        ctx.fillText(d.text, 1, 1);
+      }
+      ctx.fillStyle = d.color;
+      ctx.fillText(d.text, 0, 0);
+      ctx.restore();
+    }
+  }
 }
 
 export function DosScreen({
   state,
   kingName,
   pretenderName,
+  lang,
   window: win,
   hall,
   labels,
@@ -63,9 +79,9 @@ export function DosScreen({
 }: DosScreenProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const images = useRef<{ layout: HTMLImageElement; sheet: HTMLImageElement } | null>(null);
-  const latest = useRef({ state, kingName, pretenderName, win, hall });
+  const latest = useRef({ state, kingName, pretenderName, lang, win, hall });
   useEffect(() => {
-    latest.current = { state, kingName, pretenderName, win, hall };
+    latest.current = { state, kingName, pretenderName, lang, win, hall };
   });
 
   useEffect(() => {
@@ -80,35 +96,13 @@ export function DosScreen({
       if (!layout.complete || !sheet.complete || layout.naturalWidth === 0) return;
       const cur = latest.current;
       const now = performance.now();
-      const pick = (img: 'layout' | 'sheet') => (img === 'layout' ? layout : sheet);
-      for (const d of buildScene({ ...cur.state, now })) {
-        if (d.kind === 'fill') {
-          ctx.fillStyle = d.color;
-          ctx.fillRect(d.x, d.y, d.w, d.h);
-        } else {
-          ctx.drawImage(pick(d.img), d.sx, d.sy, d.sw, d.sh, d.dx, d.dy, d.sw, d.sh);
-        }
-      }
-      drawText(ctx, cur.kingName, 88, 262, 'center');
-      drawText(ctx, cur.pretenderName, 541, 262, 'center');
-
-      if (cur.win !== 'none') {
-        const r = cur.win === 'help' ? HELP_WINDOW : TOP_TEN_WINDOW;
-        ctx.drawImage(sheet, r[0], r[1], r[2], r[3], WINDOW_POS.x, WINDOW_POS.y, r[2], r[3]);
-        if (cur.win === 'top10') {
-          cur.hall.slice(0, 10).forEach((h, i) => {
-            const y = WINDOW_POS.y + 31 + i * 11.6;
-            drawPixelText(ctx, sheet, h.name, WINDOW_POS.x + 34, y);
-            const s = String(h.score);
-            drawPixelText(ctx, sheet, s, WINDOW_POS.x + 210 - s.length * 9, y);
-          });
-        }
-      }
+      paint(ctx, buildScene({ ...cur.state, now, lang: cur.lang, kingName: cur.kingName, pretenderName: cur.pretenderName }), layout, sheet);
+      if (cur.win !== 'none') paint(ctx, buildWindow(cur.win === 'help' ? 'help' : 'top10', cur.lang, cur.hall), layout, sheet);
     };
 
     layout.addEventListener('load', draw);
     sheet.addEventListener('load', draw);
-    void document.fonts?.load('22px UnifrakturCook').then(draw);
+    void Promise.all([document.fonts?.load('22px UnifrakturCook'), document.fonts?.load('22px "Ruslan Display"')]).then(draw);
     draw();
     const timer = window.setInterval(draw, 70);
     return () => {

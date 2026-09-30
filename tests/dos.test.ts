@@ -163,3 +163,91 @@ describe('who is called what', () => {
     expect(dosNames({ ...base, playerName: '  ', crowned: true }).pretender).toBe('Player');
   });
 });
+
+import { buildWindow, wrapText } from '../src/dos/scene';
+
+const texts = (draws: ReturnType<typeof buildScene>) => draws.filter((d) => d.kind === 'text') as Extract<ReturnType<typeof buildScene>[number], { kind: 'text' }>[];
+const cyrillic = /[А-Яа-яЁё]/;
+
+describe('localised 1992 screen', () => {
+  const ru = (over: Partial<DosState> = {}) => state({ lang: 'ru', kingName: 'Гандикап', pretenderName: 'Претендент', ...over });
+
+  it('keeps the original artwork and only draws the names in English', () => {
+    const t = texts(buildScene(state({ lang: 'en', kingName: 'Handicap', pretenderName: 'Pretender' })));
+    expect(t.map((x) => x.text)).toEqual(['Handicap', 'Pretender']);
+    expect(sheetDraws(state({ lang: 'en' })).some((d) => d.kind === 'image' && d.dy === LABEL_Y)).toBe(true);
+  });
+
+  it('puts Russian words over the English ones baked into the pictures', () => {
+    const scene = buildScene(ru());
+    const words = texts(scene).map((x) => x.text);
+    expect(words).toEqual(expect.arrayContaining(['Далее', 'цвета', 'ПОМОЩЬ', 'ЗВУК', 'ДАЛЕЕ', 'ЗАНОВО', 'Гандикап', 'Претендент']));
+    // The English button labels are not drawn any more.
+    expect(scene.some((d) => d.kind === 'image' && d.img === 'sheet' && d.dy === LABEL_Y)).toBe(false);
+    // A cover hides "Next" and "Colors" of the layout picture before the Russian text goes on top.
+    const fills = scene.filter((d) => d.kind === 'fill');
+    expect(fills.some((f) => f.kind === 'fill' && f.x <= 215 && f.x + f.w >= 245)).toBe(true);
+  });
+
+  it('lights the Russian SOUND and NEXT labels like the English ones', () => {
+    const colour = (on: boolean) => texts(buildScene(ru({ soundOn: on }))).find((x) => x.text === 'ЗВУК')!.color;
+    expect(colour(true)).not.toBe(colour(false));
+  });
+
+  it('draws only Cyrillic letters or the shared digits in the Russian overlay texts', () => {
+    for (const x of texts(buildScene(ru()))) expect(x.text).toMatch(/^[А-Яа-яЁё0-9 ]+$/);
+  });
+});
+
+describe('wrapText', () => {
+  it('wraps at word boundaries and never exceeds the width', () => {
+    const lines = wrapText('Цель игры набрать больше очков чем король', 14);
+    expect(lines.every((l) => l.length <= 14)).toBe(true);
+    expect(lines.join(' ')).toBe('Цель игры набрать больше очков чем король');
+  });
+
+  it('keeps a word longer than a line whole', () => {
+    expect(wrapText('Сверхдлинноесловопример', 8)).toEqual(['Сверхдлинноесловопример']);
+    expect(wrapText('', 10)).toEqual([]);
+  });
+});
+
+describe('windows over the board', () => {
+  it('uses the original Help picture as it is in English', () => {
+    const draws = buildWindow('help', 'en', []);
+    expect(draws.filter((d) => d.kind === 'text')).toHaveLength(0);
+    expect(draws[0]).toMatchObject({ kind: 'image', img: 'sheet' });
+  });
+
+  it('covers the English help text and writes it again in Russian, inside the window', () => {
+    const draws = buildWindow('help', 'ru', []);
+    const lines = draws.filter((d) => d.kind === 'text');
+    expect(lines.length).toBeGreaterThanOrEqual(6);
+    for (const l of lines) {
+      expect(l.kind === 'text' && cyrillic.test(l.text)).toBe(true);
+      if (l.kind === 'text') {
+        expect(l.x).toBeGreaterThanOrEqual(206);
+        expect(l.x).toBeLessThanOrEqual(206 + 238);
+        expect(l.y).toBeLessThanOrEqual(86 + 166);
+      }
+    }
+    expect(draws.some((d) => d.kind === 'fill')).toBe(true);
+  });
+
+  it('lists the Top Ten with names and scores, whatever the language of the names', () => {
+    const hall = [
+      { name: 'Ann', score: 900, at: 1 },
+      { name: 'Иван', score: 700, at: 2 },
+    ];
+    const t = buildWindow('top10', 'en', hall).filter((d) => d.kind === 'text').map((d) => (d.kind === 'text' ? d.text : ''));
+    expect(t).toEqual(expect.arrayContaining(['Ann', '900', 'Иван', '700']));
+    const ruTitle = buildWindow('top10', 'ru', hall).filter((d) => d.kind === 'text').map((d) => (d.kind === 'text' ? d.text : ''));
+    expect(ruTitle).toContain('Десятка лучших');
+  });
+
+  it('shows at most ten entries', () => {
+    const hall = Array.from({ length: 15 }, (_, i) => ({ name: 'p' + i, score: 100 - i, at: i }));
+    const names = buildWindow('top10', 'en', hall).filter((d) => d.kind === 'text' && d.align === 'left');
+    expect(names).toHaveLength(10);
+  });
+});
