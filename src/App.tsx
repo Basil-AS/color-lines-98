@@ -733,7 +733,7 @@ export default function App() {
   );
 
   const names = dosNames({
-    kingName: kingOf(hall).name,
+    kingName: hall.length > 0 ? hall[0].name : t('dos.defaultKing'),
     crowned: coronationStart !== null,
     playerName,
     pretenderLabel: t('dos.pretender'),
@@ -760,6 +760,7 @@ export default function App() {
         // The dethroned king keeps his name and record; the crowned pretender is the player.
         kingName={names.king}
         pretenderName={names.pretender}
+        lang={lang}
         window={dosWindow}
         hall={hall}
         labels={{ help: t('dos.help'), sound: t('dos.sound'), next: t('dos.next'), restart: t('dos.restart') }}

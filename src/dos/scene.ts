@@ -3,6 +3,7 @@ import {
   BOARD,
   BUTTONS,
   BUTTON_X,
+  BUTTON_Y,
   LABEL_Y,
   CELL,
   EMPTY_CELL,
@@ -10,6 +11,9 @@ import {
   LCD,
   NEXT_SLOT,
   PRETENDER_POS,
+  HELP_WINDOW,
+  TOP_TEN_WINDOW,
+  WINDOW_POS,
   ballRect,
   cellOrigin,
   glyphRect,
@@ -21,7 +25,19 @@ import type { BallFrame, ButtonId, Rect } from './sprites';
 
 export type Draw =
   | { kind: 'image'; img: 'layout' | 'sheet'; sx: number; sy: number; sw: number; sh: number; dx: number; dy: number }
-  | { kind: 'fill'; x: number; y: number; w: number; h: number; color: string };
+  | { kind: 'fill'; x: number; y: number; w: number; h: number; color: string }
+  | {
+      kind: 'text';
+      text: string;
+      x: number;
+      y: number;
+      color: string;
+      size: number;
+      align: 'left' | 'center' | 'right';
+      /** gothic: the names under the pillars; mono: pixel-like text; serif: the white captions. */
+      font: 'gothic' | 'mono' | 'serif';
+      shadow?: string;
+    };
 
 export interface Effect {
   kind: 'spawn' | 'burst';
@@ -47,7 +63,13 @@ export interface DosState {
   coronationStart: number | null;
   /** Buttons currently held down (shown in green). */
   pressed?: readonly ButtonId[];
+  /** The pictures carry English words; other languages get them covered and rewritten. */
+  lang?: 'en' | 'ru';
+  kingName?: string;
+  pretenderName?: string;
 }
+
+const RU_BUTTONS: Record<ButtonId, string> = { help: 'ПОМОЩЬ', sound: 'ЗВУК', next: 'ДАЛЕЕ', restart: 'ЗАНОВО' };
 
 export const SPAWN_FRAMES: readonly BallFrame[] = ['small', 'medium', 'wide'];
 export const BURST_FRAMES: readonly BallFrame[] = ['burst1', 'burst2'];
@@ -143,9 +165,80 @@ export function buildScene(state: DosState): Draw[] {
     next: state.showNext,
     restart: state.pressed?.includes('restart') ?? false,
   };
-  for (const id of BUTTONS) draws.push(image('sheet', labelRect(id, lit[id]), BUTTON_X[id], LABEL_Y));
+  const ru = state.lang === 'ru';
+  for (const id of BUTTONS) {
+    if (!ru) {
+      draws.push(image('sheet', labelRect(id, lit[id]), BUTTON_X[id], LABEL_Y));
+      continue;
+    }
+    // Cover the English label with the black display and write the Russian word in the same colours.
+    draws.push({ kind: 'fill', x: BUTTON_X[id], y: BUTTON_Y, w: 73, h: 13, color: '#000000' });
+    draws.push({ kind: 'text', text: RU_BUTTONS[id], x: BUTTON_X[id] + 36, y: BUTTON_Y + 10, color: lit[id] ? '#00aa00' : '#555555', size: 11, align: 'center', font: 'mono' });
+  }
+
+  if (ru) {
+    // "Next" and "Colors" are part of the layout picture: cover them and write "Далее" and "цвета".
+    draws.push({ kind: 'fill', x: 208, y: 8, w: 46, h: 20, color: '#aaaaaa' });
+    draws.push({ kind: 'fill', x: 388, y: 8, w: 60, h: 20, color: '#aaaaaa' });
+    draws.push({ kind: 'text', text: 'Далее', x: 231, y: 24, color: '#ffffff', size: 15, align: 'center', font: 'serif', shadow: '#555555' });
+    draws.push({ kind: 'text', text: 'цвета', x: 418, y: 24, color: '#ffffff', size: 15, align: 'center', font: 'serif', shadow: '#555555' });
+  }
+
+  if (state.kingName) draws.push({ kind: 'text', text: state.kingName, x: 88, y: 262, color: '#ffff55', size: 22, align: 'center', font: 'gothic' });
+  if (state.pretenderName) draws.push({ kind: 'text', text: state.pretenderName, x: 541, y: 262, color: '#ffff55', size: 22, align: 'center', font: 'gothic' });
 
   return draws;
 }
 
 export { BOARD, CELL };
+
+/** Greedy word wrap; a word longer than the line stays whole. */
+export function wrapText(text: string, maxChars: number): string[] {
+  const lines: string[] = [];
+  let line = '';
+  for (const word of text.split(/\s+/).filter(Boolean)) {
+    if (line === '') line = word;
+    else if ((line + ' ' + word).length <= maxChars) line += ' ' + word;
+    else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line !== '') lines.push(line);
+  return lines;
+}
+
+const RU_HELP =
+  'Цель игры набрать больше очков, чем «король». Очки растут, когда вы выстраиваете по горизонтали, вертикали или диагонали линию из пяти и более шаров одного цвета. Линии строятся перемещением шаров по свободным клеткам. Желаем успеха!';
+
+/** The Help or Top Ten window over the board, in the language of the player. */
+export function buildWindow(kind: 'help' | 'top10', lang: 'en' | 'ru', hall: readonly { name: string; score: number }[]): Draw[] {
+  const r = kind === 'help' ? HELP_WINDOW : TOP_TEN_WINDOW;
+  const { x, y } = WINDOW_POS;
+  const draws: Draw[] = [image('sheet', r, x, y)];
+
+  if (kind === 'help' && lang === 'ru') {
+    // Cover the title and the green English text; write them again in Russian.
+    draws.push({ kind: 'fill', x: x + 88, y: y + 6, w: 60, h: 18, color: '#aaaaaa' });
+    draws.push({ kind: 'text', text: 'Справка', x: x + 118, y: y + 20, color: '#ff5555', size: 14, align: 'center', font: 'serif', shadow: '#ffffff' });
+    draws.push({ kind: 'fill', x: x + 18, y: y + 28, w: 200, h: 122, color: '#000000' });
+    wrapText(RU_HELP, 26).forEach((line, i) => {
+      draws.push({ kind: 'text', text: line, x: x + 118, y: y + 40 + i * 11, color: '#00aa00', size: 9, align: 'center', font: 'mono' });
+    });
+  }
+
+  if (kind === 'top10') {
+    if (lang === 'ru') {
+      draws.push({ kind: 'fill', x: x + 70, y: y + 5, w: 100, h: 18, color: '#aaaaaa' });
+      draws.push({ kind: 'text', text: 'Десятка лучших', x: x + 120, y: y + 20, color: '#ff5555', size: 13, align: 'center', font: 'serif', shadow: '#ffffff' });
+      draws.push({ kind: 'fill', x: x + 12, y: y + 143, w: 92, h: 15, color: '#aaaaaa' });
+      draws.push({ kind: 'text', text: 'Ваше имя', x: x + 16, y: y + 155, color: '#ff5555', size: 12, align: 'left', font: 'serif' });
+    }
+    hall.slice(0, 10).forEach((h, i) => {
+      const line = y + 39 + i * 11.6;
+      draws.push({ kind: 'text', text: h.name, x: x + 52, y: line, color: '#00aa00', size: 9, align: 'left', font: 'mono' });
+      draws.push({ kind: 'text', text: String(h.score), x: x + 210, y: line, color: '#00aa00', size: 9, align: 'right', font: 'mono' });
+    });
+  }
+  return draws;
+}
