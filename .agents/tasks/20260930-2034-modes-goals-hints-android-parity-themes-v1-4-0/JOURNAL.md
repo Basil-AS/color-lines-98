@@ -24,3 +24,4 @@ NEXT: Inspect project and refine TASK.md.
 - Android: language switch, portrait layout, Kotlin Rng/Modes/Hint/codec v4 (parity values from web), NewGameDialog, ModeBar/clock, new themes.
 - Checks: vitest 557 OK, playwright 41 OK, Android testDebugUnitTest OK.
 - 12 themes with voices, tab title English, contrast check; 572 vitest, e2e 41, Android tests OK.
+- v1.5.0: stats ledger/career/seasons/backup, DOS reflow, modes UX, goals on Android, PWA install fix, APK latest link, 12 implementations comparison.

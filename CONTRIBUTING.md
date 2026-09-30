@@ -1,5 +1,7 @@
 # Contributing
 
+[Русская версия](CONTRIBUTING.ru.md)
+
 - Work in a branch named `agent/<type>-<slug>` or `<type>/<slug>` and open a pull request to `main`; titles look like
   `feat(scope): summary`.
 - Web: `npm ci`, then `npm run lint && npm run typecheck && npm test && npm run e2e`.

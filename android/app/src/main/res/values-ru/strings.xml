@@ -237,6 +237,9 @@
     <string name="install_ios_step1">Нажмите кнопку «Поделиться» в Safari.</string>
     <string name="install_ios_step2">Выберите «На экран Домой».</string>
     <string name="install_ios_step3">Нажмите «Добавить». Игра будет открываться как приложение, в том числе без интернета.</string>
+    <string name="install_manual_step1">Откройте меню браузера (три точки или значок установки в адресной строке).</string>
+    <string name="install_manual_step2">Выберите «Установить приложение», «Установить Color Lines» или «Добавить на главный экран».</string>
+    <string name="install_manual_step3">Подтвердите. Игра будет открываться как приложение, в том числе без интернета. На Android можно также скачать APK ниже.</string>
     <string name="install_mac_step1">В Safari выберите «Файл», затем «Добавить в Dock».</string>
     <string name="install_mac_step2">Подтвердите название. Игра будет открываться как приложение, в том числе без интернета.</string>
     <string name="insights_title">Анализ</string>
