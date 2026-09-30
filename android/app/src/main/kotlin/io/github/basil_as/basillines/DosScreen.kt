@@ -94,7 +94,30 @@ private object Regions {
 
 private fun SpriteRect.heightPerWidth() = h * PIXEL_ASPECT / w
 
-private class DosBitmaps(val layout: ImageBitmap, val sheet: ImageBitmap)
+private class DosBitmaps(val layout: ImageBitmap, val sheet: ImageBitmap, val serif: android.graphics.Typeface, val mono: android.graphics.Typeface)
+
+/** Draws the Russian overlay text in scene pixels; letters stay upright (scaled by the horizontal factor only). */
+private fun DrawScope.drawDosText(d: DosDraw.Text, bitmaps: DosBitmaps, sx: Float, sy: Float) {
+    drawIntoCanvas { c ->
+        val n = c.nativeCanvas
+        fun paint(argb: Long) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = if (d.font == io.github.basil_as.basillines.engine.DosFont.SERIF) bitmaps.serif else bitmaps.mono
+            color = argb.toInt()
+            textSize = d.size.toFloat()
+            textAlign = when (d.align) {
+                io.github.basil_as.basillines.engine.DosAlign.LEFT -> Paint.Align.LEFT
+                io.github.basil_as.basillines.engine.DosAlign.CENTER -> Paint.Align.CENTER
+                io.github.basil_as.basillines.engine.DosAlign.RIGHT -> Paint.Align.RIGHT
+            }
+        }
+        n.save()
+        n.scale(sx, sx)
+        val y = d.y * sy / sx
+        d.shadowArgb?.let { n.drawText(d.text, d.x + 1f, y + 1f, paint(it)) }
+        n.drawText(d.text, d.x.toFloat(), y, paint(d.argb))
+        n.restore()
+    }
+}
 
 /**
  * One rectangle of the 1992 picture drawn at its own scale, so the board can be as large as the screen allows while the
@@ -126,6 +149,7 @@ private fun SceneRegion(
                                 topLeft = androidx.compose.ui.geometry.Offset(d.x * sx, d.y * sy),
                                 size = androidx.compose.ui.geometry.Size(d.w * sx, d.h * sy)
                             )
+                            is DosDraw.Text -> drawDosText(d, bitmaps, sx, sy)
                         }
                     }
                     overlay(sx, sy)
@@ -136,11 +160,19 @@ private fun SceneRegion(
     }
 }
 
-private fun DrawScope.drawWindow(bitmaps: DosBitmaps, window: DosWindow, hall: List<HallEntry>, sx: Float, sy: Float) {
+private fun DrawScope.drawWindow(bitmaps: DosBitmaps, window: DosWindow, hall: List<HallEntry>, russian: Boolean, sx: Float, sy: Float) {
     if (window == DosWindow.NONE) return
     val r = if (window == DosWindow.HELP) DosSprites.HELP_WINDOW else DosSprites.TOP_TEN_WINDOW
     val (wx, wy) = DosSprites.WINDOW_POS
     drawSprite(bitmaps.sheet, r, wx, wy, sx, sy)
+    if (russian) {
+        for (d in DosScene.windowText(window == DosWindow.TOP_TEN, true, hall)) when (d) {
+            is DosDraw.Fill -> drawRect(Color(d.argb), androidx.compose.ui.geometry.Offset(d.x * sx, d.y * sy), androidx.compose.ui.geometry.Size(d.w * sx, d.h * sy))
+            is DosDraw.Text -> drawDosText(d, bitmaps, sx, sy)
+            else -> Unit
+        }
+        return
+    }
     if (window == DosWindow.TOP_TEN) {
         hall.take(10).forEachIndexed { i, h ->
             val y = (wy + 31 + i * 11.6f).roundToInt()
@@ -188,7 +220,9 @@ fun DosLayout(
     val context = LocalContext.current
     val bitmaps = DosBitmaps(
         ImageBitmap.imageResource(context.resources, R.drawable.cl92_layout),
-        ImageBitmap.imageResource(context.resources, R.drawable.cl92_sheet)
+        ImageBitmap.imageResource(context.resources, R.drawable.cl92_sheet),
+        remember { runCatching { context.resources.getFont(R.font.ruslan_display) }.getOrDefault(Typeface.SERIF) },
+        Typeface.MONOSPACE
     )
     // The clock is only read while drawing, so a tick redraws the picture without recomposing it.
     val now = remember { mutableLongStateOf(clockMs()) }
@@ -214,7 +248,7 @@ fun DosLayout(
     @Composable
     fun Board(m: Modifier) = SceneRegion(
         Regions.BOARD, state, clock, bitmaps, m,
-        overlay = { sx, sy -> drawWindow(bitmaps, window, hall, sx, sy) }
+        overlay = { sx, sy -> drawWindow(bitmaps, window, hall, state.russian, sx, sy) }
     ) { ux, uy ->
         if (window == DosWindow.NONE) {
             boardCells(
