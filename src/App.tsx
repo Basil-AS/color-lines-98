@@ -865,6 +865,7 @@ export default function App() {
                   items: [
                     { label: t('newgame.title'), onSelect: requestNewGame },
                     { label: t('btn.undo'), onSelect: handleUndo, disabled: !engine.canUndo },
+                    { label: hintTitle, onSelect: handleHint, disabled: engine.isGameOver || hintsLeft <= 0 },
                     ...MODE_IDS.map((id, i) => ({
                       label: t(`mode.${id}` as MessageKey),
                       checked: engine.mode === id,
