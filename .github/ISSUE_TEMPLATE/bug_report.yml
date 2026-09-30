@@ -1,0 +1,27 @@
+name: Bug report
+description: Something does not work or looks wrong
+labels: [bug]
+body:
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Web (browser), Web (installed PWA), Android app]
+    validations: { required: true }
+  - type: input
+    id: version
+    attributes:
+      label: Version (Settings or the release name)
+  - type: input
+    id: theme
+    attributes:
+      label: Look/theme and language
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened, and what did you expect?
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce

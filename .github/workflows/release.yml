@@ -1,41 +1,72 @@
-name: Release Pipeline
+name: Release
+
+# Merging to main publishes a release when package.json holds a version that has no release yet.
+# Pushing a v*.*.* tag by hand, or running the workflow manually, does the same.
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [main]
+    tags: ['v*.*.*']
+  workflow_dispatch:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  build-release:
+  plan:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+      publish: ${{ steps.v.outputs.publish }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          WEB="$(node -p "require('./package.json').version")"
+          ANDROID="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' android/app/build.gradle.kts)"
+          echo "web=$WEB android=$ANDROID"
+          test "$WEB" = "$ANDROID" || { echo "::error::package.json ($WEB) and android versionName ($ANDROID) differ"; exit 1; }
+          if [[ "$GITHUB_REF_TYPE" == "tag" && "${GITHUB_REF_NAME#v}" != "$WEB" ]]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match version $WEB"; exit 1
+          fi
+          echo "version=$WEB" >> "$GITHUB_OUTPUT"
+          if gh release view "v$WEB" >/dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+            echo "Release v$WEB already exists: nothing to publish."
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+  build-release:
+    needs: plan
+    if: needs.plan.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: gradle/actions/setup-gradle@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: 'npm'
+          cache: npm
 
-      - name: Check that the tag matches the app versions
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          WEB="$(node -p "require('./package.json').version")"
-          ANDROID="$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' android/app/build.gradle.kts)"
-          echo "tag=$VERSION web=$WEB android=$ANDROID"
-          test "$VERSION" = "$WEB" && test "$VERSION" = "$ANDROID"
-
-      - name: Build and test the web app
+      - name: Test and build the web app
         run: |
           npm ci
           npm run lint
@@ -46,25 +77,49 @@ jobs:
           npm run build
 
       - name: Package the web app
+        run: (cd dist && zip -qr "../ColorLines-${VERSION}-web.zip" .)
+
+      - name: Restore the release signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          (cd dist && zip -qr "../ColorLines-${VERSION}-web.zip" .)
+          if [ -n "$KEYSTORE_B64" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+            echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/release.keystore" >> "$GITHUB_ENV"
+          else
+            echo "::warning::No signing key in secrets: the APK is signed with the debug key"
+          fi
 
       - name: Test and build the Android app
         working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew testDebugUnitTest assembleRelease
 
-      - name: Name the release files
+      - name: Name the files and checksum them
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
           cp android/app/build/outputs/apk/release/app-release.apk "ColorLines-${VERSION}.apk"
-          ls -l ColorLines-*
+          sha256sum ColorLines-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
 
-      - name: Create GitHub Release
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            ColorLines-*.apk
+            ColorLines-*-web.zip
+
+      - name: Publish the release
         uses: softprops/action-gh-release@v2
         with:
-          name: Color Lines ${{ github.ref_name }}
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: Color Lines v${{ env.VERSION }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
           files: |
             ColorLines-*.apk
             ColorLines-*-web.zip
-          generate_release_notes: true
+            SHA256SUMS.txt
