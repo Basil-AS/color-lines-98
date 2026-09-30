@@ -206,6 +206,22 @@ class MainScreenTest {
     }
 
     @Test
+    fun theStatisticsHaveFiveTabsWithLongTermContent() {
+        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.waitForIdle()
+        for (tab in listOf("Overview", "Career", "Seasons", "Records", "Data")) rule.onNode(hasText(tab)).assertExists()
+        rule.onNode(hasText("Career")).performClick()
+        rule.onNode(hasText("Next milestones")).performScrollTo().assertExists()
+        rule.onNode(hasText("Seasons")).performClick()
+        rule.onNode(hasText("Your typical month", substring = true)).performScrollTo().assertExists()
+        rule.onNode(hasText("Records")).performClick()
+        rule.onNode(hasText("Play a few games", substring = true)).assertExists()
+        rule.onNode(hasText("Data")).performClick()
+        rule.onNode(hasText("Save backup (JSON)")).assertExists()
+        rule.onNode(hasText("Load a backup from a file")).assertExists()
+    }
+
+    @Test
     fun aFreshGameHasNoWarning() {
         rule.onNodeWithContentDescription("New game").performClick()
         rule.waitForIdle()
