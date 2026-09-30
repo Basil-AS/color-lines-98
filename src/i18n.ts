@@ -13,6 +13,10 @@ const en = {
   'hud.next': 'Next',
 
   'btn.undo': 'Undo move',
+  'btn.hint': 'Hint ({n} left)',
+  'hint.none': 'No useful move found.',
+  'hint.clear': 'Move the marked ball to the marked cell: it clears {n} balls and earns a free turn.',
+  'hint.build': 'Move the marked ball to the marked cell to build a run of {n}.',
   'btn.newGame': 'New game',
   'btn.mute': 'Mute sound',
   'btn.unmute': 'Unmute sound',
@@ -289,6 +293,10 @@ const ru: Dictionary = {
   'hud.next': 'Далее',
 
   'btn.undo': 'Отменить ход',
+  'btn.hint': 'Подсказка (осталось {n})',
+  'hint.none': 'Полезного хода не нашлось.',
+  'hint.clear': 'Перенесите отмеченный шар в отмеченную клетку: уберёт {n} шаров, и следующий ход бесплатный.',
+  'hint.build': 'Перенесите отмеченный шар в отмеченную клетку, чтобы собрать ряд из {n}.',
   'btn.newGame': 'Новая игра',
   'btn.mute': 'Выключить звук',
   'btn.unmute': 'Включить звук',
