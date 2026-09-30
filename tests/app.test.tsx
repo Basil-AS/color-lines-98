@@ -121,6 +121,23 @@ describe('board', () => {
   });
 });
 
+describe('hint', () => {
+  it('selects a ball, limits itself to three per game and resets on a new game', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const hint = () => screen.getByRole('button', { name: /^Hint/ });
+    expect(hint()).toHaveAccessibleName('Hint (3 left)');
+    await user.click(hint());
+    expect(hint()).toHaveAccessibleName('Hint (2 left)');
+    expect(reachableCells().length).toBeGreaterThan(0); // the suggested ball is selected
+    await user.click(hint());
+    await user.click(hint());
+    expect(hint()).toBeDisabled();
+    await startNewGame(user);
+    expect(hint()).toHaveAccessibleName('Hint (3 left)');
+  });
+});
+
 describe('sound events', () => {
   it('plays select, jump and start for the basic actions', async () => {
     const user = userEvent.setup();

@@ -10,6 +10,7 @@ import {
   glyphRect,
   kingRect,
   pretenderRect,
+  PRETENDER_POS,
 } from '../src/dos/sprites';
 import { buildScene } from '../src/dos/scene';
 import type { DosState } from '../src/dos/scene';
@@ -95,6 +96,13 @@ describe('scene', () => {
       )[0]
     );
     expect(frames[0].sx).not.toBe(frames[1].sx);
+  });
+
+  it('animates the pretender as well as the king', () => {
+    const at = (now: number) =>
+      buildScene(state({ now })).find((d) => d.kind === 'image' && d.img === 'sheet' && d.dx === PRETENDER_POS.x)!;
+    const seen = new Set([0, 1000, 3600, 4000].map((now) => (at(now) as { sx: number; sy: number }).sx + ',' + (at(now) as { sy: number }).sy));
+    expect(seen.size).toBeGreaterThan(1);
   });
 
   it('grows a newly spawned ball and bursts a cleared one', () => {

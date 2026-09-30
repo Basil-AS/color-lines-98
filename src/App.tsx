@@ -9,6 +9,7 @@ import {
   RotateCcw,
   Settings,
   Trophy,
+  Lightbulb,
   Undo2,
   Volume2,
   VolumeX,
@@ -16,6 +17,7 @@ import {
 import { GameEngine } from './engine/gameengine';
 import { MODES, MODE_IDS } from './engine/modes';
 import type { ModeId } from './engine/modes';
+import { findHint, type Hint } from './engine/hint';
 import { createEngine, remainingMs, todayKey } from './modes';
 import { dailyGoals, evaluateGoals, goalBonus } from './goals';
 import type { Goal } from './goals';
@@ -151,8 +153,12 @@ function getSpriteUrl(color: BallColor): string {
   return `${base}/${map[color]}`;
 }
 
+const HINTS_PER_GAME = 3;
+
 export default function App() {
   const [engine, setEngine] = useState<GameEngine>(() => loadGame() ?? createEngine(loadMode()));
+  const [hint, setHint] = useState<Hint | null>(null);
+  const [hintsLeft, setHintsLeft] = useState(HINTS_PER_GAME);
   const [today, setToday] = useState(() => todayKey());
   const [newGameMode, setNewGameMode] = useState<ModeId | null>(null);
   const [, setVersion] = useState(0); // Bumped after every engine mutation to re-render
@@ -290,6 +296,7 @@ export default function App() {
   };
 
   const handleCellClick = (x: number, y: number) => {
+    if (hint) setHint(null);
     setFocusCell({ x, y });
     if (engine.isGameOver) return;
     trackTime();
@@ -389,7 +396,24 @@ export default function App() {
     cellRefs.current[ny * BOARD_SIZE + nx]?.focus();
   };
 
+  /** Selects the ball worth moving and marks where to put it; three a game. */
+  const handleHint = () => {
+    if (engine.isGameOver || hintsLeft <= 0) return;
+    const h = findHint(engine.board);
+    if (!h) {
+      setAnnouncement(t('hint.none'));
+      return;
+    }
+    engine.select(h.from);
+    setHint(h);
+    setHintsLeft((n) => n - 1);
+    soundManager.play('select');
+    setAnnouncement(t(h.clears ? 'hint.clear' : 'hint.build', { n: h.value }));
+    commit();
+  };
+
   const handleUndo = () => {
+    setHint(null);
     trackTime();
     if (engine.undo()) {
       soundManager.play('click');
@@ -402,6 +426,8 @@ export default function App() {
   const startGame = (mode: ModeId) => {
     if (!engine.isGameOver && engine.moves > 0) recordGame(false);
     const next = createEngine(mode);
+    setHint(null);
+    setHintsLeft(HINTS_PER_GAME);
     setEngine(next);
     saveMode(mode);
     saveGame(next);
@@ -514,6 +540,7 @@ export default function App() {
   }, [lang]);
 
   const reachableCells = engine.getReachableCells();
+  const hintTitle = t('btn.hint', { n: hintsLeft });
   const newRecord = engine.isGameOver && isNewRecord(engine.score, bestAtGameStart);
   const incoming = new Map<string, BallColor>();
   if (spawnPreview && !engine.isGameOver) {
@@ -559,7 +586,7 @@ export default function App() {
             tabIndex={isFocusStop ? 0 : -1}
             aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
             aria-pressed={color ? isSelected : undefined}
-            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''}`}
+            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && hint.to.x === x && hint.to.y === y ? 'hint-target' : ''}`}
             onClick={() => handleCellClick(x, y)}
             onKeyDown={(e) => handleCellKeyDown(e, x, y)}
           >
@@ -781,6 +808,9 @@ export default function App() {
         <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={!engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
           <Undo2 size={20} aria-hidden="true" />
         </button>
+        <button type="button" className="ctrl-btn" onClick={handleHint} disabled={engine.isGameOver || hintsLeft <= 0} title={hintTitle} aria-label={hintTitle}>
+          <Lightbulb size={20} aria-hidden="true" />
+        </button>
         <button type="button" className="ctrl-btn" onClick={() => setDosWindow((w) => (w === 'top10' ? 'none' : 'top10'))} title={t('dos.topTen')} aria-label={t('dos.topTen')} aria-pressed={dosWindow === 'top10'}>
           <Trophy size={20} aria-hidden="true" />
         </button>
@@ -937,6 +967,16 @@ export default function App() {
                 aria-label={t('btn.undo')}
               >
                 <Undo2 size={20} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="ctrl-btn"
+                onClick={handleHint}
+                disabled={engine.isGameOver || hintsLeft <= 0}
+                title={hintTitle}
+                aria-label={hintTitle}
+              >
+                <Lightbulb size={20} aria-hidden="true" />
               </button>
               <button
                 type="button"

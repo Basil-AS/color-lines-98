@@ -149,7 +149,10 @@ export function buildScene(state: DosState): Draw[] {
   // King and pretender; the crown moves over when the record falls.
   const dt = state.coronationStart === null ? -1 : state.now - state.coronationStart;
   let kingFrame = Math.floor(state.now / 700) % 2; // the gold on the crown glints
-  let pretenderFrame = 0;
+  // The pretender lifts his sword now and then, more eagerly the closer he gets to the record.
+  const closing = state.kingScore > 0 && state.score >= state.kingScore * 0.75;
+  const swordPeriod = closing ? 1800 : 4200;
+  let pretenderFrame = state.now % swordPeriod >= swordPeriod - 650 ? 5 : 0;
   if (dt >= 0) {
     const step = Math.floor(dt / CORONATION_STEP);
     kingFrame = step === 0 ? 2 : step === 1 ? 3 : 4;
