@@ -190,7 +190,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     val palette = paletteFor(theme)
     val spawnPreview = spawnStored ?: (theme != AppTheme.COLORLINES_92)
-    val defaultName = stringResource(R.string.dos_defaultName)
+    // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
+    val defaultName = "Player"
     soundManager.voice = theme.voice
     soundManager.profile = when (theme) {
         AppTheme.LINES_98 -> SoundManager.Profile.SAMPLED
@@ -414,7 +415,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     coronationStart = coronationStart,
                     // The dethroned king keeps his name and record; the crowned pretender is the player.
                     kingName = Hall.kingOf(hall).name,
-                    pretenderName = if (coronationStart != null) playerName.ifBlank { defaultName } else stringResource(R.string.dos_pretender),
+                    pretenderName = if (coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
                     window = dosWindow,
                     hall = hall,
                     canUndo = canUndo,
@@ -786,47 +787,40 @@ private fun DosGameScreen(
     onSettings: () -> Unit,
     extras: GameExtras = GameExtras()
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
-        val margin = 12.dp
-        val toolsHeight = 56.dp
-        val width = minOf(maxWidth - margin * 2, (maxHeight - toolsHeight - margin) * 4f / 3f, 960.dp)
-        Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(margin),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically)
-        ) {
-            DosScreen(
-                state = DosState(
-                    cells = snapshot.cells,
-                    selected = snapshot.selected,
-                    next = nextColors,
-                    showNext = showNext,
-                    score = score,
-                    kingScore = kingScore,
-                    soundOn = soundEnabled,
-                    nowMs = 0,
-                    effects = effects,
-                    coronationStart = coronationStart
-                ),
-                kingName = kingName,
-                pretenderName = pretenderName,
-                window = window,
-                hall = hall,
-                boardCells = { modifier -> DosBoardCells(snapshot, onCellTap, modifier) },
-                onButton = onButton,
-                onCloseWindow = onCloseWindow,
-                modifier = Modifier.width(width).aspectRatio(4f / 3f)
-            )
-            ModeBar(paletteFor(AppTheme.COLORLINES_92), extras)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    DosLayout(
+        state = DosState(
+            cells = snapshot.cells,
+            selected = snapshot.selected,
+            next = nextColors,
+            showNext = showNext,
+            score = score,
+            kingScore = kingScore,
+            soundOn = soundEnabled,
+            nowMs = 0,
+            effects = effects,
+            coronationStart = coronationStart
+        ),
+        kingName = kingName,
+        pretenderName = pretenderName,
+        window = window,
+        hall = hall,
+        boardCells = { modifier -> DosBoardCells(snapshot, onCellTap, modifier) },
+        onButton = onButton,
+        onCloseWindow = onCloseWindow,
+        modeBar = { ModeBar(paletteFor(AppTheme.COLORLINES_92).copy(textMuted = Color(0xFF55FFFF), accent = Color(0xFFFFFF55)), extras) },
+        tools = { horizontal ->
+            val buttons: @Composable () -> Unit = {
                 ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
                 ActionButton(AppIcons.Lightbulb, stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
                 ActionButton(AppIcons.Trophy, stringResource(R.string.dos_topTen), onTopTen)
                 ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)
                 ActionButton(AppIcons.Settings, stringResource(R.string.btn_settings), onSettings)
             }
-        }
-    }
+            if (horizontal) Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) { buttons() }
+            else Column(verticalArrangement = Arrangement.spacedBy(4.dp)) { buttons() }
+        },
+        modifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
+    )
 }
 
 private val LED_DIGITS = listOf(

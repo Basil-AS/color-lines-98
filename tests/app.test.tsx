@@ -602,3 +602,18 @@ describe('the installed app shortcut', () => {
     expect(screen.getByRole('button', { name: 'Keep playing' })).toHaveFocus();
   });
 });
+
+describe('the captions of the 1992 screen', () => {
+  it('stay in English even when the app is in Russian', async () => {
+    localStorage.setItem('colorlines_theme', 'colorlines92');
+    setLanguages(['ru']);
+    render(<App />);
+    const canvas = document.querySelector('canvas');
+    expect(canvas).not.toBeNull();
+    // The captions are painted on the canvas; their source is the English dictionary, never the Russian one.
+    const { translate } = await import('../src/i18n');
+    expect(translate('ru', 'dos.pretender')).toBe('Pretender');
+    expect(translate('ru', 'dos.defaultKing')).toBe('Handicap');
+    expect(translate('ru', 'dos.defaultName')).toBe('Player');
+  });
+});
