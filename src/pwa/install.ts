@@ -1,4 +1,4 @@
-export type InstallKind = 'installed' | 'prompt' | 'ios' | 'safari-mac' | 'none';
+export type InstallKind = 'installed' | 'prompt' | 'ios' | 'safari-mac' | 'manual' | 'none';
 
 export interface InstallEnv {
   userAgent: string;
@@ -19,5 +19,8 @@ export function installKind(env: InstallEnv): InstallKind {
   const iPadAsMac = /Macintosh/.test(ua) && env.touchPoints > 1;
   if (iPhoneOrIPad || iPadAsMac) return 'ios';
   const safariOnMac = /Macintosh/.test(ua) && /Safari/.test(ua) && !/Chrome|Chromium|Edg|Firefox/.test(ua);
-  return safariOnMac ? 'safari-mac' : 'none';
+  if (safariOnMac) return 'safari-mac';
+  // Chrome, Edge, Samsung Internet and Firefox can all install from their menu even when they offer no prompt
+  // (it was already dismissed, or the browser only shows it after some use), so the button explains where.
+  return /Chrome|Chromium|Edg|SamsungBrowser|Firefox|OPR/.test(ua) ? 'manual' : 'none';
 }
