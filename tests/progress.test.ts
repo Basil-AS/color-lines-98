@@ -3,6 +3,7 @@ import {
   ACHIEVEMENTS,
   LEVEL_TITLES,
   applyGame,
+  applyGoalBonus,
   bestStreak,
   currentStreak,
   dayKey,
@@ -19,6 +20,10 @@ import type { GameRecord } from '../src/stats';
 
 const at = (y: number, m: number, d: number, h = 12) => new Date(y, m - 1, d, h).getTime();
 
+function achievementsFor(p: import('../src/progress').Progress): string[] {
+  return ACHIEVEMENTS.filter((a) => a.test(p, game(), 1, 0)).map((a) => a.id);
+}
+
 const game = (over: Partial<GameRecord> = {}): GameRecord => ({
   score: 40,
   endedAt: at(2026, 9, 29),
@@ -28,6 +33,7 @@ const game = (over: Partial<GameRecord> = {}): GameRecord => ({
   completed: true,
   maxLine: 5,
   durationMs: 120_000,
+  mode: 'classic',
   ...over,
 });
 
@@ -202,5 +208,66 @@ describe('scoreTrend', () => {
     expect(scoreTrend(history, 3)).toEqual([3, 4, 5]);
     expect(scoreTrend(history, 10)).toEqual([1, 2, 3, 4, 5]);
     expect(scoreTrend([], 5)).toEqual([]);
+  });
+});
+
+describe('modes and goals in the profile', () => {
+  it('counts games and best scores per mode', () => {
+    let p = emptyProgress();
+    p = applyGame(p, game({ score: 50, mode: 'classic' })).progress;
+    p = applyGame(p, game({ score: 90, mode: 'blitz' })).progress;
+    p = applyGame(p, game({ score: 70, mode: 'blitz' })).progress;
+    expect(p.gamesByMode).toMatchObject({ classic: 1, blitz: 2, easy: 0, daily: 0 });
+    expect(p.bestByMode).toMatchObject({ classic: 50, blitz: 90, easy: 0, daily: 0 });
+  });
+
+  it('treats an old record without a mode as classic', () => {
+    const { mode: _mode, ...old } = game({ score: 33 });
+    const p = applyGame(emptyProgress(), old as never).progress;
+    expect(p.gamesByMode.classic).toBe(1);
+  });
+
+  it('unlocks the daily and all-modes achievements', () => {
+    const daily = applyGame(emptyProgress(), game({ mode: 'daily' }));
+    expect(daily.unlocked).toContain('daily_first');
+    let p = emptyProgress();
+    let unlocked: string[] = [];
+    for (const mode of ['classic', 'easy', 'blitz', 'daily'] as const) {
+      const r = applyGame(p, game({ mode, endedAt: at(2026, 9, 29) + 1 }));
+      p = r.progress;
+      unlocked = unlocked.concat(r.unlocked);
+    }
+    expect(unlocked).toContain('all_modes');
+  });
+
+  it('adds goal experience and remembers days with every goal done', () => {
+    const p = applyGoalBonus(emptyProgress(), '2026-09-30', { newlyDone: ['a', 'b', 'c'], xp: 75, allDone: true });
+    expect(p.bonusXp).toBe(75);
+    expect(p.goalDays).toEqual(['2026-09-30']);
+    expect(xpOf(p)).toBe(75);
+    const again = applyGoalBonus(p, '2026-09-30', { newlyDone: [], xp: 0, allDone: false });
+    expect(again).toEqual(p);
+    expect(applyGoalBonus(p, '2026-09-30', { newlyDone: ['d'], xp: 25, allDone: true }).goalDays).toEqual(['2026-09-30']);
+  });
+
+  it('unlocks goal achievements', () => {
+    const one = achievementsFor(applyGoalBonus(emptyProgress(), '2026-09-30', { newlyDone: ['a'], xp: 25, allDone: false }));
+    expect(one).toContain('goal_first');
+    const day = achievementsFor(applyGoalBonus(emptyProgress(), '2026-09-30', { newlyDone: ['a', 'b', 'c'], xp: 75, allDone: true }));
+    expect(day).toEqual(expect.arrayContaining(['goal_first', 'goal_day']));
+  });
+
+  it('sanitises the new fields', () => {
+    const clean = sanitizeProgress({
+      ...emptyProgress(),
+      bonusXp: -3,
+      goalDays: ['2026-09-30', 'nope'],
+      gamesByMode: { classic: 2, easy: 'x', chaos: 5 },
+      bestByMode: { classic: 90, blitz: -1 },
+    });
+    expect(clean.bonusXp).toBe(0);
+    expect(clean.goalDays).toEqual(['2026-09-30']);
+    expect(clean.gamesByMode).toEqual({ classic: 2, easy: 0, blitz: 0, daily: 0 });
+    expect(clean.bestByMode).toEqual({ classic: 90, easy: 0, blitz: 0, daily: 0 });
   });
 });

@@ -1,4 +1,9 @@
+import { MODE_IDS } from './engine/modes';
+import type { ModeId } from './engine/modes';
+import type { GoalBonus } from './goals';
 import type { GameRecord } from './stats';
+
+const zeroByMode = (): Record<ModeId, number> => ({ classic: 0, easy: 0, blitz: 0, daily: 0 });
 
 /** Everything the player has achieved over all games, independent of the capped history list. */
 export interface Progress {
@@ -17,6 +22,12 @@ export interface Progress {
   days: string[];
   /** Achievement id -> when it was unlocked (epoch ms). */
   achievements: Record<string, number>;
+  /** Experience from completed daily goals. */
+  bonusXp: number;
+  /** Days on which every daily goal was completed. */
+  goalDays: string[];
+  gamesByMode: Record<ModeId, number>;
+  bestByMode: Record<ModeId, number>;
 }
 
 export const DAYS_LIMIT = 400;
@@ -36,6 +47,10 @@ export function emptyProgress(): Progress {
     longestGameMoves: 0,
     days: [],
     achievements: {},
+    bonusXp: 0,
+    goalDays: [],
+    gamesByMode: zeroByMode(),
+    bestByMode: zeroByMode(),
   };
 }
 
@@ -53,7 +68,7 @@ export const LEVEL_TITLES = [
 export type LevelTitle = (typeof LEVEL_TITLES)[number];
 
 export function xpOf(p: Progress): number {
-  return p.totalScore + p.totalLines * 5 + p.totalGames * 10;
+  return p.totalScore + p.totalLines * 5 + p.totalGames * 10 + p.bonusXp;
 }
 
 /** Experience needed to reach level n (level 1 needs none). */
@@ -157,6 +172,11 @@ export const ACHIEVEMENTS: readonly AchievementDef[] = [
   { id: 'marathon', test: (_p, r) => r.moves >= 150 },
   { id: 'level_5', test: (_p, _r, level) => level >= 5 },
   { id: 'level_10', test: (_p, _r, level) => level >= 10 },
+  { id: 'daily_first', test: (_p, r) => r.mode === 'daily' },
+  { id: 'all_modes', test: (p) => MODE_IDS.every((m) => p.gamesByMode[m] > 0) },
+  { id: 'goal_first', test: (p) => p.bonusXp > 0 },
+  { id: 'goal_day', test: (p) => p.goalDays.length >= 1 },
+  { id: 'goals_7', test: (p) => bestStreak(p.goalDays) >= 7 },
 ];
 
 const ACHIEVEMENT_IDS = new Set(ACHIEVEMENTS.map((a) => a.id));
@@ -187,7 +207,14 @@ export function applyGame(before: Progress, record: GameRecord): AppliedGame {
     longestGameMoves: Math.max(before.longestGameMoves, record.moves),
     days,
     achievements: { ...before.achievements },
+    bonusXp: before.bonusXp,
+    goalDays: [...before.goalDays],
+    gamesByMode: { ...before.gamesByMode },
+    bestByMode: { ...before.bestByMode },
   };
+  const mode = record.mode ?? 'classic';
+  progress.gamesByMode[mode]++;
+  progress.bestByMode[mode] = Math.max(progress.bestByMode[mode], record.score);
 
   const level = levelInfo(xpOf(progress)).level;
   const streak = currentStreak(days, dayKey(record.endedAt));
@@ -199,6 +226,13 @@ export function applyGame(before: Progress, record: GameRecord): AppliedGame {
     }
   }
   return { progress, unlocked };
+}
+
+/** Adds the experience of newly completed goals and remembers a fully completed day. */
+export function applyGoalBonus(before: Progress, day: string, bonus: GoalBonus): Progress {
+  if (bonus.newlyDone.length === 0) return before;
+  const goalDays = bonus.allDone && !before.goalDays.includes(day) ? [...before.goalDays, day].sort().slice(-DAYS_LIMIT) : before.goalDays;
+  return { ...before, bonusXp: before.bonusXp + bonus.xp, goalDays };
 }
 
 /** Rebuilds the profile from a newest-first history (used for saves made before profiles existed). */
@@ -240,6 +274,20 @@ export function sanitizeProgress(raw: unknown): Progress {
   if (typeof r.achievements === 'object' && r.achievements !== null) {
     for (const [id, when] of Object.entries(r.achievements)) {
       if (ACHIEVEMENT_IDS.has(id) && isCount(when)) out.achievements[id] = when;
+    }
+  }
+  out.bonusXp = isCount(r.bonusXp) ? r.bonusXp : 0;
+  out.goalDays = Array.isArray(r.goalDays)
+    ? r.goalDays.filter((d): d is string => typeof d === 'string' && DAY_RE.test(d)).slice(-DAYS_LIMIT)
+    : [];
+  for (const key of ['gamesByMode', 'bestByMode'] as const) {
+    const raw = r[key];
+    out[key] = zeroByMode();
+    if (typeof raw === 'object' && raw !== null) {
+      for (const m of MODE_IDS) {
+        const v = (raw as Record<string, unknown>)[m];
+        if (isCount(v)) out[key][m] = v;
+      }
     }
   }
   return out;

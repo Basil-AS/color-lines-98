@@ -4,7 +4,7 @@
 [![Android CI](https://github.com/Basil-AS/color-lines-98/actions/workflows/android-ci.yml/badge.svg)](https://github.com/Basil-AS/color-lines-98/actions/workflows/android-ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**Color Lines** (Цветные линии, Lines 98) is a modern port of the classic puzzle: a web version that runs in any browser
+**Color Lines** (also known as Lines 98) is a modern port of the classic puzzle: a web version that runs in any browser
 and a native Android app, sharing one rule set.
 
 - **Play in the browser:** <https://basil-as.github.io/color-lines-98/> (installable as an app, works offline)

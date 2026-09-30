@@ -2,6 +2,10 @@ import { Board } from './board';
 import { LineDetector } from './linedetector';
 import type { ScoringSystem } from './linedetector';
 import { ALL_COLORS } from './models';
+import { isModeId } from './modes';
+import type { ModeId } from './modes';
+import { mixSeed, mulberry32 } from './rng';
+import type { Rng } from './rng';
 import type { BallColor, Point } from './models';
 import { pointKey } from './models';
 import { PathFinder } from './pathfinder';
@@ -21,7 +25,7 @@ export interface MoveResult {
   reason?: string;
 }
 
-export type Rng = () => number;
+export type { Rng } from './rng';
 
 /** Serializable game state. The undo history is intentionally not persisted. */
 export interface GameState {
@@ -30,6 +34,10 @@ export interface GameState {
   score: number;
   nextColors: BallColor[];
   isGameOver: boolean;
+  /** Optional so older saves still load: they are classic games. */
+  mode?: ModeId;
+  colors?: BallColor[];
+  seed?: number;
   /** Optional so saves written before these counters existed still load. */
   /** Cells where the next balls will appear. Optional so older saves still load. */
   nextPoints?: Point[];
@@ -73,16 +81,23 @@ export class GameEngine {
   nextSpawnPoints: Point[] = [];
 
   private undoStack: GameSnapshot[] = [];
-  private readonly rng: Rng;
+  private rng: Rng;
+  private seed?: number;
+  readonly colors: readonly BallColor[];
+  mode: ModeId = 'classic';
 
   constructor(
     size = 9,
     ballsPerSpawn = 3,
     minLineLength = 5,
     scoringSystem: ScoringSystem = 'gamos',
-    rng: Rng = Math.random
+    rng: Rng = Math.random,
+    options: { colors?: readonly BallColor[]; mode?: ModeId; seed?: number } = {}
   ) {
     this.rng = rng;
+    this.colors = options.colors ?? ALL_COLORS;
+    this.mode = options.mode ?? 'classic';
+    this.seed = options.seed;
     this.size = size;
     this.ballsPerSpawn = ballsPerSpawn;
     this.minLineLength = minLineLength;
@@ -93,6 +108,8 @@ export class GameEngine {
 
   startNewGame(): void {
     this.board.clear();
+    this.moves = 0;
+    this.reseedTurn();
     this.score = 0;
     this.moves = 0;
     this.linesCleared = 0;
@@ -142,7 +159,7 @@ export class GameEngine {
   }
 
   private randomColor(): BallColor {
-    return ALL_COLORS[Math.floor(this.rng() * ALL_COLORS.length)];
+    return this.colors[Math.floor(this.rng() * this.colors.length)];
   }
 
   private generateNextColors(): void {
@@ -174,6 +191,9 @@ export class GameEngine {
       nextColors: [...this.nextColors],
       nextPoints: this.nextSpawnPoints.map((p) => ({ ...p })),
       isGameOver: this.isGameOver,
+      mode: this.mode,
+      colors: [...this.colors],
+      ...(this.seed === undefined ? {} : { seed: this.seed }),
       moves: this.moves,
       linesCleared: this.linesCleared,
       ballsCleared: this.ballsCleared,
@@ -206,7 +226,16 @@ export class GameEngine {
     if (moves === null || linesCleared === null || ballsCleared === null) return null;
     if (maxLine === null || playMs === null) return null;
 
-    const engine = new GameEngine(s.size, 3, 5, 'gamos', rng);
+    const mode = s.mode === undefined ? 'classic' : s.mode;
+    if (!isModeId(mode)) return null;
+    let colors: readonly BallColor[] = ALL_COLORS;
+    if (s.colors !== undefined) {
+      if (!Array.isArray(s.colors) || s.colors.length < 3 || !s.colors.every(isColor)) return null;
+      if (new Set(s.colors).size !== s.colors.length) return null;
+      colors = s.colors;
+    }
+    if (s.seed !== undefined && !(typeof s.seed === 'number' && Number.isInteger(s.seed) && s.seed >= 0)) return null;
+    const engine = new GameEngine(s.size, 3, 5, 'gamos', rng, { colors, mode, seed: s.seed });
     if (!Array.isArray(s.nextColors) || s.nextColors.length !== engine.ballsPerSpawn) return null;
     if (!s.nextColors.every(isColor)) return null;
 
@@ -240,6 +269,7 @@ export class GameEngine {
     engine.maxLine = maxLine;
     engine.playMs = playMs;
     engine.undoStack = [];
+    engine.reseedTurn();
     if (nextPoints) engine.nextSpawnPoints = nextPoints;
     else engine.planSpawnPoints();
     return engine;
@@ -305,6 +335,7 @@ export class GameEngine {
 
     // Execute move
     this.moves++;
+    this.reseedTurn();
     this.board.set(from.x, from.y, null);
     this.board.set(to.x, to.y, movingColor);
     this.repairSpawnPlan();
@@ -384,6 +415,18 @@ export class GameEngine {
     for (const line of lines) this.maxLine = Math.max(this.maxLine, line.length);
   }
 
+  /** Ends the game right now (a timed mode ran out of time). */
+  endGame(): void {
+    this.isGameOver = true;
+    this.selectedPoint = null;
+    this.undoStack = [];
+  }
+
+  /** In seeded games every turn draws from a generator that depends only on the seed and the move number. */
+  private reseedTurn(): void {
+    if (this.seed !== undefined) this.rng = mulberry32(mixSeed(this.seed, this.moves));
+  }
+
   /** Adds active play time; negative or non-finite values are ignored. */
   addPlayTime(ms: number): void {
     if (Number.isFinite(ms) && ms > 0) this.playMs += Math.round(ms);
@@ -415,6 +458,7 @@ export class GameEngine {
     this.board = snap.board.copy();
     this.score = snap.score;
     this.moves = snap.moves;
+    this.reseedTurn();
     this.linesCleared = snap.linesCleared;
     this.ballsCleared = snap.ballsCleared;
     this.maxLine = snap.maxLine;

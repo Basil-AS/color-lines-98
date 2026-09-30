@@ -29,7 +29,7 @@ test('follows the browser language', async ({ browser }) => {
   const page = await context.newPage();
   await page.goto('/');
   await expect(page.locator('html')).toHaveAttribute('lang', 'ru');
-  await expect(page).toHaveTitle(/Цветные линии/);
+  await expect(page).toHaveTitle(/Color Lines/);
   await expect(page.getByRole('group', { name: 'Игровое поле' })).toBeVisible();
   await context.close();
 });
