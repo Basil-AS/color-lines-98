@@ -173,6 +173,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     // The engine is a plain object Compose cannot observe: bump `version` after every change.
     var version by remember { mutableIntStateOf(0) }
     var history by remember { mutableStateOf(storage.history) }
+    var ledger by remember { mutableStateOf(storage.ledger) }
+    var dataMessage by remember { mutableStateOf<String?>(null) }
+    var pendingImport by remember { mutableStateOf<io.github.basil_as.basillines.engine.Backup?>(null) }
     var progress by remember { mutableStateOf<Progress>(storage.progress) }
     var bestScore by remember { mutableIntStateOf(maxOf(storage.bestScore, GameStats.summarize(storage.history).bestScore)) }
     var bestAtGameStart by remember { mutableIntStateOf(bestScore) }
@@ -221,6 +224,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         val rec = GameStats.recordFrom(engine, completed, System.currentTimeMillis())
         history = GameStats.addRecord(history, rec)
         storage.history = history
+        ledger = io.github.basil_as.basillines.engine.Careers.addGame(ledger, rec)
+        storage.ledger = ledger
         val before = progress
         val applied = ProgressTracker.applyGame(before, rec)
         progress = applied.progress
@@ -357,6 +362,82 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         }
     }
 
+    // ---- saving results to a file and loading them back -------------------------------------
+    val bad = stringResource(R.string.data_error_notBackup)
+    val errors = mapOf(
+        io.github.basil_as.basillines.engine.ParsedBackup.Error.EMPTY to stringResource(R.string.data_error_empty),
+        io.github.basil_as.basillines.engine.ParsedBackup.Error.TOO_BIG to stringResource(R.string.data_error_tooBig),
+        io.github.basil_as.basillines.engine.ParsedBackup.Error.NOT_JSON to stringResource(R.string.data_error_notJson),
+        io.github.basil_as.basillines.engine.ParsedBackup.Error.NOT_BACKUP to bad,
+        io.github.basil_as.basillines.engine.ParsedBackup.Error.NEWER to stringResource(R.string.data_error_newer)
+    )
+    val mergedMsg = stringResource(R.string.data_done_merge)
+    val replacedMsg = stringResource(R.string.data_done_replace)
+
+    fun writeTo(uri: android.net.Uri?, text: String) {
+        if (uri == null) return
+        runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } }
+    }
+
+    val exportJson = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
+        val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
+        val theme = theme.name.lowercase().replace("_", "")
+        writeTo(
+            uri,
+            io.github.basil_as.basillines.engine.Backups.encode(
+                io.github.basil_as.basillines.engine.Backup(
+                    System.currentTimeMillis(), "android", version, history, ledger, progress, hall,
+                    io.github.basil_as.basillines.engine.BackupSettings(
+                        theme, storage.language.name.lowercase(), playerName, soundEnabled, spawnStored, showNext, engine.mode
+                    )
+                )
+            )
+        )
+    }
+    val exportCsv = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+        writeTo(uri, io.github.basil_as.basillines.engine.Backups.toCsv(history))
+    }
+    val importPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            val limit = io.github.basil_as.basillines.engine.Backups.MAX_CHARS + 1
+            val text = runCatching {
+                context.contentResolver.openInputStream(uri)?.use { input ->
+                    val out = java.io.ByteArrayOutputStream()
+                    val buf = ByteArray(64 * 1024)
+                    while (out.size() < limit) { val n = input.read(buf); if (n < 0) break; out.write(buf, 0, n) }
+                    out.toString(Charsets.UTF_8.name())
+                }
+            }.getOrNull() ?: ""
+            when (val parsed = io.github.basil_as.basillines.engine.Backups.parse(text)) {
+                is io.github.basil_as.basillines.engine.ParsedBackup.Ok -> { pendingImport = parsed.backup; dataMessage = null }
+                is io.github.basil_as.basillines.engine.ParsedBackup.Error -> dataMessage = errors.getValue(parsed)
+            }
+        }
+    }
+
+    fun applyImport(b: io.github.basil_as.basillines.engine.Backup, replace: Boolean) {
+        val backups = io.github.basil_as.basillines.engine.Backups
+        val nextHistory = if (replace) b.history else backups.mergeHistories(history, b.history)
+        val nextProgress = if (replace) b.progress else backups.mergeProgress(progress, b.progress, nextHistory)
+        history = nextHistory; storage.history = nextHistory
+        progress = nextProgress; storage.progress = nextProgress
+        hall = if (replace) b.hall else backups.mergeHalls(hall, b.hall); storage.hall = hall
+        ledger = if (replace) b.ledger else io.github.basil_as.basillines.engine.Careers.merge(ledger, b.ledger); storage.ledger = ledger
+        bestScore = maxOf(bestScore, nextProgress.bestScore); storage.bestScore = bestScore
+        if (replace) {
+            val st = b.settings
+            AppTheme.entries.firstOrNull { it.name.lowercase().replace("_", "") == st.theme }?.let { theme = it; storage.theme = it }
+            st.playerName?.let { playerName = it; storage.playerName = it }
+            st.soundEnabled?.let { soundEnabled = it; soundManager.isEnabled = it }
+            st.spawnPreview?.let { spawnStored = it; storage.spawnPreview = it }
+            st.showNext?.let { showNext = it; storage.showNext = it }
+            val lang = AppLanguage.entries.firstOrNull { it.name.lowercase() == st.language }
+            if (lang != null && lang != storage.language) { storage.language = lang; (context as? android.app.Activity)?.recreate() }
+        }
+        dataMessage = if (replace) replacedMsg else mergedMsg
+        pendingImport = null
+    }
+
     // Everything below reads plain values captured for this version, never the live engine.
     val snapshot = remember(version, spawnPreview, hint) {
         BoardSnapshot(
@@ -471,6 +552,20 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             )
         }
 
+        pendingImport?.let { b ->
+            val times = b.history.map { it.endedAt }
+            ImportDialog(
+                games = maxOf(b.progress.totalGames, b.history.size),
+                currentGames = maxOf(progress.totalGames, history.size),
+                exportedAt = b.exportedAt,
+                first = times.minOrNull(),
+                last = times.maxOrNull(),
+                onMerge = { applyImport(b, replace = false) },
+                onReplace = { applyImport(b, replace = true) },
+                onCancel = { pendingImport = null }
+            )
+        }
+
         if (gameOver && dialog != Dialog.NEW_GAME) {
             GameOverDialog(
                 score = score,
@@ -500,10 +595,17 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 Dialog.STATS -> StatsDialog(
                     history = history,
                     progress = progress,
+                    ledger = ledger,
                     now = statsNow,
+                    dataMessage = dataMessage,
+                    onExportJson = { exportJson.launch("color-lines-backup-${dayKey()}.json") },
+                    onExportCsv = { exportCsv.launch("color-lines-games-${dayKey()}.csv") },
+                    onImport = { importPicker.launch(arrayOf("application/json", "text/plain", "*/*")) },
                     onClear = {
                         history = emptyList()
                         storage.history = history
+                        ledger = emptyMap()
+                        storage.ledger = ledger
                         storage.progress = Progress()
                         progress = storage.progress
                     },

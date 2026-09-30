@@ -121,7 +121,7 @@ private fun StatCard(label: String, value: String, modifier: Modifier = Modifier
 }
 
 @Composable
-private fun formatDuration(ms: Long): String {
+internal fun formatDuration(ms: Long): String {
     val totalSeconds = (ms / 1000).coerceAtLeast(0)
     if (totalSeconds < 60) return stringResource(R.string.time_s, totalSeconds)
     val totalMinutes = totalSeconds / 60
@@ -344,10 +344,17 @@ private fun TrendChart(values: List<Int>) {
 fun StatsDialog(
     history: List<GameRecord>,
     progress: Progress,
+    ledger: io.github.basil_as.basillines.engine.Ledger,
     now: Long,
+    dataMessage: String?,
+    onExportJson: () -> Unit,
+    onExportCsv: () -> Unit,
+    onImport: () -> Unit,
     onClear: () -> Unit,
     onClose: () -> Unit
 ) {
+    var tab by remember { mutableStateOf(0) }
+    val today = remember(now) { java.time.Instant.ofEpochMilli(if (now == 0L) System.currentTimeMillis() else now).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
     val summary = GameStats.summarize(history)
     var confirming by remember { mutableStateOf(false) }
     var showAll by remember { mutableStateOf(false) }
@@ -363,6 +370,18 @@ fun StatsDialog(
         title = { Text(stringResource(R.string.stats_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                val tabs = listOf(R.string.stats_tab_overview, R.string.stats_tab_career, R.string.stats_tab_seasons, R.string.stats_tab_records, R.string.stats_tab_data)
+                androidx.compose.material3.ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp) {
+                    tabs.forEachIndexed { i, name ->
+                        androidx.compose.material3.Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(name), maxLines = 1) })
+                    }
+                }
+                when (tab) {
+                    1 -> { CareerTab(ledger, today); return@Column }
+                    2 -> { SeasonsTab(ledger, today); return@Column }
+                    3 -> { RecordsTab(history, ledger); return@Column }
+                    4 -> { DataTab(dataMessage, onExportJson, onExportCsv, onImport); return@Column }
+                }
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -675,4 +694,63 @@ internal fun ModeDots(mode: ModeId, modifier: Modifier = Modifier) {
     Row(modifier.semantics { contentDescription = "" }, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
         colors.forEach { c -> Box(Modifier.size(9.dp).background(ballColor(c), androidx.compose.foundation.shape.CircleShape)) }
     }
+}
+
+/** A backup file was chosen: add it (nothing is lost) or replace everything here, which asks twice. */
+@Composable
+fun ImportDialog(
+    games: Int,
+    currentGames: Int,
+    exportedAt: Long,
+    first: Long?,
+    last: Long?,
+    onMerge: () -> Unit,
+    onReplace: () -> Unit,
+    onCancel: () -> Unit
+) {
+    var replacing by remember { mutableStateOf(false) }
+    var understood by remember { mutableStateOf(false) }
+    val fmt = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
+    fun day(ms: Long) = fmt.format(java.util.Date(ms))
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.data_import)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(stringResource(R.string.data_preview, if (exportedAt > 0) day(exportedAt) else "?", games.toString()), fontWeight = FontWeight.SemiBold)
+                if (first != null && last != null) Text(stringResource(R.string.data_range, day(first), day(last)), fontSize = 13.sp)
+                if (replacing) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
+                        shape = MaterialTheme.shapes.small,
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
+                    ) { Text(stringResource(R.string.data_replaceWarning, currentGames.toString()), Modifier.padding(12.dp), fontWeight = FontWeight.SemiBold) }
+                    Row(
+                        Modifier.fillMaxWidth().toggleable(value = understood, role = Role.Checkbox, onValueChange = { understood = it }).height(48.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        androidx.compose.material3.Checkbox(checked = understood, onCheckedChange = null)
+                        Text(stringResource(R.string.data_replaceCheck), Modifier.padding(start = 8.dp))
+                    }
+                } else {
+                    Text(stringResource(R.string.data_mergeHint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        },
+        confirmButton = {
+            if (replacing) {
+                Button(onClick = onReplace, enabled = understood, colors = androidx.compose.material3.ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                    Text(stringResource(R.string.data_replaceConfirm))
+                }
+            } else {
+                Button(onClick = onMerge) { Text(stringResource(R.string.data_merge)) }
+            }
+        },
+        dismissButton = {
+            Row {
+                if (!replacing) OutlinedButton(onClick = { replacing = true }) { Text(stringResource(R.string.data_replace)) }
+                TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+            }
+        }
+    )
 }
