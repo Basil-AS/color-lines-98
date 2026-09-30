@@ -1,0 +1,29 @@
+name: Lighthouse
+
+# Checks the live site: performance, accessibility, best practices, SEO and PWA installability.
+
+on:
+  workflow_run:
+    workflows: ['Web CI & GitHub Pages Deploy']
+    types: [completed]
+    branches: [main]
+  schedule:
+    - cron: '41 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: treosh/lighthouse-ci-action@v12
+        with:
+          urls: https://basil-as.github.io/color-lines-98/
+          runs: 2
+          uploadArtifacts: true
+          temporaryPublicStorage: true
+          configPath: .github/lighthouserc.json

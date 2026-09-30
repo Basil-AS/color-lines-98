@@ -13,8 +13,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  group: pages-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
@@ -41,8 +41,19 @@ jobs:
       - name: Run unit tests
         run: npm run test
 
+      - name: Audit dependencies (high severity and above)
+        run: npm audit --audit-level=high
+
       - name: Build web application
         run: npm run build
+
+      - name: Upload the built site (download it to try a pull request)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: dist/
+          retention-days: 14
 
       - name: Setup Pages
         if: github.ref == 'refs/heads/main'
