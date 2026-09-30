@@ -54,7 +54,9 @@ data class BoardSnapshot(
     val selected: Point?,
     val reachable: Set<Point>,
     /** Cells where the next balls will appear (empty when the preview is switched off). */
-    val incoming: Map<Point, BallColor>
+    val incoming: Map<Point, BallColor>,
+    /** Where the hint says to put the selected ball. */
+    val hintTarget: Point? = null
 ) {
     operator fun get(p: Point): BallColor? = cells[p.y * BOARD_SIZE + p.x]
 }
@@ -126,6 +128,15 @@ fun BoardView(
 
                     val center = Offset(left + cellSize / 2f, top + cellSize / 2f)
                     val ball = snapshot[point]
+                    if (snapshot.hintTarget == point) {
+                        drawRect(
+                            palette.accent, Offset(left + 3f, top + 3f), Size(cellSize - 6f, cellSize - 6f),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(
+                                width = 3f,
+                                pathEffect = androidx.compose.ui.graphics.PathEffect.dashPathEffect(floatArrayOf(10f, 8f))
+                            )
+                        )
+                    }
                     if (ball == null) {
                         if (point in snapshot.reachable) {
                             drawCircle(palette.reachableDot, radius = cellSize * 0.09f, center = center)
@@ -205,6 +216,25 @@ private fun DrawScope.drawBall(
             drawCircle(hi, radius * 0.55f, center + Offset(-radius * 0.22f, -radius * 0.24f))
             drawCircle(Color.White, radius * 0.2f, center + Offset(-radius * 0.32f, -radius * 0.36f))
         }
+        BallStyle.NEON -> {
+            val base = neonColor(ball)
+            drawCircle(base.copy(alpha = 0.22f), radius * 1.3f, center)
+            drawCircle(base.copy(alpha = 0.35f), radius * 1.12f, center)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.85f), base, base.copy(alpha = 0.55f)),
+                    center = Offset(center.x - radius * 0.3f, center.y - radius * 0.3f),
+                    radius = radius * 1.25f
+                ),
+                radius = radius,
+                center = center
+            )
+        }
+        BallStyle.CONTRAST -> {
+            drawCircle(Color.White, radius + 2f, center)
+            drawCircle(contrastColor(ball), radius - 1f, center)
+            drawContrastSymbol(ball, center, radius * 0.5f)
+        }
         BallStyle.GLOSSY -> {
             val base = ballColor(ball)
             if (shadow) {
@@ -219,6 +249,41 @@ private fun DrawScope.drawBall(
                 radius = radius,
                 center = center
             )
+        }
+    }
+}
+
+/** A shape per colour (circle, triangle, square, diamond, star, plus, heart), drawn in black on the ball. */
+private fun DrawScope.drawContrastSymbol(ball: BallColor, c: Offset, r: Float) {
+    val ink = Color.Black
+    fun polygon(pts: List<Offset>) {
+        val path = androidx.compose.ui.graphics.Path()
+        path.moveTo(pts[0].x, pts[0].y)
+        for (i in 1 until pts.size) path.lineTo(pts[i].x, pts[i].y)
+        path.close()
+        drawPath(path, ink)
+    }
+    when (ball) {
+        BallColor.RED -> drawCircle(ink, r * 0.85f, c)
+        BallColor.GREEN -> polygon(listOf(Offset(c.x, c.y - r), Offset(c.x + r, c.y + r * 0.8f), Offset(c.x - r, c.y + r * 0.8f)))
+        BallColor.BLUE -> drawRect(ink, Offset(c.x - r * 0.8f, c.y - r * 0.8f), Size(r * 1.6f, r * 1.6f))
+        BallColor.CYAN -> polygon(listOf(Offset(c.x, c.y - r), Offset(c.x + r, c.y), Offset(c.x, c.y + r), Offset(c.x - r, c.y)))
+        BallColor.MAGENTA -> {
+            val pts = (0 until 10).map { i ->
+                val a = Math.PI / 5 * i - Math.PI / 2
+                val rad = if (i % 2 == 0) r else r * 0.45f
+                Offset(c.x + (Math.cos(a) * rad).toFloat(), c.y + (Math.sin(a) * rad).toFloat())
+            }
+            polygon(pts)
+        }
+        BallColor.YELLOW -> {
+            drawRect(ink, Offset(c.x - r * 0.3f, c.y - r), Size(r * 0.6f, r * 2f))
+            drawRect(ink, Offset(c.x - r, c.y - r * 0.3f), Size(r * 2f, r * 0.6f))
+        }
+        BallColor.BROWN -> {
+            drawCircle(ink, r * 0.5f, Offset(c.x - r * 0.45f, c.y - r * 0.3f))
+            drawCircle(ink, r * 0.5f, Offset(c.x + r * 0.45f, c.y - r * 0.3f))
+            polygon(listOf(Offset(c.x - r * 0.93f, c.y - r * 0.05f), Offset(c.x + r * 0.93f, c.y - r * 0.05f), Offset(c.x, c.y + r)))
         }
     }
 }
