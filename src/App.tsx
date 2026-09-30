@@ -861,12 +861,13 @@ export default function App() {
     </footer>
   );
 
+  // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
   const names = dosNames({
-    kingName: hall.length > 0 ? hall[0].name : t('dos.defaultKing'),
+    kingName: hall.length > 0 ? hall[0].name : translate('en', 'dos.defaultKing'),
     crowned: coronationStart !== null,
     playerName,
-    pretenderLabel: t('dos.pretender'),
-    defaultPlayerName: t('dos.defaultName'),
+    pretenderLabel: translate('en', 'dos.pretender'),
+    defaultPlayerName: translate('en', 'dos.defaultName'),
   });
 
   const dosView = (
