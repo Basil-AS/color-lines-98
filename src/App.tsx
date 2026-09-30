@@ -16,6 +16,11 @@ import {
 } from 'lucide-react';
 import { GameEngine } from './engine/gameengine';
 import { MODES, MODE_IDS } from './engine/modes';
+import { buildBackup, historyToCsv, mergeHalls, mergeHistories, mergeProgress } from './backup';
+import type { Backup } from './backup';
+import { downloadText } from './download';
+import { addGame, mergeLedgers } from './ledger';
+import type { Ledger } from './ledger';
 import type { ModeId } from './engine/modes';
 import { findHint, type Hint } from './engine/hint';
 import { createEngine, remainingMs, todayKey } from './modes';
@@ -36,6 +41,9 @@ import {
   loadBestScore,
   loadGame,
   loadHistory,
+  loadLedger,
+  saveLedger,
+  clearLedger,
   loadGoalsDone,
   loadLanguagePref,
   loadMode,
@@ -182,6 +190,7 @@ export default function App() {
   });
   const [spawnStored, setSpawnStored] = useState<boolean | null>(loadSpawnPreview);
   const spawnPreview = spawnStored ?? defaultSpawnPreview(theme);
+  const [ledger, setLedger] = useState<Ledger>(loadLedger);
   const [hall, setHall] = useState(loadHall);
   const [showNext, setShowNext] = useState(loadShowNext);
   const [dosWindow, setDosWindow] = useState<DosWindow>('none');
@@ -249,6 +258,9 @@ export default function App() {
       reachedLabels = goals.filter((g) => bonus.newlyDone.includes(g.id)).map((g) => goalLabel(lang, g));
     }
 
+    const nextLedger = addGame(ledger, record);
+    setLedger(nextLedger);
+    saveLedger(nextLedger);
     setHistory(nextHistory);
     saveHistory(nextHistory);
     setProgress(nextProgress);
@@ -473,13 +485,93 @@ export default function App() {
   const handleClearHistory = () => {
     clearHistory();
     clearProgress();
+    clearLedger();
     setHistory([]);
+    setLedger({});
     setProgress(loadProgress());
+  };
+
+  /** Saves the results to a file: the whole backup or just the games as a spreadsheet. */
+  const handleExport = (kind: 'json' | 'csv') => {
+    const stamp = new Date().toISOString().slice(0, 10);
+    if (kind === 'csv') {
+      downloadText(`color-lines-games-${stamp}.csv`, historyToCsv(history), 'text/csv');
+      return;
+    }
+    const backup = buildBackup({
+      exportedAt: clock(),
+      app: { platform: 'web', version: __APP_VERSION__ },
+      history,
+      ledger,
+      progress,
+      hall,
+      settings: { theme, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode },
+    });
+    downloadText(`color-lines-backup-${stamp}.json`, JSON.stringify(backup, null, 1), 'application/json');
+  };
+
+  /** Merge adds what the file holds and loses nothing; replace makes this device match the file. */
+  const handleImport = (backup: Backup, how: 'merge' | 'replace') => {
+    const nextHistory = how === 'merge' ? mergeHistories(history, backup.history) : backup.history;
+    const nextProgress = how === 'merge' ? mergeProgress(progress, backup.progress, nextHistory) : backup.progress;
+    const nextHall = how === 'merge' ? mergeHalls(hall, backup.hall) : backup.hall;
+    const nextLedger = how === 'merge' ? mergeLedgers(ledger, backup.ledger) : backup.ledger;
+    setHistory(nextHistory);
+    saveHistory(nextHistory);
+    setProgress(nextProgress);
+    saveProgress(nextProgress);
+    setHall(nextHall);
+    saveHall(nextHall);
+    setLedger(nextLedger);
+    saveLedger(nextLedger);
+    setBestScore((b) => {
+      const best = Math.max(b, nextProgress.bestScore);
+      saveBestScore(best);
+      return best;
+    });
+    if (how === 'replace') {
+      const s = backup.settings;
+      if (s.theme) {
+        setTheme(s.theme);
+        saveTheme(s.theme);
+      }
+      if (s.language) {
+        setLangPref(s.language);
+        saveLanguagePref(s.language);
+      }
+      if (s.playerName !== undefined) {
+        setPlayerName(s.playerName);
+        savePlayerName(s.playerName);
+      }
+      if (s.soundEnabled !== undefined) {
+        soundManager.setSoundEnabled(s.soundEnabled);
+        setSoundEnabled(s.soundEnabled);
+      }
+      if (s.spawnPreview !== undefined && s.spawnPreview !== null) {
+        setSpawnStored(s.spawnPreview);
+        saveSpawnPreview(s.spawnPreview);
+      }
+      if (s.showNext !== undefined) {
+        setShowNext(s.showNext);
+        saveShowNext(s.showNext);
+      }
+    }
+    setAnnouncement(t(how === 'merge' ? 'data.done.merge' : 'data.done.replace'));
   };
 
   useEffect(() => {
     applyDocumentTheme(theme);
   }, [theme]);
+
+  // The installed app's "New game" shortcut opens the dialog (it never restarts on its own).
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('new') !== '1') return;
+    setDialog('newgame');
+    params.delete('new');
+    const rest = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : '') + window.location.hash);
+  }, []);
 
   const dos = theme === 'colorlines92';
 
@@ -710,7 +802,10 @@ export default function App() {
           lang={lang}
           history={history}
           progress={progress}
+          ledger={ledger}
           now={statsNow}
+          onExport={handleExport}
+          onImport={handleImport}
           onClear={handleClearHistory}
           onClose={closeDialog}
         />

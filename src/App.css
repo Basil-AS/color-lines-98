@@ -2260,3 +2260,123 @@ input[role='switch']:focus-visible {
     padding-inline: 0;
   }
 }
+
+/* ---- Statistics tabs, heatmap, milestones, seasons ---- */
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.tab-btn {
+  flex: 0 0 auto;
+  background: transparent;
+  color: var(--text-muted);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  padding: 10px 12px;
+  min-height: 44px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tab-btn.active {
+  color: var(--text-main);
+  border-bottom-color: var(--accent);
+}
+
+.tab-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.long-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.heatmap {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.heat-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.heat-cell {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--cell-bg);
+  border: 1px solid var(--panel-border);
+  box-sizing: border-box;
+}
+
+.heat-empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.heat-1 { background: color-mix(in srgb, var(--accent) 25%, var(--cell-bg)); }
+.heat-2 { background: color-mix(in srgb, var(--accent) 50%, var(--cell-bg)); }
+.heat-3 { background: color-mix(in srgb, var(--accent) 75%, var(--cell-bg)); }
+.heat-4 { background: var(--accent); }
+
+.heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.milestones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.milestone-head {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
+}
+
+.tier-chip,
+.level-badge.tier-bronze,
+.level-badge.tier-silver,
+.level-badge.tier-gold,
+.level-badge.tier-platinum,
+.level-badge.tier-legend {
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-weight: 700;
+  color: #1b1b1b;
+}
+
+.tier-bronze { background: #d08a4e; }
+.tier-silver { background: #c4c9d2; }
+.tier-gold { background: #f2c94c; }
+.tier-platinum { background: #8fe3f0; }
+.tier-legend { background: linear-gradient(90deg, #ff7eb3, #ffd166, #7ee8fa); }
+
+.data-actions {
+  flex-wrap: wrap;
+}
