@@ -1,0 +1,597 @@
+import type { BallColor } from './engine/models';
+
+export type Language = 'en' | 'ru';
+export const LANGUAGES: readonly Language[] = ['en', 'ru'];
+
+const en = {
+  'app.name': 'Color Lines',
+  'app.tagline': 'The classic puzzle with coloured balls',
+  'app.docTitle': 'Color Lines — the classic ball puzzle',
+
+  'hud.score': 'Score',
+  'hud.best': 'Best',
+  'hud.next': 'Next',
+
+  'btn.undo': 'Undo move',
+  'btn.newGame': 'New game',
+  'btn.mute': 'Mute sound',
+  'btn.unmute': 'Unmute sound',
+  'btn.help': 'Rules and info',
+  'btn.stats': 'Statistics',
+  'btn.apk': 'Android app',
+  'btn.github': 'Source code on GitHub',
+  'btn.close': 'Close',
+
+  'theme.group': 'Theme',
+  'theme.modern': 'Modern dark',
+
+  'lang.label': 'Language',
+  'lang.auto': 'Auto',
+  'lang.en': 'English',
+  'lang.ru': 'Русский',
+
+  'board.label': 'Game board',
+  'cell.description': 'Row {row}, column {col}, {content}{state}',
+  'cell.ball': '{color} ball',
+  'cell.empty': 'empty',
+  'cell.selected': ', selected',
+  'cell.reachable': ', reachable',
+  'cell.incoming': ', a {color} ball will appear here',
+  'next.label': 'Next balls: {colors}',
+
+  'color.red': 'red',
+  'color.green': 'green',
+  'color.blue': 'blue',
+  'color.cyan': 'cyan',
+  'color.magenta': 'magenta',
+  'color.yellow': 'yellow',
+  'color.brown': 'brown',
+
+  'announce.noPath': 'No path to that cell',
+  'announce.score': 'Score {score}',
+  'announce.lineCleared': 'Line cleared: +{points}. Score {score}',
+  'announce.gameOver': 'Game over. Final score {score}',
+  'announce.undone': 'Move undone. Score {score}',
+  'announce.newGame': 'New game started',
+
+  'gameover.title': 'Game over',
+  'gameover.final': 'Final score',
+  'gameover.best': 'Best score',
+  'gameover.newRecord': 'New record!',
+  'gameover.playAgain': 'Play again',
+
+  'stats.title': 'Statistics',
+  'stats.gamesPlayed': 'Games played',
+  'stats.best': 'Best score',
+  'stats.average': 'Average score',
+  'stats.lines': 'Lines cleared',
+  'stats.moves': 'Total moves',
+  'stats.recent': 'Recent games',
+  'stats.empty': 'No games yet. Finish a game and it will show up here.',
+  'stats.unfinished': 'unfinished',
+  'stats.bestMark': 'best',
+  'stats.clear': 'Clear history',
+  'stats.confirmClear': 'This deletes all {games} saved games, your level {level}, achievements, records and streaks. It cannot be undone.',
+  'stats.confirmCheck': 'I understand this cannot be undone',
+  'stats.confirmYes': 'Delete',
+  'stats.confirmNo': 'Cancel',
+
+  'help.title': 'Rules & scoring',
+  'help.objective':
+    'Line up 5 or more balls of the same colour horizontally, vertically or diagonally to clear them.',
+  'help.scoring': 'Score for a line:',
+  'help.scoringLine': '{count}: {points}',
+  'help.movement':
+    'A ball can move only if there is a clear path of empty cells to the destination.',
+  'help.freeTurn': 'Clearing a line is a free turn: no new balls appear.',
+  'help.keyboard':
+    'Keyboard: arrow keys move between cells, Enter or Space selects a ball or moves it, Escape closes a window.',
+
+  'btn.settings': 'Settings',
+  'menu.game': 'Game',
+  'menu.score': 'Score',
+  'menu.help': 'Help',
+
+  'settings.title': 'Settings',
+  'settings.theme': 'Theme',
+  'settings.language': 'Language',
+  'settings.sound': 'Sound effects',
+  'settings.preview': 'Show where new balls will appear',
+
+  'theme.light': 'Modern light',
+  'theme.material': 'Material',
+  'theme.neon': 'Neon',
+  'theme.contrast': 'High contrast',
+  'theme.lines98': 'Lines 98 (Windows)',
+  'theme.colorlines92': 'Color Lines 1992 (DOS)',
+
+  'level.label': 'Level {level}',
+  'level.xp': '{into} / {needed} XP',
+  'level.title.novice': 'Novice',
+  'level.title.apprentice': 'Apprentice',
+  'level.title.skilled': 'Skilled',
+  'level.title.expert': 'Expert',
+  'level.title.master': 'Master',
+  'level.title.grandmaster': 'Grandmaster',
+  'level.title.legend': 'Legend',
+
+  'stats.streak': 'Day streak',
+  'stats.bestStreak': 'Best streak',
+  'stats.playTime': 'Play time',
+  'stats.bestLine': 'Longest line',
+  'stats.mostLines': 'Most lines in a game',
+  'stats.longestGame': 'Longest game',
+  'stats.totalScore': 'Total score',
+  'stats.trend': 'Last games',
+  'stats.achievements': 'Achievements',
+  'stats.achievementsCount': '{unlocked} of {total} unlocked',
+  'stats.locked': 'locked',
+  'stats.records': 'Records',
+  'stats.showAll': 'Show all {n}',
+  'stats.showLess': 'Show fewer',
+
+  'gameover.xp': '+{xp} XP',
+  'gameover.levelUp': 'Level up! You are now level {level}',
+  'gameover.unlocked': 'Achievements unlocked',
+
+  'time.hm': '{h} h {m} min',
+  'time.m': '{m} min',
+  'time.s': '{s} s',
+
+  'ach.first_game.name': 'First steps',
+  'ach.first_game.desc': 'Finish your first game.',
+  'ach.first_line.name': 'In line',
+  'ach.first_line.desc': 'Clear your first line.',
+  'ach.long_line_7.name': 'Long shot',
+  'ach.long_line_7.desc': 'Clear a line of 7 or more balls.',
+  'ach.long_line_9.name': 'Full house',
+  'ach.long_line_9.desc': 'Clear a line of 9 balls.',
+  'ach.score_100.name': 'Century',
+  'ach.score_100.desc': 'Score 100 points in one game.',
+  'ach.score_250.name': 'On a roll',
+  'ach.score_250.desc': 'Score 250 points in one game.',
+  'ach.score_500.name': 'High roller',
+  'ach.score_500.desc': 'Score 500 points in one game.',
+  'ach.score_1000.name': 'Thousand club',
+  'ach.score_1000.desc': 'Score 1000 points in one game.',
+  'ach.games_10.name': 'Regular',
+  'ach.games_10.desc': 'Play 10 games.',
+  'ach.games_50.name': 'Devoted',
+  'ach.games_50.desc': 'Play 50 games.',
+  'ach.games_100.name': 'Addicted',
+  'ach.games_100.desc': 'Play 100 games.',
+  'ach.lines_50.name': 'Line cook',
+  'ach.lines_50.desc': 'Clear 50 lines in total.',
+  'ach.lines_250.name': 'Line master',
+  'ach.lines_250.desc': 'Clear 250 lines in total.',
+  'ach.streak_3.name': 'Habit',
+  'ach.streak_3.desc': 'Play 3 days in a row.',
+  'ach.streak_7.name': 'Week warrior',
+  'ach.streak_7.desc': 'Play 7 days in a row.',
+  'ach.marathon.name': 'Marathon',
+  'ach.marathon.desc': 'Make 150 moves in one game.',
+  'ach.level_5.name': 'Level 5',
+  'ach.level_5.desc': 'Reach level 5.',
+  'ach.level_10.name': 'Level 10',
+  'ach.level_10.desc': 'Reach level 10.',
+
+  'plural.days_one': '{n} day',
+  'plural.days_few': '{n} days',
+  'plural.days_many': '{n} days',
+  'plural.days_other': '{n} days',
+
+  'dos.help': 'Help',
+  'dos.sound': 'Sound',
+  'dos.next': 'Show next balls',
+  'dos.restart': 'Restart',
+  'dos.topTen': 'Top Ten',
+  'dos.pretender': 'Pretender',
+  'dos.defaultName': 'Player',
+  'settings.playerName': 'Your name (Top Ten)',
+
+  'install.button': 'Install',
+  'install.title': 'Install Color Lines',
+  'install.ios.step1': 'Tap the Share button in Safari.',
+  'install.ios.step2': 'Choose "Add to Home Screen".',
+  'install.ios.step3': 'Tap "Add". The game then opens like an app, also offline.',
+  'install.mac.step1': 'In Safari choose File, then "Add to Dock".',
+  'install.mac.step2': 'Confirm the name. The game then opens like an app, also offline.',
+
+  'insights.title': 'Analysis',
+  'insights.trend.up': 'Your last {n} games average {recent} points, {percent}% better than the {n} before.',
+  'insights.trend.down': 'Your last {n} games average {recent} points, {percent}% lower than the {n} before.',
+  'insights.trend.flat': 'Your last {n} games average {recent} points, about the same as the {n} before.',
+  'insights.trend.needMore': 'Finish {n} more games to see how you are improving.',
+  'insights.daily': 'Games per day, last 14 days',
+  'insights.histogram': 'How your scores are spread',
+  'insights.weekdays': 'Best days of the week (average score)',
+  'insights.efficiency': 'Efficiency: {average} points per move, best game {best}.',
+  'insights.eta': 'At your recent pace, about {games} to level {level}.',
+  'insights.records': 'Record progression',
+  'insights.bucketLabel': '{from}+',
+  'insights.games': '{n} games',
+
+  'ach.daily_first.name': 'Challenger',
+  'ach.daily_first.desc': 'Finish a daily challenge.',
+  'ach.all_modes.name': 'All-rounder',
+  'ach.all_modes.desc': 'Finish a game in every mode.',
+  'ach.goal_first.name': 'On target',
+  'ach.goal_first.desc': 'Complete a daily goal.',
+  'ach.goal_day.name': 'Perfect day',
+  'ach.goal_day.desc': 'Complete all three daily goals in one day.',
+  'ach.goals_7.name': 'Relentless',
+  'ach.goals_7.desc': 'Complete all daily goals 7 days in a row.',
+
+  'mode.label': 'Mode',
+  'mode.classic': 'Classic',
+  'mode.easy': 'Easy',
+  'mode.blitz': 'Blitz',
+  'mode.daily': 'Daily challenge',
+  'mode.classic.desc': 'The original rules with all 7 colours.',
+  'mode.easy.desc': '5 colours: lines are much easier to make.',
+  'mode.blitz.desc': '3 minutes of play. Score as much as you can.',
+  'mode.daily.desc': 'The same start for everyone today. Try to beat your best.',
+  'mode.timeLeft': 'Time left {time}',
+  'mode.timeUp': 'Time is up',
+
+  'newgame.title': 'New game',
+  'newgame.warning': 'Your current game ({score} points, {moves}) will be counted as unfinished.',
+  'newgame.start': 'Start',
+  'newgame.keep': 'Keep playing',
+  'newgame.changeMode': 'Change mode',
+
+  'goals.title': "Today's goals",
+  'goals.hint': 'Goals are built from your own recent results, so they stay a fair challenge.',
+  'goals.score': 'Score {target} points in one game',
+  'goals.line': 'Clear a line of {target} or more balls',
+  'goals.moves': 'Make {target} moves in one game',
+  'goals.lines': 'Clear {target} lines in one game',
+  'goals.efficiency': 'Reach {target} points per move (15 moves or more)',
+  'goals.beatYesterday': "Beat your best of the last day you played ({target} points)",
+  'goals.progress': '{value} of {target}',
+  'goals.done': 'Done',
+  'goals.bonus': '+{xp} XP for each goal',
+  'goals.allDone': 'All goals done. Come back tomorrow for new ones.',
+  'goals.streak': 'Goal streak',
+  'goals.button': 'Goals {done}/{total}',
+  'goals.reached': 'Goals reached',
+  'goals.dailyBest': 'Best in the daily challenge today: {score}',
+  'goals.dailyNone': 'You have not played the daily challenge today.',
+  'goals.playDaily': 'Play the daily challenge',
+
+  'stats.byMode': 'By mode',
+  'stats.modeRow': '{games} games, best {best}',
+
+  'plural.moves_one': '{n} move',
+  'plural.moves_few': '{n} moves',
+  'plural.moves_many': '{n} moves',
+  'plural.moves_other': '{n} moves',
+  'plural.balls_one': '{n} ball',
+  'plural.balls_few': '{n} balls',
+  'plural.balls_many': '{n} balls',
+  'plural.balls_other': '{n} balls',
+  'plural.games_one': '{n} game',
+  'plural.games_few': '{n} games',
+  'plural.games_many': '{n} games',
+  'plural.games_other': '{n} games',
+} as const;
+
+type Dictionary = { readonly [K in keyof typeof en]: string };
+
+const ru: Dictionary = {
+  'app.name': 'Color Lines',
+  'app.tagline': 'Классическая головоломка с цветными шарами',
+  'app.docTitle': 'Color Lines — классическая головоломка с шарами',
+
+  'hud.score': 'Счёт',
+  'hud.best': 'Рекорд',
+  'hud.next': 'Далее',
+
+  'btn.undo': 'Отменить ход',
+  'btn.newGame': 'Новая игра',
+  'btn.mute': 'Выключить звук',
+  'btn.unmute': 'Включить звук',
+  'btn.help': 'Правила',
+  'btn.stats': 'Статистика',
+  'btn.apk': 'Приложение для Android',
+  'btn.github': 'Исходный код на GitHub',
+  'btn.close': 'Закрыть',
+
+  'theme.group': 'Тема',
+  'theme.modern': 'Современная тёмная',
+
+  'lang.label': 'Язык',
+  'lang.auto': 'Авто',
+  'lang.en': 'English',
+  'lang.ru': 'Русский',
+
+  'board.label': 'Игровое поле',
+  'cell.description': 'Ряд {row}, столбец {col}, {content}{state}',
+  'cell.ball': '{color} шар',
+  'cell.empty': 'пусто',
+  'cell.selected': ', выбран',
+  'cell.reachable': ', можно дойти',
+  'cell.incoming': ', здесь появится {color} шар',
+  'next.label': 'Следующие шары: {colors}',
+
+  'color.red': 'красный',
+  'color.green': 'зелёный',
+  'color.blue': 'синий',
+  'color.cyan': 'голубой',
+  'color.magenta': 'пурпурный',
+  'color.yellow': 'жёлтый',
+  'color.brown': 'коричневый',
+
+  'announce.noPath': 'Туда не пройти',
+  'announce.score': 'Счёт {score}',
+  'announce.lineCleared': 'Линия собрана: +{points}. Счёт {score}',
+  'announce.gameOver': 'Игра окончена. Итоговый счёт {score}',
+  'announce.undone': 'Ход отменён. Счёт {score}',
+  'announce.newGame': 'Новая игра началась',
+
+  'gameover.title': 'Игра окончена',
+  'gameover.final': 'Итоговый счёт',
+  'gameover.best': 'Рекорд',
+  'gameover.newRecord': 'Новый рекорд!',
+  'gameover.playAgain': 'Играть снова',
+
+  'stats.title': 'Статистика',
+  'stats.gamesPlayed': 'Сыграно партий',
+  'stats.best': 'Лучший счёт',
+  'stats.average': 'Средний счёт',
+  'stats.lines': 'Собрано линий',
+  'stats.moves': 'Всего ходов',
+  'stats.recent': 'Последние партии',
+  'stats.empty': 'Пока нет партий. Закончите партию, и она появится здесь.',
+  'stats.unfinished': 'не закончена',
+  'stats.bestMark': 'рекорд',
+  'stats.clear': 'Очистить историю',
+  'stats.confirmClear': 'Будут удалены все сохранённые партии ({games}), ваш уровень {level}, достижения, рекорды и серии. Отменить это нельзя.',
+  'stats.confirmCheck': 'Я понимаю, что это нельзя отменить',
+  'stats.confirmYes': 'Удалить',
+  'stats.confirmNo': 'Отмена',
+
+  'help.title': 'Правила и очки',
+  'help.objective':
+    'Выстройте 5 и более шаров одного цвета по горизонтали, вертикали или диагонали, чтобы убрать их.',
+  'help.scoring': 'Очки за линию:',
+  'help.scoringLine': '{count}: {points}',
+  'help.movement':
+    'Шар можно переместить, только если до нужной клетки есть свободный путь из пустых клеток.',
+  'help.freeTurn': 'Собранная линия даёт дополнительный ход: новые шары не появляются.',
+  'help.keyboard':
+    'Клавиатура: стрелки перемещают между клетками, Enter или пробел выбирает шар или переносит его, Escape закрывает окно.',
+
+  'btn.settings': 'Настройки',
+  'menu.game': 'Игра',
+  'menu.score': 'Результаты',
+  'menu.help': 'Справка',
+
+  'settings.title': 'Настройки',
+  'settings.theme': 'Тема',
+  'settings.language': 'Язык',
+  'settings.sound': 'Звуковые эффекты',
+  'settings.preview': 'Показывать, где появятся новые шары',
+
+  'theme.light': 'Современная светлая',
+  'theme.material': 'Material',
+  'theme.neon': 'Неон',
+  'theme.contrast': 'Высокий контраст',
+  'theme.lines98': 'Lines 98 (Windows)',
+  'theme.colorlines92': 'Color Lines 1992 (DOS)',
+
+  'level.label': 'Уровень {level}',
+  'level.xp': '{into} / {needed} оп.',
+  'level.title.novice': 'Новичок',
+  'level.title.apprentice': 'Ученик',
+  'level.title.skilled': 'Умелый',
+  'level.title.expert': 'Знаток',
+  'level.title.master': 'Мастер',
+  'level.title.grandmaster': 'Гроссмейстер',
+  'level.title.legend': 'Легенда',
+
+  'stats.streak': 'Серия дней',
+  'stats.bestStreak': 'Лучшая серия',
+  'stats.playTime': 'Время в игре',
+  'stats.bestLine': 'Самая длинная линия',
+  'stats.mostLines': 'Больше всего линий за партию',
+  'stats.longestGame': 'Самая длинная партия',
+  'stats.totalScore': 'Всего очков',
+  'stats.trend': 'Последние партии',
+  'stats.achievements': 'Достижения',
+  'stats.achievementsCount': 'Открыто {unlocked} из {total}',
+  'stats.locked': 'закрыто',
+  'stats.records': 'Рекорды',
+  'stats.showAll': 'Показать все ({n})',
+  'stats.showLess': 'Свернуть',
+
+  'gameover.xp': '+{xp} оп.',
+  'gameover.levelUp': 'Новый уровень! Теперь у вас уровень {level}',
+  'gameover.unlocked': 'Новые достижения',
+
+  'time.hm': '{h} ч {m} мин',
+  'time.m': '{m} мин',
+  'time.s': '{s} с',
+
+  'ach.first_game.name': 'Первые шаги',
+  'ach.first_game.desc': 'Закончите первую партию.',
+  'ach.first_line.name': 'В линию',
+  'ach.first_line.desc': 'Соберите первую линию.',
+  'ach.long_line_7.name': 'Далёкий прицел',
+  'ach.long_line_7.desc': 'Соберите линию из 7 и более шаров.',
+  'ach.long_line_9.name': 'Аншлаг',
+  'ach.long_line_9.desc': 'Соберите линию из 9 шаров.',
+  'ach.score_100.name': 'Сотня',
+  'ach.score_100.desc': 'Наберите 100 очков за партию.',
+  'ach.score_250.name': 'В ударе',
+  'ach.score_250.desc': 'Наберите 250 очков за партию.',
+  'ach.score_500.name': 'Крупная ставка',
+  'ach.score_500.desc': 'Наберите 500 очков за партию.',
+  'ach.score_1000.name': 'Клуб тысячи',
+  'ach.score_1000.desc': 'Наберите 1000 очков за партию.',
+  'ach.games_10.name': 'Постоянный игрок',
+  'ach.games_10.desc': 'Сыграйте 10 партий.',
+  'ach.games_50.name': 'Преданный',
+  'ach.games_50.desc': 'Сыграйте 50 партий.',
+  'ach.games_100.name': 'Завсегдатай',
+  'ach.games_100.desc': 'Сыграйте 100 партий.',
+  'ach.lines_50.name': 'Линейный повар',
+  'ach.lines_50.desc': 'Соберите 50 линий за всё время.',
+  'ach.lines_250.name': 'Мастер линий',
+  'ach.lines_250.desc': 'Соберите 250 линий за всё время.',
+  'ach.streak_3.name': 'Привычка',
+  'ach.streak_3.desc': 'Играйте 3 дня подряд.',
+  'ach.streak_7.name': 'Неделя без пропусков',
+  'ach.streak_7.desc': 'Играйте 7 дней подряд.',
+  'ach.marathon.name': 'Марафон',
+  'ach.marathon.desc': 'Сделайте 150 ходов за партию.',
+  'ach.level_5.name': 'Уровень 5',
+  'ach.level_5.desc': 'Достигните 5 уровня.',
+  'ach.level_10.name': 'Уровень 10',
+  'ach.level_10.desc': 'Достигните 10 уровня.',
+
+  'plural.days_one': '{n} день',
+  'plural.days_few': '{n} дня',
+  'plural.days_many': '{n} дней',
+  'plural.days_other': '{n} дня',
+
+  'dos.help': 'Помощь',
+  'dos.sound': 'Звук',
+  'dos.next': 'Показывать следующие шары',
+  'dos.restart': 'Заново',
+  'dos.topTen': 'Десятка лучших',
+  'dos.pretender': 'Pretender',
+  'dos.defaultName': 'Игрок',
+  'settings.playerName': 'Ваше имя (десятка лучших)',
+
+  'install.button': 'Установить',
+  'install.title': 'Установить Color Lines',
+  'install.ios.step1': 'Нажмите кнопку «Поделиться» в Safari.',
+  'install.ios.step2': 'Выберите «На экран Домой».',
+  'install.ios.step3': 'Нажмите «Добавить». Игра будет открываться как приложение, в том числе без интернета.',
+  'install.mac.step1': 'В Safari выберите «Файл», затем «Добавить в Dock».',
+  'install.mac.step2': 'Подтвердите название. Игра будет открываться как приложение, в том числе без интернета.',
+
+  'insights.title': 'Анализ',
+  'insights.trend.up': 'В последних {n} партиях вы набираете в среднем {recent} очков, на {percent}% лучше, чем в {n} до них.',
+  'insights.trend.down': 'В последних {n} партиях вы набираете в среднем {recent} очков, на {percent}% меньше, чем в {n} до них.',
+  'insights.trend.flat': 'В последних {n} партиях вы набираете в среднем {recent} очков, примерно как и в {n} до них.',
+  'insights.trend.needMore': 'Сыграйте ещё {n} партий, чтобы увидеть динамику.',
+  'insights.daily': 'Партий по дням, последние 14 дней',
+  'insights.histogram': 'Как распределяются ваши очки',
+  'insights.weekdays': 'Лучшие дни недели (средний счёт)',
+  'insights.efficiency': 'Эффективность: {average} очков за ход, лучшая партия {best}.',
+  'insights.eta': 'В вашем недавнем темпе до уровня {level} примерно {games}.',
+  'insights.records': 'История рекордов',
+  'insights.bucketLabel': '{from}+',
+  'insights.games': '{n} партий',
+
+  'ach.daily_first.name': 'Претендент дня',
+  'ach.daily_first.desc': 'Закончите ежедневный вызов.',
+  'ach.all_modes.name': 'Универсал',
+  'ach.all_modes.desc': 'Закончите партию в каждом режиме.',
+  'ach.goal_first.name': 'В цель',
+  'ach.goal_first.desc': 'Выполните ежедневную цель.',
+  'ach.goal_day.name': 'Идеальный день',
+  'ach.goal_day.desc': 'Выполните все три цели за один день.',
+  'ach.goals_7.name': 'Неудержимый',
+  'ach.goals_7.desc': 'Выполняйте все цели 7 дней подряд.',
+
+  'mode.label': 'Режим',
+  'mode.classic': 'Классика',
+  'mode.easy': 'Лёгкий',
+  'mode.blitz': 'Блиц',
+  'mode.daily': 'Вызов дня',
+  'mode.classic.desc': 'Оригинальные правила, все 7 цветов.',
+  'mode.easy.desc': '5 цветов: линии собирать заметно проще.',
+  'mode.blitz.desc': '3 минуты игры. Наберите как можно больше.',
+  'mode.daily.desc': 'Одинаковый старт для всех сегодня. Побейте свой рекорд.',
+  'mode.timeLeft': 'Осталось {time}',
+  'mode.timeUp': 'Время вышло',
+
+  'newgame.title': 'Новая игра',
+  'newgame.warning': 'Текущая партия ({score} очков, {moves}) будет засчитана как незаконченная.',
+  'newgame.start': 'Начать',
+  'newgame.keep': 'Продолжить игру',
+  'newgame.changeMode': 'Сменить режим',
+
+  'goals.title': 'Цели на сегодня',
+  'goals.hint': 'Цели строятся по вашим последним результатам, поэтому всегда посильны.',
+  'goals.score': 'Наберите {target} очков за партию',
+  'goals.line': 'Соберите линию из {target} и более шаров',
+  'goals.moves': 'Сделайте {target} ходов за партию',
+  'goals.lines': 'Соберите {target} линий за партию',
+  'goals.efficiency': 'Наберите {target} очков за ход (не меньше 15 ходов)',
+  'goals.beatYesterday': 'Побейте свой лучший результат последнего игрового дня ({target} очков)',
+  'goals.progress': '{value} из {target}',
+  'goals.done': 'Готово',
+  'goals.bonus': '+{xp} оп. за каждую цель',
+  'goals.allDone': 'Все цели выполнены. Завтра будут новые.',
+  'goals.streak': 'Серия дней с целями',
+  'goals.button': 'Цели {done}/{total}',
+  'goals.reached': 'Выполненные цели',
+  'goals.dailyBest': 'Лучший результат вызова дня сегодня: {score}',
+  'goals.dailyNone': 'Сегодня вы ещё не играли в вызов дня.',
+  'goals.playDaily': 'Играть в вызов дня',
+
+  'stats.byMode': 'По режимам',
+  'stats.modeRow': '{games} партий, рекорд {best}',
+
+  'plural.moves_one': '{n} ход',
+  'plural.moves_few': '{n} хода',
+  'plural.moves_many': '{n} ходов',
+  'plural.moves_other': '{n} хода',
+  'plural.balls_one': '{n} шар',
+  'plural.balls_few': '{n} шара',
+  'plural.balls_many': '{n} шаров',
+  'plural.balls_other': '{n} шара',
+  'plural.games_one': '{n} партия',
+  'plural.games_few': '{n} партии',
+  'plural.games_many': '{n} партий',
+  'plural.games_other': '{n} партии',
+};
+
+export const messages: Record<Language, Dictionary> = { en, ru };
+
+export type MessageKey = keyof typeof en;
+export type PluralBase = 'plural.moves' | 'plural.balls' | 'plural.games' | 'plural.days';
+
+type Params = Record<string, string | number>;
+
+function interpolate(template: string, params: Params): string {
+  return template.replace(/\{(\w+)\}/g, (whole, name: string) =>
+    name in params ? String(params[name]) : whole
+  );
+}
+
+export function translate(lang: Language, key: MessageKey, params: Params = {}): string {
+  return interpolate(messages[lang][key], params);
+}
+
+export function translatePlural(lang: Language, base: PluralBase, n: number): string {
+  const category = new Intl.PluralRules(lang).select(n);
+  return translate(lang, `${base}_${category}` as MessageKey, { n });
+}
+
+export function colorName(lang: Language, color: BallColor): string {
+  return translate(lang, `color.${color}` as MessageKey);
+}
+
+/** First supported language in the user's preference list wins; English is the fallback. */
+export function resolveLanguage(
+  pref: Language | 'auto',
+  browserLanguages: readonly string[]
+): Language {
+  if (pref !== 'auto') return pref;
+  for (const tag of browserLanguages) {
+    const primary = tag.toLowerCase().split('-')[0];
+    if ((LANGUAGES as readonly string[]).includes(primary)) return primary as Language;
+  }
+  return 'en';
+}
+
+export function formatDate(lang: Language, epochMs: number): string {
+  return new Intl.DateTimeFormat(lang, { dateStyle: 'medium', timeStyle: 'short' }).format(
+    new Date(epochMs)
+  );
+}

@@ -1,0 +1,235 @@
+schema_version: 1
+
+# BEGIN AUTO-GENERATED LOCAL SKILLS
+local_skills:
+  - name: better-accessibility
+    description: Helps your project comply with accessibility standards and best practices.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/better-accessibility/SKILL.md
+  - name: better-colors
+    description: Helps you build a color system and answer anything about color in your project. You can generate palettes, use semantic tokens, convert between formats, check contrast and more.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/better-colors/SKILL.md
+  - name: better-interface
+    description: Combines all of the `better-*` skills into a single review across accessibility, layout, writing, typography, color and UI polish.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/better-interface/SKILL.md
+  - name: better-layout
+    description: Helps with grouping, alignment, reading order, progressive disclosure and other details that make a good layout.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/better-layout/SKILL.md
+  - name: better-typography
+    description: Focuses on type scale, spacing, sizing, variable fonts, OpenType features, wrapping, truncation and other details that make typography feel great across your product.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/better-typography/SKILL.md
+  - name: better-ui
+    description: Polishes and improves the UI in your project. Covers concentric border radius, optical alignment, surface depth, contextual icons, hit areas and more.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/better-ui/SKILL.md
+  - name: brainstorming
+    description: You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/brainstorming/SKILL.md
+  - name: cold-start-resume
+    description: Use when starting or resuming work in a repository with unknown or potentially stale agent context.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/cold-start-resume/SKILL.md
+  - name: diagram-design
+    description: Create branded architecture, IT current-state, flowchart, sequence, state machine, ER/data model, timeline, swimlane, quadrant, radar/spider, polar chart (polar/radial lollipop), loop/flywheel, nested, tree, org chart, layer stack, Venn, pyramid/funnel, treemap, bar, line, Gantt and scatter charts, high-level, process, medallion, data flow, DP integration, DP security matrix, Sankey, fishbone, Wardley map, kanban, user journey, deployment, dependency graph, UML class, story map, or database schema diagrams as standalone HTML/SVG/PNG. Redraw .drawio/.drawio.png/.drawio.svg or Mermaid .mmd sources at a chosen size/detail; onboard brand tokens from a website; add semantic patterns, callouts, accessible motion, or sketchy/hand-drawn styling.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/diagram-design/SKILL.md
+  - name: dispatching-parallel-agents
+    description: Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/dispatching-parallel-agents/SKILL.md
+  - name: executing-plans
+    description: Use when you have a written implementation plan to execute in a separate session with review checkpoints
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/executing-plans/SKILL.md
+  - name: finishing-a-development-branch
+    description: Use when implementation is complete, all tests pass, and you need to decide how to integrate the work
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/finishing-a-development-branch/SKILL.md
+  - name: frontend-design
+    description: Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps with aesthetic direction, typography, and making choices that don't read as templated defaults.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/frontend-design/SKILL.md
+  - name: gortex-code-intelligence
+    description: Use Gortex for code graph, cross-repository impact analysis, indexing, and safe-edit context on Teya.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/gortex-code-intelligence/SKILL.md
+  - name: receiving-code-review
+    description: Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/receiving-code-review/SKILL.md
+  - name: requesting-code-review
+    description: Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/requesting-code-review/SKILL.md
+  - name: safe-external-fetch
+    description: Use when an agent needs to download documentation, archives, tools, logs, datasets or other reusable external files.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/safe-external-fetch/SKILL.md
+  - name: subagent-driven-development
+    description: Use when executing implementation plans with independent tasks in the current session
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/subagent-driven-development/SKILL.md
+  - name: systematic-debugging
+    description: Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/systematic-debugging/SKILL.md
+  - name: task-handoff
+    description: Use when pausing, completing, transferring or recovering an in-progress task across agents or sessions.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/task-handoff/SKILL.md
+  - name: test-driven-development
+    description: Use when implementing any feature or bugfix, before writing implementation code
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/test-driven-development/SKILL.md
+  - name: toolchain-routing
+    description: Use when deciding whether RTK, Superpowers, Gortex, Ponytail or Caveman should be activated for the current task.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/toolchain-routing/SKILL.md
+  - name: ui-ux-pro-max
+    description: UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 79 searchable styles (50 active), 192 product palettes and reasoning profiles, 74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types, and 22 stacks.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/ui-ux-pro-max/SKILL.md
+  - name: using-git-worktrees
+    description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - ensures an isolated workspace exists via native tools or git worktree fallback
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/using-git-worktrees/SKILL.md
+  - name: using-superpowers
+    description: Use when starting any conversation - establishes how to find and use skills, requiring skill invocation before ANY response including clarifying questions
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/using-superpowers/SKILL.md
+  - name: verification-before-completion
+    description: Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/verification-before-completion/SKILL.md
+  - name: webapp-testing
+    description: Toolkit for interacting with and testing local web applications using Playwright. Supports verifying frontend functionality, debugging UI behavior, capturing browser screenshots, and viewing browser logs.
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/webapp-testing/SKILL.md
+  - name: writing-plans
+    description: Use when you have a spec or requirements for a multi-step task, before touching code
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/writing-plans/SKILL.md
+  - name: writing-skills
+    description: Use when creating new skills, editing existing skills, or verifying skills work before deployment
+    source: local
+    trust: project-reviewed
+    status: enabled
+    category: process
+    path: .agents/skills/writing-skills/SKILL.md
+# END AUTO-GENERATED LOCAL SKILLS
+
+external_candidates:
+  - name: superpowers
+    source: https://github.com/obra/superpowers
+    trust: unreviewed
+    status: available_not_installed
+    policy: install_and_pin_only_with_approval
+  - name: rtk
+    source: https://github.com/rtk-ai/rtk
+    trust: unreviewed
+    status: available_not_installed
+    policy: install_and_pin_only_with_approval
+  - name: gortex
+    source: https://github.com/zzet/gortex
+    trust: unreviewed
+    status: available_not_installed
+    policy: trigger_based_install_with_approval
+  - name: ponytail
+    source: https://github.com/DietrichGebert/ponytail
+    trust: unreviewed
+    status: optional
+    policy: built_in_lite_without_plugin
+  - name: caveman
+    source: https://github.com/JuliusBrussee/caveman
+    trust: unreviewed
+    status: optional
+    policy: off_by_default
