@@ -137,7 +137,8 @@ fun GameOverDialog(
     xpGained: Int,
     levelUp: Int?,
     unlocked: List<String>,
-    onPlayAgain: () -> Unit
+    onPlayAgain: () -> Unit,
+    goalXp: Int = 0
 ) {
     AlertDialog(
         onDismissRequest = {},
@@ -145,6 +146,7 @@ fun GameOverDialog(
         title = { Text(stringResource(R.string.gameover_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                if (goalXp > 0) Text(stringResource(R.string.goals_reached) + ": +" + goalXp + " XP", fontWeight = FontWeight.Bold)
                 if (newRecord) {
                     Text(
                         "★ " + stringResource(R.string.gameover_newRecord),
@@ -752,5 +754,47 @@ fun ImportDialog(
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
             }
         }
+    )
+}
+
+internal fun goalTitle(type: io.github.basil_as.basillines.engine.GoalType): Int = when (type) {
+    io.github.basil_as.basillines.engine.GoalType.SCORE -> R.string.goals_score
+    io.github.basil_as.basillines.engine.GoalType.LINE -> R.string.goals_line
+    io.github.basil_as.basillines.engine.GoalType.MOVES -> R.string.goals_moves
+    io.github.basil_as.basillines.engine.GoalType.LINES -> R.string.goals_lines
+    io.github.basil_as.basillines.engine.GoalType.EFFICIENCY -> R.string.goals_efficiency
+    io.github.basil_as.basillines.engine.GoalType.BEAT_YESTERDAY -> R.string.goals_beatYesterday
+}
+
+/** A target or value without a pointless ".0" (efficiency keeps one decimal). */
+internal fun goalNumber(v: Double): String = if (v == Math.floor(v)) v.toLong().toString() else "%.1f".format(java.util.Locale.ROOT, v)
+
+/** Today's goals with progress; they are built from the player's own recent games so they stay fair. */
+@Composable
+fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress>, goalStreak: Int, onClose: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text(stringResource(R.string.goals_title)) },
+        text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Text(stringResource(R.string.goals_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                for (p in progress) {
+                    val title = stringResource(goalTitle(p.goal.type), goalNumber(p.goal.target))
+                    val fraction = (p.value / p.goal.target).toFloat().coerceIn(0f, 1f)
+                    Column(Modifier.semantics(mergeDescendants = true) { contentDescription = title }) {
+                        Text((if (p.done) "✓ " else "") + title, fontWeight = FontWeight.SemiBold)
+                        LinearProgressIndicator(progress = { fraction }, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
+                        Text(
+                            if (p.done) stringResource(R.string.goals_done) else stringResource(R.string.goals_progress, goalNumber(p.value), goalNumber(p.goal.target)),
+                            fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                Text(stringResource(R.string.goals_bonus, io.github.basil_as.basillines.engine.Goals.BONUS_XP.toString()), fontSize = 13.sp)
+                if (progress.isNotEmpty() && progress.all { it.done }) Text(stringResource(R.string.goals_allDone), fontWeight = FontWeight.Bold)
+                Text(stringResource(R.string.goals_streak) + ": " + goalStreak, fontSize = 13.sp)
+            }
+        },
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }

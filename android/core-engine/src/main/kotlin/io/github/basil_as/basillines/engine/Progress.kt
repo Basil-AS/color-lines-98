@@ -20,7 +20,11 @@ data class Progress(
     /** Local calendar days (yyyy-MM-dd) with at least one finished game, ascending. */
     val days: List<String> = emptyList(),
     /** Achievement id to the time it was unlocked (epoch millis). */
-    val achievements: Map<String, Long> = emptyMap()
+    val achievements: Map<String, Long> = emptyMap(),
+    /** Experience earned from daily goals (beyond what the games themselves give). */
+    val bonusXp: Int = 0,
+    /** Days on which all daily goals were completed. */
+    val goalDays: List<String> = emptyList()
 )
 
 data class LevelInfo(val level: Int, val xp: Int, val into: Int, val needed: Int) {
@@ -49,7 +53,8 @@ object Levels {
 
 object ProgressTracker {
     const val DAYS_LIMIT = 400
-    private const val VERSION = "v1"
+    private const val VERSION = "v2"
+    private const val V1 = "v1"
     private val DAY_RE = Regex("""\d{4}-\d{2}-\d{2}""")
 
     val ACHIEVEMENTS: List<Achievement> = listOf(
@@ -77,7 +82,7 @@ object ProgressTracker {
 
     fun empty() = Progress()
 
-    fun xpOf(p: Progress): Int = p.totalScore + p.totalLines * 5 + p.totalGames * 10
+    fun xpOf(p: Progress): Int = p.totalScore + p.totalLines * 5 + p.totalGames * 10 + p.bonusXp
 
     fun dayKey(epochMs: Long, zone: ZoneId = ZoneId.systemDefault()): String =
         Instant.ofEpochMilli(epochMs).atZone(zone).toLocalDate().toString()
@@ -130,7 +135,9 @@ object ProgressTracker {
             mostLinesInGame = maxOf(before.mostLinesInGame, record.lines),
             longestGameMoves = maxOf(before.longestGameMoves, record.moves),
             days = days,
-            achievements = before.achievements
+            achievements = before.achievements,
+            bonusXp = before.bonusXp,
+            goalDays = before.goalDays
         )
         val level = Levels.info(xpOf(progress)).level
         val streak = currentStreak(days, key)
@@ -145,6 +152,12 @@ object ProgressTracker {
         progress = progress.copy(achievements = achievements)
         return AppliedGame(progress, unlocked)
     }
+
+    /** Adds the experience of newly completed goals; a day with every goal done is remembered. */
+    fun applyGoalBonus(before: Progress, day: String, bonus: GoalBonus): Progress = before.copy(
+        bonusXp = before.bonusXp + bonus.xp,
+        goalDays = if (bonus.allDone && day !in before.goalDays) (before.goalDays + day).sorted().takeLast(DAYS_LIMIT) else before.goalDays
+    )
 
     /** Rebuilds the profile from a newest-first history (saves made before profiles existed). */
     fun rebuild(newestFirst: List<GameRecord>): Progress =
@@ -161,14 +174,16 @@ object ProgressTracker {
             p.totalPlayMs, p.bestScore, p.bestLine, p.mostLinesInGame, p.longestGameMoves
         ).joinToString(","),
         p.days.joinToString(","),
-        p.achievements.entries.joinToString(",") { "${it.key}:${it.value}" }
+        p.achievements.entries.joinToString(",") { "${it.key}:${it.value}" },
+        p.bonusXp.toString(),
+        p.goalDays.joinToString(",")
     ).joinToString("|")
 
     /** Validates untrusted stored data; anything wrong falls back to an empty profile. */
     fun decode(text: String?): Progress {
         if (text.isNullOrEmpty()) return empty()
         val parts = text.split("|")
-        if (parts.size != 4 || parts[0] != VERSION) return empty()
+        if ((parts[0] != VERSION || parts.size != 6) && (parts[0] != V1 || parts.size != 4)) return empty()
         val n = parts[1].split(",").map { it.toLongOrNull()?.takeIf { v -> v >= 0 } ?: return empty() }
         if (n.size != 11) return empty()
         val days = if (parts[2].isEmpty()) emptyList() else parts[2].split(",").filter { DAY_RE.matches(it) }
@@ -186,7 +201,9 @@ object ProgressTracker {
             totalLines = n[3].toInt(), totalBalls = n[4].toInt(), totalMoves = n[5].toInt(),
             totalPlayMs = n[6], bestScore = n[7].toInt(), bestLine = n[8].toInt(),
             mostLinesInGame = n[9].toInt(), longestGameMoves = n[10].toInt(),
-            days = days.takeLast(DAYS_LIMIT), achievements = achievements
+            days = days.takeLast(DAYS_LIMIT), achievements = achievements,
+            bonusXp = if (parts.size == 6) parts[4].toIntOrNull()?.takeIf { it >= 0 } ?: 0 else 0,
+            goalDays = if (parts.size == 6 && parts[5].isNotEmpty()) parts[5].split(",").filter { DAY_RE.matches(it) }.takeLast(DAYS_LIMIT) else emptyList()
         )
     }
 }

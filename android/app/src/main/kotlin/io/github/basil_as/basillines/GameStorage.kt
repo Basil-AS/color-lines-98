@@ -58,6 +58,17 @@ class GameStorage(context: Context) {
         }
         set(value) = prefs.edit().putString(KEY_LEDGER, io.github.basil_as.basillines.engine.Json.write(io.github.basil_as.basillines.engine.Careers.encode(value))).apply()
 
+    /** The goals completed on a day (ids); only the latest day is kept. */
+    fun loadGoalsDone(day: String): List<String> {
+        val raw = prefs.getString(KEY_GOALS, null) ?: return emptyList()
+        val (d, ids) = raw.split("|", limit = 2).let { it[0] to it.getOrElse(1) { "" } }
+        return if (d == day && ids.isNotEmpty()) ids.split(",") else emptyList()
+    }
+
+    fun saveGoalsDone(day: String, ids: List<String>) {
+        prefs.edit().putString(KEY_GOALS, day + "|" + ids.joinToString(",")).apply()
+    }
+
     var bestScore: Int
         get() = prefs.getInt(KEY_BEST, 0).coerceAtLeast(0)
         set(value) = prefs.edit().putInt(KEY_BEST, value).apply()
@@ -105,6 +116,7 @@ class GameStorage(context: Context) {
     companion object {
         private const val KEY_THEME = "theme"
         private const val KEY_LANG = "language"
+        private const val KEY_GOALS = "goals_done"
         private const val KEY_LEDGER = "ledger"
         private const val KEY_MODE = "mode"
         private const val KEY_BEST = "best_score"

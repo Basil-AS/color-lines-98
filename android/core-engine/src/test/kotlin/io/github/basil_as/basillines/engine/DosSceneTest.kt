@@ -129,4 +129,14 @@ class DosSceneTest {
         }
         assertNotEquals(label(true), label(false))
     }
+
+    @Test
+    fun thePretenderAnimatesToo() {
+        fun frame(now: Long): SpriteRect {
+            val st = DosState(List(81) { null }, null, emptyList(), false, 0, 100, false, now)
+            return DosScene.build(st).filterIsInstance<DosDraw.Image>().first { it.dx == DosSprites.PRETENDER_POS.first && it.dy == DosSprites.PRETENDER_POS.second }.src
+        }
+        assertEquals(DosSprites.pretenderRect(0), frame(0))
+        assertEquals(DosSprites.pretenderRect(5), frame(3700))
+    }
 }

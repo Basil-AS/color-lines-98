@@ -77,6 +77,7 @@ import io.github.basil_as.basillines.engine.Hall
 import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.GameEngine
 import io.github.basil_as.basillines.engine.GameStats
+import io.github.basil_as.basillines.engine.Goals
 import io.github.basil_as.basillines.engine.Hint
 import io.github.basil_as.basillines.engine.Hinter
 import io.github.basil_as.basillines.engine.Levels
@@ -136,9 +137,9 @@ private fun colorScheme(p: Palette): ColorScheme {
     }
 }
 
-private data class LastResult(val xp: Int = 0, val levelUp: Int? = null, val unlocked: List<String> = emptyList())
+private data class LastResult(val xp: Int = 0, val levelUp: Int? = null, val unlocked: List<String> = emptyList(), val goalXp: Int = 0)
 
-private enum class Dialog { NONE, HELP, STATS, SETTINGS, NEW_GAME }
+private enum class Dialog { NONE, HELP, STATS, SETTINGS, NEW_GAME, GOALS }
 
 private const val HINTS_PER_GAME = 3
 
@@ -151,7 +152,9 @@ private data class GameExtras(
     val clock: String? = null,
     val hintsLeft: Int = 0,
     val onHint: () -> Unit = {},
-    val onChangeMode: () -> Unit = {}
+    val onChangeMode: () -> Unit = {},
+    val goalsLabel: String = "",
+    val onGoals: () -> Unit = {}
 )
 
 private fun dayKey(): String {
@@ -174,6 +177,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var version by remember { mutableIntStateOf(0) }
     var history by remember { mutableStateOf(storage.history) }
     var ledger by remember { mutableStateOf(storage.ledger) }
+    var goalsDone by remember { mutableStateOf(storage.loadGoalsDone(dayKey())) }
     var dataMessage by remember { mutableStateOf<String?>(null) }
     var pendingImport by remember { mutableStateOf<io.github.basil_as.basillines.engine.Backup?>(null) }
     var progress by remember { mutableStateOf<Progress>(storage.progress) }
@@ -228,16 +232,29 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         storage.ledger = ledger
         val before = progress
         val applied = ProgressTracker.applyGame(before, rec)
-        progress = applied.progress
-        storage.progress = applied.progress
+        // Daily goals: the experience of every newly completed goal, once.
+        val goalDay = ProgressTracker.dayKey(rec.endedAt)
+        val dayGoals = Goals.daily(history, goalDay)
+        val doneNow = Goals.evaluate(dayGoals, history.filter { ProgressTracker.dayKey(it.endedAt) == goalDay }).filter { it.done }.map { it.goal.id }
+        val alreadyDone = storage.loadGoalsDone(goalDay)
+        val goalBonus = Goals.bonus(alreadyDone, doneNow, dayGoals.size)
+        var nextProgress = applied.progress
+        if (goalBonus.newlyDone.isNotEmpty()) {
+            nextProgress = ProgressTracker.applyGoalBonus(nextProgress, goalDay, goalBonus)
+            storage.saveGoalsDone(goalDay, doneNow)
+            if (goalDay == dayKey()) goalsDone = doneNow
+        }
+        progress = nextProgress
+        storage.progress = nextProgress
         val levelBefore = Levels.info(ProgressTracker.xpOf(before)).level
-        val levelAfter = Levels.info(ProgressTracker.xpOf(applied.progress)).level
+        val levelAfter = Levels.info(ProgressTracker.xpOf(nextProgress)).level
         if (completed) {
             hall = Hall.insert(hall, HallEntry(playerName.ifBlank { defaultName }, rec.score, rec.endedAt))
             storage.hall = hall
         }
         lastResult = LastResult(
-            xp = ProgressTracker.xpOf(applied.progress) - ProgressTracker.xpOf(before),
+            xp = ProgressTracker.xpOf(nextProgress) - ProgressTracker.xpOf(before),
+            goalXp = goalBonus.xp,
             levelUp = if (levelAfter > levelBefore) levelAfter else null,
             unlocked = applied.unlocked
         )
@@ -452,6 +469,13 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             hintTarget = hint?.takeIf { engine.selectedPoint == it.from }?.to
         )
     }
+    // Goals are fixed for the day from earlier results; progress includes the game in play.
+    val today = remember(version) { dayKey() }
+    val goalProgress = remember(version, history) {
+        val goals = Goals.daily(history, today)
+        val live = if (!engine.isGameOver && engine.moves > 0) listOf(GameStats.recordFrom(engine, false, System.currentTimeMillis())) else emptyList()
+        Goals.evaluate(goals, (live + history).filter { ProgressTracker.dayKey(it.endedAt) == today })
+    }
     val extras = GameExtras(
         mode = engine.mode,
         modeLabel = stringResource(
@@ -467,7 +491,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         },
         hintsLeft = if (gameOverNow(engine)) 0 else hintsLeft,
         onHint = ::onHint,
-        onChangeMode = ::onNewGame
+        onChangeMode = ::onNewGame,
+        goalsLabel = stringResource(R.string.goals_button, goalProgress.count { it.done }.toString(), goalProgress.size.toString()),
+        onGoals = { dialog = Dialog.GOALS }
     )
     val score = remember(version) { engine.score }
     val nextColors = remember(version) { engine.nextColors }
@@ -574,7 +600,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 xpGained = lastResult.xp,
                 levelUp = lastResult.levelUp,
                 unlocked = lastResult.unlocked,
-                onPlayAgain = ::onNewGame
+                onPlayAgain = ::onNewGame,
+                goalXp = lastResult.goalXp
             )
         } else {
             when (dialog) {
@@ -591,6 +618,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     onStart = { startGame(pickedMode) },
                     onKeep = { dialog = Dialog.NONE }
                 )
+                Dialog.GOALS -> GoalsDialog(goalProgress, ProgressTracker.currentStreak(progress.goalDays, today), onClose = { dialog = Dialog.NONE })
                 Dialog.HELP -> HelpDialog(onClose = { dialog = Dialog.NONE })
                 Dialog.STATS -> StatsDialog(
                     history = history,
@@ -812,6 +840,11 @@ private fun ModeBar(palette: Palette, extras: GameExtras) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(extras.modeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textMuted)
             ModeDots(extras.mode, Modifier.padding(start = 8.dp))
+        }
+        if (extras.goalsLabel.isNotEmpty()) {
+            androidx.compose.material3.TextButton(onClick = extras.onGoals, contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 0.dp)) {
+                Text(extras.goalsLabel, fontSize = 13.sp, color = palette.accent)
+            }
         }
         if (extras.clock != null) {
             Text(
