@@ -107,14 +107,14 @@ Android strings are generated from `src/i18n.ts`; after changing texts run
 
 ## Releases
 
-Push a tag `vX.Y.Z` that matches `package.json` and `versionName` in `android/app/build.gradle.kts`. The release
-workflow tests everything and publishes `ColorLines-X.Y.Z.apk` and `ColorLines-X.Y.Z-web.zip`. Every push to `main`
-deploys the web app to GitHub Pages.
+Releases are automatic: when a pull request is merged to `main` and `package.json` and `versionName` in
+`android/app/build.gradle.kts` hold a version without a release, the pipeline tests everything and publishes the
+signed `ColorLines-X.Y.Z.apk`, `ColorLines-X.Y.Z-web.zip` and `SHA256SUMS.txt`. Every push to `main` deploys the web app
+to GitHub Pages.
 
 ## Credits
 
-Color Lines (1992) by Gamos: Oleg Demin, Gennady Denisov, Igor Ivkin. Lines 98 (1998) by Dmitry Kivilev.
-Research notes are in [`docs/RESEARCH_REPORT.md`](docs/RESEARCH_REPORT.md).
+Color Lines (1992) by Gamos: Oleg Demin, Gennady Denisov, Igor Ivkin. A comparison of twelve implementations is in [`docs/COMPARISON.md`](docs/COMPARISON.md) ([по-русски](docs/COMPARISON.ru.md)).
 
 ## License
 
