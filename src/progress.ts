@@ -216,8 +216,14 @@ export function applyGame(before: Progress, record: GameRecord): AppliedGame {
   progress.gamesByMode[mode]++;
   progress.bestByMode[mode] = Math.max(progress.bestByMode[mode], record.score);
 
+  return awardAchievements(progress, record);
+}
+
+/** Unlocks every achievement whose condition now holds; the input is not modified. */
+export function awardAchievements(before: Progress, record: GameRecord): AppliedGame {
+  const progress: Progress = { ...before, achievements: { ...before.achievements } };
   const level = levelInfo(xpOf(progress)).level;
-  const streak = currentStreak(days, dayKey(record.endedAt));
+  const streak = currentStreak(progress.days, dayKey(record.endedAt));
   const unlocked: string[] = [];
   for (const a of ACHIEVEMENTS) {
     if (progress.achievements[a.id] === undefined && a.test(progress, record, level, streak)) {

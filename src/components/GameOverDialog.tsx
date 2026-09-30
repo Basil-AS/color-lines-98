@@ -12,7 +12,11 @@ interface GameOverDialogProps {
   levelUp: number | null;
   /** Ids of the achievements unlocked with this game. */
   unlocked: string[];
+  /** Goals completed with this game and the experience they gave. */
+  goalsReached: string[];
+  goalXp: number;
   onPlayAgain: () => void;
+  onChangeMode: () => void;
 }
 
 export function GameOverDialog(props: GameOverDialogProps) {
@@ -32,6 +36,20 @@ export function GameOverDialog(props: GameOverDialogProps) {
         </div>
       </dl>
       {props.xpGained > 0 && <p className="xp-line">{t('gameover.xp', { xp: props.xpGained })}</p>}
+      {props.goalsReached.length > 0 && (
+        <div className="unlocked-box">
+          <h3 className="stats-subtitle">{t('goals.reached')}</h3>
+          <ul className="ach-list">
+            {props.goalsReached.map((text) => (
+              <li key={text} className="ach-item unlocked">
+                <span className="ach-mark" aria-hidden="true">✔</span>
+                <span className="ach-text"><strong>{text}</strong></span>
+              </li>
+            ))}
+          </ul>
+          <p className="xp-line">{t('gameover.xp', { xp: props.goalXp })}</p>
+        </div>
+      )}
       {props.levelUp !== null && <p className="record-banner">{t('gameover.levelUp', { level: props.levelUp })}</p>}
       {props.unlocked.length > 0 && (
         <div className="unlocked-box">
@@ -52,6 +70,9 @@ export function GameOverDialog(props: GameOverDialogProps) {
       <div className="modal-actions">
         <button type="button" className="modal-btn" onClick={props.onPlayAgain} data-autofocus>
           {t('gameover.playAgain')}
+        </button>
+        <button type="button" className="modal-btn modal-btn-secondary" onClick={props.onChangeMode}>
+          {t('newgame.changeMode')}
         </button>
       </div>
     </Dialog>

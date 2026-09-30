@@ -14,6 +14,11 @@ import {
   VolumeX,
 } from 'lucide-react';
 import { GameEngine } from './engine/gameengine';
+import { MODES } from './engine/modes';
+import type { ModeId } from './engine/modes';
+import { createEngine, remainingMs, todayKey } from './modes';
+import { dailyGoals, evaluateGoals, goalBonus } from './goals';
+import type { Goal } from './goals';
 import type { BallColor, Point } from './engine/models';
 import { pointsEqual } from './engine/models';
 import { soundManager } from './audio';
@@ -29,7 +34,9 @@ import {
   loadBestScore,
   loadGame,
   loadHistory,
+  loadGoalsDone,
   loadLanguagePref,
+  loadMode,
   loadProgress,
   loadHall,
   loadPlayerName,
@@ -39,7 +46,9 @@ import {
   saveBestScore,
   saveGame,
   saveHistory,
+  saveGoalsDone,
   saveLanguagePref,
+  saveMode,
   saveProgress,
   saveHall,
   savePlayerName,
@@ -50,7 +59,7 @@ import {
 import type { LanguagePref, Theme } from './storage';
 import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
-import { applyGame, levelInfo, rebuildProgress, xpOf } from './progress';
+import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
 import { defaultSpawnPreview, soundProfile } from './themes';
 import { DosScreen } from './dos/DosScreen';
@@ -62,6 +71,9 @@ import { InstallDialog } from './components/InstallDialog';
 import { LedNumber } from './components/LedNumber';
 import { useInstall } from './pwa/useInstall';
 import { GameOverDialog } from './components/GameOverDialog';
+import { GoalsDialog } from './components/GoalsDialog';
+import { GoalsPanel } from './components/GoalsPanel';
+import { NewGameDialog } from './components/NewGameDialog';
 import { HelpDialog } from './components/HelpDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { StatsDialog } from './components/StatsDialog';
@@ -103,6 +115,16 @@ function withRecord(history: readonly GameRecord[], engine: GameEngine, complete
   return addRecord(history, recordFromEngine(engine, completed, Date.now()));
 }
 
+function goalLabel(lang: Language, goal: Goal): string {
+  const target = goal.type === 'efficiency' ? goal.target.toFixed(1) : String(Math.round(goal.target));
+  return translate(lang, `goals.${goal.type}` as MessageKey, { target });
+}
+
+function formatClock(ms: number): string {
+  const total = Math.ceil(ms / 1000);
+  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function ballThemeClass(theme: Theme): string {
   if (theme === 'lines98') return '';
   return theme === 'colorlines92' ? 'ball-dos' : 'ball-modern';
@@ -123,12 +145,14 @@ function getSpriteUrl(color: BallColor): string {
 }
 
 export default function App() {
-  const [engine] = useState(() => loadGame() ?? new GameEngine(BOARD_SIZE, 3, 5, 'gamos'));
+  const [engine, setEngine] = useState<GameEngine>(() => loadGame() ?? createEngine(loadMode()));
+  const [today, setToday] = useState(() => todayKey());
+  const [newGameMode, setNewGameMode] = useState<ModeId | null>(null);
   const [, setVersion] = useState(0); // Bumped after every engine mutation to re-render
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [langPref, setLangPref] = useState<LanguagePref>(loadLanguagePref);
   const [soundEnabled, setSoundEnabled] = useState(() => soundManager.isEnabled);
-  const [dialog, setDialog] = useState<'help' | 'stats' | 'settings' | null>(null);
+  const [dialog, setDialog] = useState<'help' | 'stats' | 'settings' | 'newgame' | 'goals' | null>(null);
   const [history, setHistory] = useState(loadHistory);
   const [progress, setProgress] = useState<Progress>(() => {
     const saved = loadProgress();
@@ -146,12 +170,15 @@ export default function App() {
     engine.score > kingOf(loadHall()).score ? -1e9 : null
   );
   const [playerName, setPlayerName] = useState(loadPlayerName);
-  const [lastResult, setLastResult] = useState<{ xp: number; levelUp: number | null; unlocked: string[] }>({
+  const [lastResult, setLastResult] = useState<{ xp: number; levelUp: number | null; unlocked: string[]; goals: string[]; goalXp: number }>({
     xp: 0,
     levelUp: null,
     unlocked: [],
+    goals: [],
+    goalXp: 0,
   });
   const lastActionAt = useRef(0);
+  const [goalsDone, setGoalsDone] = useState<string[]>(() => loadGoalsDone(todayKey()));
   const [bestScore, setBestScore] = useState(() =>
     Math.max(loadBestScore(), summarize(loadHistory()).bestScore)
   );
@@ -181,21 +208,44 @@ export default function App() {
     const record = withRecord(history, engine, completed)[0];
     const nextHistory = addRecord(history, record);
     const applied = applyGame(progress, record);
+    let nextProgress = applied.progress;
+    let unlocked = applied.unlocked;
+
+    // Daily goals: the experience of every newly completed goal, once.
+    const day = dayKey(record.endedAt);
+    const goals = dailyGoals(nextHistory, day);
+    const todays = nextHistory.filter((g) => dayKey(g.endedAt) === day);
+    const nowDone = evaluateGoals(goals, todays).filter((g) => g.done).map((g) => g.goal.id);
+    const alreadyDone = day === today ? goalsDone : loadGoalsDone(day);
+    const bonus = goalBonus(alreadyDone, nowDone, goals.length);
+    let reachedLabels: string[] = [];
+    if (bonus.newlyDone.length > 0) {
+      nextProgress = applyGoalBonus(nextProgress, day, bonus);
+      const extra = awardAchievements(nextProgress, record);
+      nextProgress = extra.progress;
+      unlocked = [...unlocked, ...extra.unlocked];
+      saveGoalsDone(day, nowDone);
+      if (day === today) setGoalsDone(nowDone);
+      reachedLabels = goals.filter((g) => bonus.newlyDone.includes(g.id)).map((g) => goalLabel(lang, g));
+    }
+
     setHistory(nextHistory);
     saveHistory(nextHistory);
-    setProgress(applied.progress);
-    saveProgress(applied.progress);
+    setProgress(nextProgress);
+    saveProgress(nextProgress);
     if (completed) {
       const nextHall = insertScore(hall, { name: playerName || t('dos.defaultName'), score: record.score, at: record.endedAt });
       setHall(nextHall);
       saveHall(nextHall);
     }
     const before = levelInfo(xpOf(progress)).level;
-    const after = levelInfo(xpOf(applied.progress)).level;
+    const after = levelInfo(xpOf(nextProgress)).level;
     const reward = {
-      xp: xpOf(applied.progress) - xpOf(progress),
+      xp: xpOf(nextProgress) - xpOf(progress),
       levelUp: after > before ? after : null,
-      unlocked: applied.unlocked,
+      unlocked,
+      goals: reachedLabels,
+      goalXp: bonus.xp,
     };
     setLastResult(reward);
     return reward;
@@ -301,16 +351,19 @@ export default function App() {
       saveBestScore(engine.score);
     }
 
-    if (res.isGameOver) {
-      const newBest = isNewRecord(engine.score, bestAtGameStart);
-      soundManager.play(newBest ? 'record' : 'lose');
-      setAnnouncement(t('announce.gameOver', { score: engine.score }));
-      const reward = recordGame(true);
-      // The progress rewards follow the result after a short pause so the sounds do not blur together.
-      if (reward.levelUp !== null) window.setTimeout(() => soundManager.play('levelUp'), 1100);
-      else if (reward.unlocked.length > 0) window.setTimeout(() => soundManager.play('achievement'), 1100);
-    }
+    if (res.isGameOver) finishGame();
     commit();
+  };
+
+  /** The game just ended (board full or time up): sound, result, record and the follow-up rewards. */
+  const finishGame = () => {
+    const newBest = isNewRecord(engine.score, bestAtGameStart);
+    soundManager.play(newBest ? 'record' : 'lose');
+    setAnnouncement(t('announce.gameOver', { score: engine.score }));
+    const reward = recordGame(true);
+    // The progress rewards follow the result after a short pause so the sounds do not blur together.
+    if (reward.levelUp !== null) window.setTimeout(() => soundManager.play('levelUp'), 1100);
+    else if (reward.unlocked.length > 0 || reward.goals.length > 0) window.setTimeout(() => soundManager.play('achievement'), 1100);
   };
 
   const handleCellKeyDown = (e: KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
@@ -338,17 +391,36 @@ export default function App() {
     }
   };
 
-  const handleNewGame = () => {
-    // Abandoning a game in progress still counts towards the history.
+  /** Starts a game in the given mode; a game in progress is recorded as unfinished. */
+  const startGame = (mode: ModeId) => {
     if (!engine.isGameOver && engine.moves > 0) recordGame(false);
-    engine.startNewGame();
+    const next = createEngine(mode);
+    setEngine(next);
+    saveMode(mode);
+    saveGame(next);
+    setToday(todayKey());
     lastActionAt.current = 0;
     setEffects([]);
     setCoronationStart(null);
     setBestAtGameStart(bestScore);
+    setDialog(null);
+    setNewGameMode(null);
     soundManager.play('start');
     setAnnouncement(t('announce.newGame'));
-    commit();
+    setVersion((v) => v + 1);
+  };
+
+  /** Every "new game" button opens the dialog: it names the mode and warns before a game is thrown away. */
+  const requestNewGame = () => {
+    setNewGameMode(null);
+    setDialog('newgame');
+  };
+
+  const handleNewGame = requestNewGame;
+
+  const playDaily = () => {
+    setNewGameMode('daily');
+    setDialog('newgame');
   };
 
   const closeDialog = useCallback(() => setDialog(null), []);
@@ -370,6 +442,39 @@ export default function App() {
   }, [theme]);
 
   const dos = theme === 'colorlines92';
+
+  // Blitz: count the active time down while the game is visible and no window is open.
+  const timed = MODES[engine.mode].timeLimitMs !== null && !engine.isGameOver;
+  useEffect(() => {
+    if (!timed || dialog !== null) return;
+    let last = performance.now();
+    const timer = window.setInterval(() => {
+      const now = performance.now();
+      if (!document.hidden) engine.addPlayTime(now - last);
+      last = now;
+      if (remainingMs(engine.mode, engine) === 0) {
+        window.clearInterval(timer);
+        engine.endGame();
+        finishGame();
+      }
+      commit();
+    }, 250);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timed, dialog, engine]);
+
+  // A new day brings new goals.
+  useEffect(() => {
+    const onVisible = () => {
+      const now = todayKey();
+      if (!document.hidden && now !== today) {
+        setToday(now);
+        setGoalsDone(loadGoalsDone(now));
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, [today]);
   const install = useInstall();
   const [showInstallHelp, setShowInstallHelp] = useState(false);
 
@@ -486,12 +591,64 @@ export default function App() {
       </button>
     ) : null;
 
+  // Goals: fixed for the day from the player's earlier results; progress includes the game in play.
+  const goals = dailyGoals(history, today);
+  const todaysGames = history.filter((g) => dayKey(g.endedAt) === today);
+  const liveGame = !engine.isGameOver && engine.moves > 0 ? [withRecord(history, engine, false)[0]] : [];
+  const goalProgress = evaluateGoals(goals, [...liveGame, ...todaysGames]);
+  const doneCount = goalProgress.filter((g) => g.done).length;
+  const goalStreak = currentStreak(progress.goalDays, today);
+  const dailyToday = todaysGames.filter((g) => g.mode === 'daily');
+  const dailyBest = dailyToday.length === 0 ? null : Math.max(...dailyToday.map((g) => g.score));
+  const timeLeft = remainingMs(engine.mode, engine);
+
+  const modeStrip = (
+    <div className="mode-strip">
+      <button type="button" className="strip-btn" onClick={requestNewGame} title={t('newgame.changeMode')}>
+        {t('mode.label')}: {t(`mode.${engine.mode}` as MessageKey)}
+      </button>
+      {timeLeft !== null && (
+        <span className={`strip-timer ${timeLeft < 20_000 ? 'low' : ''}`} role="timer" aria-label={t('mode.timeLeft', { time: formatClock(timeLeft) })}>
+          {formatClock(timeLeft)}
+        </span>
+      )}
+      <button type="button" className="strip-btn" onClick={() => setDialog('goals')}>
+        {t('goals.button', { done: doneCount, total: goals.length })}
+      </button>
+    </div>
+  );
+
+  const sidePanel = (
+    <aside className="side-panel" aria-label={t('goals.title')}>
+      <GoalsPanel lang={lang} goals={goalProgress} goalStreak={goalStreak} dailyBest={dailyBest} onPlayDaily={playDaily} />
+    </aside>
+  );
+
   const dialogs = (
     <>
       {showInstallHelp && (install.kind === 'ios' || install.kind === 'safari-mac') && (
         <InstallDialog lang={lang} kind={install.kind} onClose={() => setShowInstallHelp(false)} />
       )}
-      {engine.isGameOver && (
+      {dialog === 'newgame' && (
+        <NewGameDialog
+          lang={lang}
+          current={newGameMode ?? engine.mode}
+          inProgress={!engine.isGameOver && engine.moves > 0 ? { score: engine.score, moves: engine.moves } : null}
+          onStart={startGame}
+          onClose={closeDialog}
+        />
+      )}
+      {dialog === 'goals' && (
+        <GoalsDialog
+          lang={lang}
+          goals={goalProgress}
+          goalStreak={goalStreak}
+          dailyBest={dailyBest}
+          onPlayDaily={playDaily}
+          onClose={closeDialog}
+        />
+      )}
+      {engine.isGameOver && dialog !== 'newgame' && dialog !== 'goals' && (
         <GameOverDialog
           lang={lang}
           score={engine.score}
@@ -500,7 +657,10 @@ export default function App() {
           xpGained={lastResult.xp}
           levelUp={lastResult.levelUp}
           unlocked={lastResult.unlocked}
-          onPlayAgain={handleNewGame}
+          goalsReached={lastResult.goals}
+          goalXp={lastResult.goalXp}
+          onPlayAgain={() => startGame(engine.mode)}
+          onChangeMode={requestNewGame}
         />
       )}
       {!engine.isGameOver && dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
@@ -608,6 +768,7 @@ export default function App() {
           {cellButtons(false)}
         </div>
       </DosScreen>
+      {modeStrip}
       <div className="dos-tools">
         <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={!engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
           <Undo2 size={20} aria-hidden="true" />
@@ -627,11 +788,17 @@ export default function App() {
   );
 
   if (dos) {
-    return <div className={`app-container theme-${theme}`}>{dosView}{dialogs}</div>;
+    return (
+      <div className={`app-container theme-${theme} has-side`}>
+        {dosView}
+        {sidePanel}
+        {dialogs}
+      </div>
+    );
   }
 
   return (
-    <div className={`app-container theme-${theme}`}>
+    <div className={`app-container theme-${theme} has-side`}>
       <div className="game-window">
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
@@ -798,6 +965,8 @@ export default function App() {
         </header>
         )}
 
+        {modeStrip}
+
         <main className="board-container">
           <div className="board-grid" role="group" aria-label={t('board.label')}>
             {cellButtons(true)}
@@ -807,6 +976,7 @@ export default function App() {
         {footerNode}
       </div>
 
+      {sidePanel}
       {dialogs}
     </div>
   );

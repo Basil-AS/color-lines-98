@@ -21,9 +21,15 @@ for (const theme of THEMES) {
       await page.waitForTimeout(400);
 
       const m = await page.evaluate(() => {
-        const r = document.querySelector('.game-window')!.getBoundingClientRect();
+        // On wide screens the goals panel sits next to the game: the two together are what gets centred.
+        const boxes = [document.querySelector('.game-window'), document.querySelector('.side-panel')]
+          .filter((el): el is Element => el !== null)
+          .map((el) => el.getBoundingClientRect())
+          .filter((r) => r.width > 0);
+        const left = Math.min(...boxes.map((r) => r.left));
+        const right = Math.max(...boxes.map((r) => r.right));
         const d = document.documentElement;
-        return { left: r.left, right: window.innerWidth - r.right, overflow: d.scrollWidth > window.innerWidth };
+        return { left, right: window.innerWidth - right, overflow: d.scrollWidth > window.innerWidth };
       });
       expect(Math.abs(m.left - m.right)).toBeLessThanOrEqual(2);
       expect(m.overflow).toBe(false);

@@ -19,7 +19,11 @@ test('plays a move, keeps the game after a reload and starts a new one', async (
   await page.reload();
   expect(await page.locator('.board-cell').evaluateAll((els) => els.map((e) => e.getAttribute('aria-label')))).toEqual(after);
 
+  // A game in progress: the dialog warns first, and "Keep playing" is what has the focus.
   await page.getByRole('button', { name: 'New game' }).click();
+  await expect(page.getByRole('alert')).toContainText('unfinished');
+  await expect(page.getByRole('button', { name: 'Keep playing' })).toBeFocused();
+  await page.getByRole('button', { name: 'Start', exact: true }).click();
   await expect(page.locator('.board-cell[aria-pressed]')).toHaveCount(5);
   expect(errors).toEqual([]);
 });
