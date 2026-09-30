@@ -201,7 +201,7 @@ describe('language', () => {
 });
 
 describe('themes', () => {
-  it.each(['modern', 'light', 'lines98', 'colorlines92'])('applies and remembers the %s theme', async (theme) => {
+  it.each(['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'])('applies and remembers the %s theme', async (theme) => {
     const user = userEvent.setup();
     const first = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
@@ -209,6 +209,9 @@ describe('themes', () => {
     const names: Record<string, RegExp> = {
       modern: /Modern dark/,
       light: /Modern light/,
+      material: /^Material/,
+      neon: /Neon/,
+      contrast: /High contrast/,
       lines98: /Lines 98/,
       colorlines92: /Color Lines 1992/,
     };
