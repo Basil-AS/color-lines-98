@@ -49,7 +49,7 @@ class MainScreenTest {
 
     /** "New game" now opens a dialog; this presses its Start button. */
     private fun confirmNewGame() {
-        rule.onNode(hasText("Start")).performClick()
+        rule.onNode(hasText("Start", substring = true)).performClick()
         rule.waitForIdle()
     }
 
@@ -182,11 +182,35 @@ class MainScreenTest {
     }
 
     @Test
+    fun modesShowTheirColoursClockAndWhatASwitchDoes() {
+        playOneMove()
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(hasText("7 colours, no time limit", substring = true)).onFirst().assertExists()
+        rule.onNode(hasText("5 colours", substring = true)).assertExists()
+        rule.onNode(hasText("3 min", substring = true)).assertExists()
+        rule.onNode(hasText("Blitz")).performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("switching from Classic to Blitz", substring = true)).assertIsDisplayed()
+        rule.onNode(hasText("Start: Blitz")).assertExists()
+        rule.onAllNodes(hasText("counted as unfinished", substring = true)).onFirst().assertExists()
+    }
+
+    @Test
+    fun theHelpExplainsTheModes() {
+        rule.onNodeWithContentDescription("Rules and info").performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Game modes")).performScrollTo().assertExists()
+        rule.onNode(hasText("Easy: only 5 colours", substring = true)).performScrollTo().assertExists()
+        rule.onNode(hasText("Daily challenge: everyone gets the same balls", substring = true)).performScrollTo().assertExists()
+    }
+
+    @Test
     fun aFreshGameHasNoWarning() {
         rule.onNodeWithContentDescription("New game").performClick()
         rule.waitForIdle()
         assertTrue(rule.onAllNodes(hasText("counted as unfinished", substring = true)).fetchSemanticsNodes().isEmpty())
-        rule.onNode(hasText("Start")).assertIsDisplayed()
+        rule.onNode(hasText("Start", substring = true)).assertIsDisplayed()
     }
 
     @Test

@@ -23,7 +23,7 @@ test('plays a move, keeps the game after a reload and starts a new one', async (
   await page.getByRole('button', { name: 'New game' }).click();
   await expect(page.getByRole('alert')).toContainText('unfinished');
   await expect(page.getByRole('button', { name: 'Keep playing' })).toBeFocused();
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: /^Start/ }).click();
   await expect(page.locator('.board-cell[aria-pressed]')).toHaveCount(5);
   expect(errors).toEqual([]);
 });

@@ -83,13 +83,13 @@ private const val PIXEL_ASPECT = 480f / 350f
 
 /** The parts of the 640x350 artwork the reflowed screen is built from (scene pixels). */
 private object Regions {
-    val TOP = SpriteRect(0, 0, 640, 46)
+    val TOP = SpriteRect(0, 0, 640, 40)
     val BOARD = SpriteRect(165, 55, 318, 228)
     val BUTTONS = SpriteRect(0, 316, 640, 34)
     val KING = SpriteRect(42, 66, 88, 92)
     val KING_FULL = SpriteRect(30, 62, 116, 204)
     val PRETENDER = SpriteRect(500, 150, 80, 74)
-    val PRETENDER_FULL = SpriteRect(490, 150, 100, 118)
+    val PRETENDER_FULL = SpriteRect(490, 150, 100, 88)
 }
 
 private fun SpriteRect.heightPerWidth() = h * PIXEL_ASPECT / w
@@ -159,8 +159,9 @@ private fun Caption(text: String) {
         text,
         color = Color(0xFFFFFF55),
         fontFamily = FontFamily(Font(R.font.unifraktur_cook)),
-        fontSize = 20.sp,
+        fontSize = 18.sp,
         maxLines = 1,
+        softWrap = false,
         textAlign = TextAlign.Center
     )
 }
@@ -263,14 +264,14 @@ fun DosLayout(
                 val headW = minOf(w * 0.27f, left / Regions.KING.heightPerWidth() * 0.85f)
                 Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     if (headW >= 64.dp) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(Modifier.width(maxOf(headW, 96.dp)), horizontalAlignment = Alignment.CenterHorizontally) {
                             SceneRegion(Regions.KING, state, clock, bitmaps, Modifier.width(headW))
                             Caption(kingName)
                         }
                     }
                     tools(true)
                     if (headW >= 64.dp) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Column(Modifier.width(maxOf(headW, 96.dp)), horizontalAlignment = Alignment.CenterHorizontally) {
                             SceneRegion(Regions.PRETENDER, state, clock, bitmaps, Modifier.width(headW * 0.85f))
                             Caption(pretenderName)
                         }

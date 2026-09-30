@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
@@ -223,6 +224,15 @@ fun HelpDialog(onClose: () -> Unit) {
                 }
                 Text(stringResource(R.string.help_movement))
                 Text(stringResource(R.string.help_freeTurn))
+                Text(stringResource(R.string.help_modes), fontWeight = FontWeight.Bold)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("• " + stringResource(R.string.help_modes_classic))
+                    Text("• " + stringResource(R.string.help_modes_easy))
+                    Text("• " + stringResource(R.string.help_modes_blitz))
+                    Text("• " + stringResource(R.string.help_modes_daily))
+                }
+                Text(stringResource(R.string.help_hint))
+                Text(stringResource(R.string.help_switching))
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
@@ -561,6 +571,8 @@ private fun InsightsSection(history: List<GameRecord>, progress: Progress, level
 @Composable
 fun NewGameDialog(
     current: ModeId,
+    playing: ModeId,
+    modeStats: Map<ModeId, Pair<Int, Int>>,
     onPick: (ModeId) -> Unit,
     inProgress: Boolean,
     score: Int,
@@ -595,6 +607,12 @@ fun NewGameDialog(
                         )
                     }
                 }
+                if (inProgress && current != playing) {
+                    Text(
+                        stringResource(R.string.newgame_switching, stringResource(modeName(playing)), stringResource(modeName(current))),
+                        Modifier.padding(bottom = 8.dp)
+                    )
+                }
                 Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 modes.forEach { (mode, name, desc) ->
                     Row(
@@ -606,8 +624,22 @@ fun NewGameDialog(
                     ) {
                         RadioButton(selected = current == mode, onClick = null)
                         Column(Modifier.padding(start = 12.dp)) {
-                            Text(stringResource(name), fontWeight = FontWeight.SemiBold)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(name), fontWeight = FontWeight.SemiBold)
+                                ModeDots(mode, Modifier.padding(start = 8.dp))
+                            }
                             Text(stringResource(desc), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            val limit = mode.timeLimitMs
+                            val facts = stringResource(
+                                R.string.mode_facts,
+                                stringResource(R.string.mode_colors, mode.colors.toString()),
+                                if (limit == null) stringResource(R.string.mode_noLimit) else stringResource(R.string.mode_minutes, (limit / 60000).toString())
+                            )
+                            val played = modeStats[mode]
+                            Text(
+                                if (played != null && played.first > 0) facts + " · " + stringResource(R.string.mode_bestIn, played.second.toString(), played.first.toString()) else facts,
+                                fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -618,13 +650,29 @@ fun NewGameDialog(
             if (inProgress) {
                 Button(onClick = onKeep) { Text(stringResource(R.string.newgame_keep)) }
             } else {
-                Button(onClick = onStart) { Text(stringResource(R.string.newgame_start)) }
+                Button(onClick = onStart) { Text(stringResource(R.string.newgame_startMode, stringResource(modeName(current)))) }
             }
         },
         dismissButton = {
             if (inProgress) {
-                OutlinedButton(onClick = onStart) { Text(stringResource(R.string.newgame_start)) }
+                OutlinedButton(onClick = onStart) { Text(stringResource(R.string.newgame_startMode, stringResource(modeName(current)))) }
             }
         }
     )
+}
+
+internal fun modeName(mode: ModeId): Int = when (mode) {
+    ModeId.CLASSIC -> R.string.mode_classic
+    ModeId.EASY -> R.string.mode_easy
+    ModeId.BLITZ -> R.string.mode_blitz
+    ModeId.DAILY -> R.string.mode_daily
+}
+
+/** The colours a mode plays with, as small dots. */
+@Composable
+internal fun ModeDots(mode: ModeId, modifier: Modifier = Modifier) {
+    val colors = io.github.basil_as.basillines.engine.Modes.colorsFor(mode)
+    Row(modifier.semantics { contentDescription = "" }, horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        colors.forEach { c -> Box(Modifier.size(9.dp).background(ballColor(c), androidx.compose.foundation.shape.CircleShape)) }
+    }
 }

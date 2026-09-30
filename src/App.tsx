@@ -85,6 +85,7 @@ import { GoalsDialog } from './components/GoalsDialog';
 import { WinMenu } from './components/WinMenu';
 import { GoalsPanel } from './components/GoalsPanel';
 import { NewGameDialog } from './components/NewGameDialog';
+import { ColorDots } from './components/ColorDots';
 import { HelpDialog } from './components/HelpDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { StatsDialog } from './components/StatsDialog';
@@ -737,8 +738,9 @@ export default function App() {
 
   const modeStrip = (
     <div className="mode-strip">
-      <button type="button" className="strip-btn" onClick={requestNewGame} title={t('newgame.changeMode')}>
-        {t('mode.label')}: {t(`mode.${engine.mode}` as MessageKey)}
+      <button type="button" className="strip-btn" onClick={requestNewGame} title={t('mode.stripHint')}>
+        {t('mode.label')}: {t(`mode.${engine.mode}` as MessageKey)} <ColorDots mode={engine.mode} />
+        <span className="sr-only">{t('mode.colors', { n: MODES[engine.mode].colors })}</span>
       </button>
       {timeLeft !== null && (
         <span className={`strip-timer ${timeLeft < 20_000 ? 'low' : ''}`} role="timer" aria-label={t('mode.timeLeft', { time: formatClock(timeLeft) })}>
@@ -767,6 +769,7 @@ export default function App() {
           lang={lang}
           current={newGameMode ?? engine.mode}
           inProgress={!engine.isGameOver && engine.moves > 0 ? { score: engine.score, moves: engine.moves } : null}
+          stats={Object.fromEntries(MODE_IDS.map((id) => [id, { games: progress.gamesByMode[id], best: progress.bestByMode[id] }])) as Record<ModeId, { games: number; best: number }>}
           onStart={startGame}
           onClose={closeDialog}
         />

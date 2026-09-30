@@ -49,6 +49,6 @@ test('F1 opens the original Help window, F3 hides the next balls, F4 restarts', 
   // F4 no longer restarts silently: it asks first.
   await page.keyboard.press('F4');
   await expect(page.getByRole('alert')).toContainText('unfinished');
-  await page.getByRole('button', { name: 'Start', exact: true }).click();
+  await page.getByRole('button', { name: /^Start/ }).click();
   await expect(balls).toHaveCount(5);
 });

@@ -32,6 +32,15 @@ export function HelpDialog({ lang, onClose }: HelpDialogProps) {
         <p>{t('help.movement')}</p>
         <p>{t('help.freeTurn')}</p>
         <p>{t('help.keyboard')}</p>
+        <h3 className="stats-subtitle">{t('help.modes')}</h3>
+        <ul className="help-scores">
+          {(['classic', 'easy', 'blitz', 'daily'] as const).map((id) => (
+            <li key={id}>{t(`help.modes.${id}` as const)}</li>
+          ))}
+        </ul>
+        <p>{t('help.hint')}</p>
+        <p>{t('help.goals')}</p>
+        <p>{t('help.switching')}</p>
       </div>
       <div className="modal-actions">
         <button type="button" className="modal-btn" onClick={onClose} data-autofocus>
