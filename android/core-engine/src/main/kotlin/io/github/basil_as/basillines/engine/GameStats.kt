@@ -12,7 +12,8 @@ data class GameRecord(
     /** Length of the longest line cleared in the game. */
     val maxLine: Int = 0,
     /** Active play time in milliseconds. */
-    val durationMs: Long = 0
+    val durationMs: Long = 0,
+    val mode: ModeId = ModeId.CLASSIC
 )
 
 data class StatsSummary(
@@ -38,7 +39,8 @@ object GameStats {
         balls = engine.ballsCleared,
         completed = completed,
         maxLine = engine.maxLine,
-        durationMs = engine.playMs
+        durationMs = engine.playMs,
+        mode = engine.mode
     )
 
     /** Newest first, capped at [HISTORY_LIMIT]. */
@@ -64,7 +66,7 @@ object GameStats {
     fun isNewRecord(score: Int, previousBest: Int): Boolean = score > 0 && score > previousBest
 
     fun encodeHistory(history: List<GameRecord>): String = history.joinToString(";") {
-        "${it.score},${it.endedAt},${it.moves},${it.lines},${it.balls},${if (it.completed) 1 else 0},${it.maxLine},${it.durationMs}"
+        "${it.score},${it.endedAt},${it.moves},${it.lines},${it.balls},${if (it.completed) 1 else 0},${it.maxLine},${it.durationMs},${it.mode.id}"
     }
 
     /** Malformed entries are dropped; never throws. */
@@ -75,7 +77,7 @@ object GameStats {
 
     private fun decodeRecord(entry: String): GameRecord? {
         val f = entry.split(",")
-        if (f.size != 6 && f.size != 8) return null
+        if (f.size != 6 && f.size != 8 && f.size != 9) return null
         val score = f[0].toIntOrNull()?.takeIf { it >= 0 } ?: return null
         val endedAt = f[1].toLongOrNull()?.takeIf { it >= 0 } ?: return null
         val moves = f[2].toIntOrNull()?.takeIf { it >= 0 } ?: return null
@@ -88,10 +90,11 @@ object GameStats {
         }
         var maxLine = 0
         var durationMs = 0L
-        if (f.size == 8) {
+        if (f.size >= 8) {
             maxLine = f[6].toIntOrNull()?.takeIf { it >= 0 } ?: return null
             durationMs = f[7].toLongOrNull()?.takeIf { it >= 0 } ?: return null
         }
-        return GameRecord(score, endedAt, moves, lines, balls, completed, maxLine, durationMs)
+        val mode = if (f.size == 9) ModeId.fromId(f[8]) ?: return null else ModeId.CLASSIC
+        return GameRecord(score, endedAt, moves, lines, balls, completed, maxLine, durationMs, mode)
     }
 }
