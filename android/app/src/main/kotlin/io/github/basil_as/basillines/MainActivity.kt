@@ -146,6 +146,7 @@ private fun gameOverNow(engine: GameEngine) = engine.isGameOver
 
 /** What the HUD needs beyond the score: the mode (and its clock) and the hint button. */
 private data class GameExtras(
+    val mode: ModeId = ModeId.CLASSIC,
     val modeLabel: String = "",
     val clock: String? = null,
     val hintsLeft: Int = 0,
@@ -371,6 +372,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         )
     }
     val extras = GameExtras(
+        mode = engine.mode,
         modeLabel = stringResource(
             when (engine.mode) {
                 ModeId.CLASSIC -> R.string.mode_classic
@@ -483,6 +485,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             when (dialog) {
                 Dialog.NEW_GAME -> NewGameDialog(
                     current = pickedMode,
+                    playing = engine.mode,
+                    modeStats = remember(history) {
+                        ModeId.entries.associateWith { m -> history.count { it.mode == m } to (history.filter { it.mode == m }.maxOfOrNull { it.score } ?: 0) }
+                    },
                     onPick = { pickedMode = it },
                     inProgress = !engine.isGameOver && engine.moves > 0,
                     score = score,
@@ -701,7 +707,10 @@ private fun ModeBar(palette: Palette, extras: GameExtras) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(extras.modeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textMuted)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(extras.modeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textMuted)
+            ModeDots(extras.mode, Modifier.padding(start = 8.dp))
+        }
         if (extras.clock != null) {
             Text(
                 extras.clock,
