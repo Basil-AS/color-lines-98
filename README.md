@@ -22,9 +22,11 @@ and a native Android app, sharing one rule set.
 - **Goals that adapt:** three daily goals derived from your own recent games (score, longest line, efficiency, beat your
   previous best), with bonus XP and a goal streak, so they stay a fair challenge as you improve.
 - **Hint:** marks a ball and where to put it (a clearing move if there is one), three per game.
-- **Seven looks** (web; Android has the same seven), remembered between launches:
-  - *Modern dark*, *Modern light*, *Material*, *Neon* and *High contrast* (every colour also has its own shape) with
-    new soft synthesised sounds;
+- **Twelve looks** (web and Android), each with its own sound voice, remembered between launches:
+  - *Modern dark*, *Modern light*, *Material*, *Neon*, *Synthwave*, *Ocean* and *Paper*: different colours, board and
+    instrument (soft sine, bell, marimba, arcade square, saw, glass, wood block);
+  - *Game Boy (1989)* (four greens, chip sound) and *Amber terminal* (phosphor orange, teletype beeps), both shape-coded;
+  - *High contrast*: white outlines, every colour also has its own shape;
   - *Lines 98 (Windows)*: grey window chrome, the original bevelled board, red LED digits, the original sprites and sounds;
   - *Color Lines 1992 (DOS)*: **the original screen from `lines.lib`**, drawn with the original sprites: the red king on
     his pillar, the magenta pretender who takes the crown when you beat the king, LCD scores, `F1`–`F4` buttons and
