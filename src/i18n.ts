@@ -607,9 +607,9 @@ const ru: Dictionary = {
   'dos.next': 'Показывать следующие шары',
   'dos.restart': 'Заново',
   'dos.topTen': 'Десятка лучших',
-  'dos.pretender': 'Претендент',
-  'dos.defaultKing': 'Гандикап',
-  'dos.defaultName': 'Игрок',
+  'dos.pretender': 'Pretender',
+  'dos.defaultKing': 'Handicap',
+  'dos.defaultName': 'Player',
   'settings.playerName': 'Ваше имя (десятка лучших)',
 
   'install.button': 'Установить',

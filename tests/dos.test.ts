@@ -178,7 +178,7 @@ const texts = (draws: ReturnType<typeof buildScene>) => draws.filter((d) => d.ki
 const cyrillic = /[А-Яа-яЁё]/;
 
 describe('localised 1992 screen', () => {
-  const ru = (over: Partial<DosState> = {}) => state({ lang: 'ru', kingName: 'Гандикап', pretenderName: 'Претендент', ...over });
+  const ru = (over: Partial<DosState> = {}) => state({ lang: 'ru', kingName: 'Handicap', pretenderName: 'Pretender', ...over });
 
   it('keeps the original artwork and only draws the names in English', () => {
     const t = texts(buildScene(state({ lang: 'en', kingName: 'Handicap', pretenderName: 'Pretender' })));
@@ -189,7 +189,7 @@ describe('localised 1992 screen', () => {
   it('puts Russian words over the English ones baked into the pictures', () => {
     const scene = buildScene(ru());
     const words = texts(scene).map((x) => x.text);
-    expect(words).toEqual(expect.arrayContaining(['Далее', 'цвета', 'ПОМОЩЬ', 'ЗВУК', 'ДАЛЕЕ', 'ЗАНОВО', 'Гандикап', 'Претендент']));
+    expect(words).toEqual(expect.arrayContaining(['Далее', 'цвета', 'ПОМОЩЬ', 'ЗВУК', 'ДАЛЕЕ', 'ЗАНОВО', 'Handicap', 'Pretender']));
     // The English button labels are not drawn any more.
     expect(scene.some((d) => d.kind === 'image' && d.img === 'sheet' && d.dy === LABEL_Y)).toBe(false);
     // A cover hides "Next" and "Colors" of the layout picture before the Russian text goes on top.
@@ -202,8 +202,11 @@ describe('localised 1992 screen', () => {
     expect(colour(true)).not.toBe(colour(false));
   });
 
-  it('draws only Cyrillic letters or the shared digits in the Russian overlay texts', () => {
-    for (const x of texts(buildScene(ru()))) expect(x.text).toMatch(/^[А-Яа-яЁё0-9 ]+$/);
+  it('draws only Cyrillic letters or the shared digits in the Russian overlay texts (the captions stay English)', () => {
+    for (const x of texts(buildScene(ru()))) {
+      if (x.text === 'Handicap' || x.text === 'Pretender') continue;
+      expect(x.text).toMatch(/^[А-Яа-яЁё0-9 ]+$/);
+    }
   });
 });
 

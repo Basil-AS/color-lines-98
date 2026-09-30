@@ -3,6 +3,22 @@ package io.github.basil_as.basillines
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.Text
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -62,12 +78,100 @@ private fun DrawScope.drawSprite(bitmap: ImageBitmap, src: SpriteRect, dx: Int, 
     )
 }
 
+/** Pixels of the original screen are 1.37 times taller than wide. */
+private const val PIXEL_ASPECT = 480f / 350f
+
+/** The parts of the 640x350 artwork the reflowed screen is built from (scene pixels). */
+private object Regions {
+    val TOP = SpriteRect(0, 0, 640, 46)
+    val BOARD = SpriteRect(165, 55, 318, 228)
+    val BUTTONS = SpriteRect(0, 316, 640, 34)
+    val KING = SpriteRect(42, 66, 88, 92)
+    val KING_FULL = SpriteRect(30, 62, 116, 204)
+    val PRETENDER = SpriteRect(500, 150, 80, 74)
+    val PRETENDER_FULL = SpriteRect(490, 150, 100, 118)
+}
+
+private fun SpriteRect.heightPerWidth() = h * PIXEL_ASPECT / w
+
+private class DosBitmaps(val layout: ImageBitmap, val sheet: ImageBitmap)
+
 /**
- * The original Color Lines (1992) screen: 640x350 artwork stretched to 4:3 like DOS pixels. It is only
- * a picture; the accessible controls sit on top of it.
+ * One rectangle of the 1992 picture drawn at its own scale, so the board can be as large as the screen allows while the
+ * rest of the original screen is arranged around it. [overlay] draws on top, in scene coordinates.
  */
 @Composable
-fun DosScreen(
+private fun SceneRegion(
+    region: SpriteRect,
+    state: DosState,
+    now: androidx.compose.runtime.State<Long>,
+    bitmaps: DosBitmaps,
+    modifier: Modifier = Modifier,
+    overlay: DrawScope.(sx: Float, sy: Float) -> Unit = { _, _ -> },
+    content: @Composable BoxScope.(unitX: androidx.compose.ui.unit.Dp, unitY: androidx.compose.ui.unit.Dp) -> Unit = { _, _ -> }
+) {
+    BoxWithConstraints(modifier.aspectRatio(1f / region.heightPerWidth())) {
+        val unitX = maxWidth / region.w
+        val unitY = maxHeight / region.h
+        Canvas(Modifier.fillMaxSize()) {
+            val sx = size.width / region.w
+            val sy = size.height / region.h
+            clipRect {
+                translate(-region.x * sx, -region.y * sy) {
+                    for (d in DosScene.build(state.copy(nowMs = now.value))) {
+                        when (d) {
+                            is DosDraw.Image -> drawSprite(if (d.img == DosImage.LAYOUT) bitmaps.layout else bitmaps.sheet, d.src, d.dx, d.dy, sx, sy)
+                            is DosDraw.Fill -> drawRect(
+                                Color(d.argb),
+                                topLeft = androidx.compose.ui.geometry.Offset(d.x * sx, d.y * sy),
+                                size = androidx.compose.ui.geometry.Size(d.w * sx, d.h * sy)
+                            )
+                        }
+                    }
+                    overlay(sx, sy)
+                }
+            }
+        }
+        content(unitX, unitY)
+    }
+}
+
+private fun DrawScope.drawWindow(bitmaps: DosBitmaps, window: DosWindow, hall: List<HallEntry>, sx: Float, sy: Float) {
+    if (window == DosWindow.NONE) return
+    val r = if (window == DosWindow.HELP) DosSprites.HELP_WINDOW else DosSprites.TOP_TEN_WINDOW
+    val (wx, wy) = DosSprites.WINDOW_POS
+    drawSprite(bitmaps.sheet, r, wx, wy, sx, sy)
+    if (window == DosWindow.TOP_TEN) {
+        hall.take(10).forEachIndexed { i, h ->
+            val y = (wy + 31 + i * 11.6f).roundToInt()
+            h.name.forEachIndexed { k, ch -> DosSprites.glyphRect(ch)?.let { drawSprite(bitmaps.sheet, it, wx + 34 + k * 9, y, sx, sy) } }
+            val score = h.score.toString()
+            score.forEachIndexed { k, ch ->
+                DosSprites.glyphRect(ch)?.let { drawSprite(bitmaps.sheet, it, wx + 210 - score.length * 9 + k * 9, y, sx, sy) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Caption(text: String) {
+    Text(
+        text,
+        color = Color(0xFFFFFF55),
+        fontFamily = FontFamily(Font(R.font.unifraktur_cook)),
+        fontSize = 20.sp,
+        maxLines = 1,
+        textAlign = TextAlign.Center
+    )
+}
+
+/**
+ * The original Color Lines (1992) screen, reflowed: the board takes the whole width in portrait and the whole height in
+ * landscape, and the king and the pretender move next to it (below it in portrait, at the sides in landscape).
+ * The captions stay in English like the original.
+ */
+@Composable
+fun DosLayout(
     state: DosState,
     kingName: String,
     pretenderName: String,
@@ -76,23 +180,16 @@ fun DosScreen(
     boardCells: @Composable (Modifier) -> Unit,
     onButton: (DosButton) -> Unit,
     onCloseWindow: () -> Unit,
+    modeBar: @Composable () -> Unit,
+    tools: @Composable (horizontal: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val layout = ImageBitmap.imageResource(context.resources, R.drawable.cl92_layout)
-    val sheet = ImageBitmap.imageResource(context.resources, R.drawable.cl92_sheet)
-    val typeface = remember { runCatching { context.resources.getFont(R.font.unifraktur_cook) }.getOrDefault(Typeface.SERIF) }
-    val paint = remember(typeface) {
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            this.typeface = typeface
-            color = android.graphics.Color.rgb(255, 255, 85)
-            textAlign = Paint.Align.CENTER
-            textSize = 22f
-        }
-    }
-
+    val bitmaps = DosBitmaps(
+        ImageBitmap.imageResource(context.resources, R.drawable.cl92_layout),
+        ImageBitmap.imageResource(context.resources, R.drawable.cl92_sheet)
+    )
     // The clock is only read while drawing, so a tick redraws the picture without recomposing it.
-    // withInfiniteAnimationFrameMillis is the API for endless animations: tests do not wait for it.
     val now = remember { mutableLongStateOf(clockMs()) }
     LaunchedEffect(Unit) {
         while (true) {
@@ -100,92 +197,111 @@ fun DosScreen(
             delay(45)
         }
     }
+    val clock = androidx.compose.runtime.remember { object : androidx.compose.runtime.State<Long> { override val value get() = now.longValue } }
 
-    BoxWithConstraints(modifier) {
-        val unitX = maxWidth / DosSprites.SCREEN_W
-        val unitY = maxHeight / DosSprites.SCREEN_H
-        Canvas(Modifier.fillMaxSize()) {
-            val sx = size.width / DosSprites.SCREEN_W
-            val sy = size.height / DosSprites.SCREEN_H
-            for (d in DosScene.build(state.copy(nowMs = now.longValue))) {
-                when (d) {
-                    is DosDraw.Image -> drawSprite(if (d.img == DosImage.LAYOUT) layout else sheet, d.src, d.dx, d.dy, sx, sy)
-                    is DosDraw.Fill -> drawRect(
-                        Color(d.argb),
-                        topLeft = androidx.compose.ui.geometry.Offset(d.x * sx, d.y * sy),
-                        size = androidx.compose.ui.geometry.Size(d.w * sx, d.h * sy)
-                    )
-                }
-            }
-            drawIntoCanvas { c ->
-                // Letters stay upright: scale by the horizontal factor only.
-                val n = c.nativeCanvas
-                n.save()
-                n.scale(sx, sx)
-                n.drawText(kingName, 88f, 262f * sy / sx, paint)
-                n.drawText(pretenderName, 541f, 262f * sy / sx, paint)
-                n.restore()
-            }
-            if (window != DosWindow.NONE) {
-                val r = if (window == DosWindow.HELP) DosSprites.HELP_WINDOW else DosSprites.TOP_TEN_WINDOW
-                val (wx, wy) = DosSprites.WINDOW_POS
-                drawSprite(sheet, r, wx, wy, sx, sy)
-                if (window == DosWindow.TOP_TEN) {
-                    hall.take(10).forEachIndexed { i, h ->
-                        val y = (wy + 31 + i * 11.6f).roundToInt()
-                        h.name.forEachIndexed { k, ch ->
-                            DosSprites.glyphRect(ch)?.let { drawSprite(sheet, it, wx + 34 + k * 9, y, sx, sy) }
-                        }
-                        val score = h.score.toString()
-                        score.forEachIndexed { k, ch ->
-                            DosSprites.glyphRect(ch)?.let { drawSprite(sheet, it, wx + 210 - score.length * 9 + k * 9, y, sx, sy) }
-                        }
-                    }
-                }
-            }
-        }
+    val labels = mapOf(
+        DosButton.HELP to stringResource(R.string.dos_help),
+        DosButton.SOUND to stringResource(R.string.dos_sound),
+        DosButton.NEXT to stringResource(R.string.dos_next),
+        DosButton.RESTART to stringResource(R.string.dos_restart)
+    )
+    val closeLabel = stringResource(R.string.btn_close)
 
-        // One accessible, focusable target per cell on top of the board.
+    @Composable
+    fun Top(m: Modifier) = SceneRegion(Regions.TOP, state, clock, bitmaps, m)
+
+    @Composable
+    fun Board(m: Modifier) = SceneRegion(
+        Regions.BOARD, state, clock, bitmaps, m,
+        overlay = { sx, sy -> drawWindow(bitmaps, window, hall, sx, sy) }
+    ) { ux, uy ->
         if (window == DosWindow.NONE) {
             boardCells(
                 Modifier
-                    .offset(unitX * DosSprites.BOARD_X, unitY * DosSprites.BOARD_Y)
-                    .size(unitX * (DosSprites.CELL_W * 9), unitY * (DosSprites.CELL_H * 9))
+                    .offset(ux * (DosSprites.BOARD_X - Regions.BOARD.x), uy * (DosSprites.BOARD_Y - Regions.BOARD.y))
+                    .size(ux * (DosSprites.CELL_W * 9), uy * (DosSprites.CELL_H * 9))
+            )
+        } else {
+            val (wx, wy) = DosSprites.WINDOW_POS
+            Box(
+                Modifier
+                    .offset(ux * (wx - Regions.BOARD.x), uy * (wy - Regions.BOARD.y))
+                    .size(ux * 238, uy * 166)
+                    .semantics { contentDescription = closeLabel; role = Role.Button }
+                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onCloseWindow)
             )
         }
+    }
 
-        val labels = mapOf(
-            DosButton.HELP to stringResource(R.string.dos_help),
-            DosButton.SOUND to stringResource(R.string.dos_sound),
-            DosButton.NEXT to stringResource(R.string.dos_next),
-            DosButton.RESTART to stringResource(R.string.dos_restart)
-        )
+    @Composable
+    fun Buttons(m: Modifier) = SceneRegion(Regions.BUTTONS, state, clock, bitmaps, m) { ux, uy ->
         DosButton.entries.forEachIndexed { i, button ->
             val description = "F${i + 1}: ${labels.getValue(button)}"
             Box(
                 Modifier
-                    .offset(unitX * (DosSprites.buttonX(button) - 36), unitY * (DosSprites.BUTTON_Y - 4))
-                    .size(unitX * 109, unitY * 22)
-                    .semantics {
-                        contentDescription = description
-                        role = Role.Button
-                    }
+                    .offset(ux * (DosSprites.buttonX(button) - 36 - Regions.BUTTONS.x), uy * (DosSprites.BUTTON_Y - 4 - Regions.BUTTONS.y))
+                    .size(ux * 109, uy * 30)
+                    .semantics { contentDescription = description; role = Role.Button }
                     .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onButton(button) }
             )
         }
-        if (window != DosWindow.NONE) {
-            val (wx, wy) = DosSprites.WINDOW_POS
-            val closeLabel = stringResource(R.string.btn_close)
-            Box(
-                Modifier
-                    .offset(unitX * wx, unitY * wy)
-                    .size(unitX * 238, unitY * 166)
-                    .semantics {
-                        contentDescription = closeLabel
-                        role = Role.Button
+    }
+
+    BoxWithConstraints(modifier) {
+        val availH = maxHeight
+        val portrait = maxHeight >= maxWidth
+        if (portrait) {
+            val w = maxWidth
+            // Board, top bar and key bar take 1.15 widths; what is left of the height goes to the characters.
+            val used = w * (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth()) + 28.dp
+            val left = maxHeight - used - 56.dp
+            Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
+                modeBar()
+                Top(Modifier.fillMaxWidth())
+                Board(Modifier.fillMaxWidth())
+                Buttons(Modifier.fillMaxWidth())
+                val headW = minOf(w * 0.27f, left / Regions.KING.heightPerWidth() * 0.85f)
+                Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+                    if (headW >= 64.dp) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            SceneRegion(Regions.KING, state, clock, bitmaps, Modifier.width(headW))
+                            Caption(kingName)
+                        }
                     }
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onCloseWindow)
+                    tools(true)
+                    if (headW >= 64.dp) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            SceneRegion(Regions.PRETENDER, state, clock, bitmaps, Modifier.width(headW * 0.85f))
+                            Caption(pretenderName)
+                        }
+                    }
+                }
+            }
+        } else {
+            // Landscape: the centre column is as tall as the screen; the characters fill the sides.
+            val margin = 4.dp
+            val centre = minOf(
+                maxWidth * 0.62f,
+                (maxHeight - margin * 2 - 26.dp) / (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth())
             )
+            val side = (maxWidth - centre - 56.dp - margin * 4) / 2
+            Row(Modifier.fillMaxSize().padding(margin), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(margin, Alignment.CenterHorizontally)) {
+                Column(Modifier.width(side), horizontalAlignment = Alignment.CenterHorizontally) {
+                    SceneRegion(Regions.KING_FULL, state, clock, bitmaps, Modifier.widthIn(max = side).heightIn(max = availH * 0.78f))
+                    Caption(kingName)
+                }
+                Column(Modifier.width(centre), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    modeBar()
+                    Top(Modifier.fillMaxWidth())
+                    Board(Modifier.fillMaxWidth())
+                    Buttons(Modifier.fillMaxWidth())
+                }
+                Column(Modifier.width(side), horizontalAlignment = Alignment.CenterHorizontally) {
+                    SceneRegion(Regions.PRETENDER_FULL, state, clock, bitmaps, Modifier.widthIn(max = side).heightIn(max = availH * 0.6f))
+                    Caption(pretenderName)
+                }
+                tools(false)
+            }
         }
     }
 }
