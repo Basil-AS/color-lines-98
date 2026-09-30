@@ -43,6 +43,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
@@ -76,7 +77,11 @@ import io.github.basil_as.basillines.engine.Hall
 import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.GameEngine
 import io.github.basil_as.basillines.engine.GameStats
+import io.github.basil_as.basillines.engine.Hint
+import io.github.basil_as.basillines.engine.Hinter
 import io.github.basil_as.basillines.engine.Levels
+import io.github.basil_as.basillines.engine.ModeId
+import io.github.basil_as.basillines.engine.Modes
 import io.github.basil_as.basillines.engine.Point
 import io.github.basil_as.basillines.engine.SoundKind
 import io.github.basil_as.basillines.engine.Progress
@@ -133,7 +138,25 @@ private fun colorScheme(p: Palette): ColorScheme {
 
 private data class LastResult(val xp: Int = 0, val levelUp: Int? = null, val unlocked: List<String> = emptyList())
 
-private enum class Dialog { NONE, HELP, STATS, SETTINGS }
+private enum class Dialog { NONE, HELP, STATS, SETTINGS, NEW_GAME }
+
+private const val HINTS_PER_GAME = 3
+
+private fun gameOverNow(engine: GameEngine) = engine.isGameOver
+
+/** What the HUD needs beyond the score: the mode (and its clock) and the hint button. */
+private data class GameExtras(
+    val modeLabel: String = "",
+    val clock: String? = null,
+    val hintsLeft: Int = 0,
+    val onHint: () -> Unit = {},
+    val onChangeMode: () -> Unit = {}
+)
+
+private fun dayKey(): String {
+    val c = java.util.Calendar.getInstance()
+    return "%04d-%02d-%02d".format(java.util.Locale.ROOT, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH) + 1, c.get(java.util.Calendar.DAY_OF_MONTH))
+}
 
 @Composable
 fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars: (Boolean) -> Unit = {}) {
@@ -142,7 +165,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
     var theme by remember { mutableStateOf(storage.theme) }
-    val engine = remember { storage.loadGame() ?: GameEngine() }
+    var engine by remember { mutableStateOf(storage.loadGame() ?: Modes.createEngine(storage.mode, dayKey())) }
+    var hint by remember { mutableStateOf<Hint?>(null) }
+    var hintsLeft by remember { mutableIntStateOf(HINTS_PER_GAME) }
+    var pickedMode by remember { mutableStateOf(storage.mode) }
     // The engine is a plain object Compose cannot observe: bump `version` after every change.
     var version by remember { mutableIntStateOf(0) }
     var history by remember { mutableStateOf(storage.history) }
@@ -183,7 +209,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     // Counts active time between actions; long pauses (a forgotten app) are capped.
     fun trackTime() {
         val now = SystemClock.elapsedRealtime()
-        if (lastActionAt > 0) engine.addPlayTime(minOf(now - lastActionAt, 60_000L))
+        // A timed mode has its own ticker; counting the gaps between taps would count the time twice.
+        if (lastActionAt > 0 && engine.mode.timeLimitMs == null) engine.addPlayTime(minOf(now - lastActionAt, 60_000L))
         lastActionAt = now
     }
 
@@ -208,8 +235,22 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         )
     }
 
+    /** The game just ended (board full or time up): sound, history, rewards. */
+    fun finishGame() {
+        soundManager.play(if (GameStats.isNewRecord(engine.score, bestAtGameStart)) SoundKind.RECORD else SoundKind.LOSE)
+        record(completed = true)
+        // The progress rewards follow the result after a short pause so the sounds do not blur together.
+        val followUp = when {
+            lastResult.levelUp != null -> SoundKind.LEVEL_UP
+            lastResult.unlocked.isNotEmpty() -> SoundKind.ACHIEVEMENT
+            else -> null
+        }
+        if (followUp != null) handler.postDelayed({ soundManager.play(followUp) }, 1100)
+    }
+
     fun onCellTap(point: Point) {
         if (engine.isGameOver) return
+        hint = null
         trackTime()
         if (engine.board[point] != null) {
             if (engine.selectedPoint == point) {
@@ -252,33 +293,60 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             bestScore = engine.score
             storage.bestScore = bestScore
         }
-        if (result.isGameOver) {
-            soundManager.play(if (GameStats.isNewRecord(engine.score, bestAtGameStart)) SoundKind.RECORD else SoundKind.LOSE)
-            record(completed = true)
-            // The progress rewards follow the result after a short pause so the sounds do not blur together.
-            val followUp = when {
-                lastResult.levelUp != null -> SoundKind.LEVEL_UP
-                lastResult.unlocked.isNotEmpty() -> SoundKind.ACHIEVEMENT
-                else -> null
-            }
-            if (followUp != null) handler.postDelayed({ soundManager.play(followUp) }, 1100)
-        }
+        if (result.isGameOver) finishGame()
         commit()
     }
 
+    /** Every "new game" button opens the dialog: it names the mode and warns before a game is thrown away. */
     fun onNewGame() {
+        pickedMode = engine.mode
+        dialog = Dialog.NEW_GAME
+    }
+
+    fun startGame(mode: ModeId) {
         // Abandoning a game in progress still counts towards the history.
         if (!engine.isGameOver && engine.moves > 0) record(completed = false)
-        engine.startNewGame()
+        engine = Modes.createEngine(mode, dayKey())
+        storage.mode = mode
+        hint = null
+        hintsLeft = HINTS_PER_GAME
         effects = emptyList()
         coronationStart = null
         lastActionAt = 0L
         bestAtGameStart = bestScore
+        dialog = Dialog.NONE
         soundManager.play(SoundKind.START)
         commit()
     }
 
+    fun onHint() {
+        if (engine.isGameOver || hintsLeft <= 0) return
+        val found = Hinter.find(engine.board) ?: return
+        engine.selectCell(found.from)
+        hint = found
+        hintsLeft -= 1
+        soundManager.play(SoundKind.SELECT)
+        commit()
+    }
+
+    // The clock of a timed mode runs while the game is on screen and no dialog is open.
+    val lifecycleOwner = LocalContext.current as? androidx.lifecycle.LifecycleOwner
+    LaunchedEffect(engine, dialog) {
+        while (engine.mode.timeLimitMs != null && dialog == Dialog.NONE) {
+            kotlinx.coroutines.delay(250)
+            val visible = lifecycleOwner?.lifecycle?.currentState?.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) ?: true
+            if (!visible || engine.isGameOver) continue
+            engine.addPlayTime(250)
+            if ((Modes.remainingMs(engine) ?: 1L) <= 0L) {
+                engine.endGame()
+                finishGame()
+            }
+            commit()
+        }
+    }
+
     fun onUndo() {
+        hint = null
         trackTime()
         if (engine.undo()) {
             soundManager.play(SoundKind.CLICK)
@@ -287,7 +355,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     }
 
     // Everything below reads plain values captured for this version, never the live engine.
-    val snapshot = remember(version, spawnPreview) {
+    val snapshot = remember(version, spawnPreview, hint) {
         BoardSnapshot(
             cells = List(BOARD_SIZE * BOARD_SIZE) { engine.board[it % BOARD_SIZE, it / BOARD_SIZE] },
             selected = engine.selectedPoint,
@@ -296,9 +364,26 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 engine.nextSpawnPoints.zip(engine.nextColors).toMap()
             } else {
                 emptyMap()
-            }
+            },
+            hintTarget = hint?.takeIf { engine.selectedPoint == it.from }?.to
         )
     }
+    val extras = GameExtras(
+        modeLabel = stringResource(
+            when (engine.mode) {
+                ModeId.CLASSIC -> R.string.mode_classic
+                ModeId.EASY -> R.string.mode_easy
+                ModeId.BLITZ -> R.string.mode_blitz
+                ModeId.DAILY -> R.string.mode_daily
+            }
+        ),
+        clock = remember(version) {
+            Modes.remainingMs(engine)?.let { ms -> "%d:%02d".format(java.util.Locale.ROOT, ms / 60000, ms / 1000 % 60) }
+        },
+        hintsLeft = if (gameOverNow(engine)) 0 else hintsLeft,
+        onHint = ::onHint,
+        onChangeMode = ::onNewGame
+    )
     val score = remember(version) { engine.score }
     val nextColors = remember(version) { engine.nextColors }
     val canUndo = remember(version) { engine.canUndo }
@@ -354,7 +439,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                         statsNow = System.currentTimeMillis()
                         dialog = Dialog.STATS
                     },
-                    onSettings = { dialog = Dialog.SETTINGS }
+                    onSettings = { dialog = Dialog.SETTINGS },
+                    extras = extras
                 )
             } else GameScreen(
                 palette = palette,
@@ -376,11 +462,12 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 onToggleSound = {
                     soundEnabled = !soundEnabled
                     soundManager.isEnabled = soundEnabled
-                }
+                },
+                extras = extras
             )
         }
 
-        if (gameOver) {
+        if (gameOver && dialog != Dialog.NEW_GAME) {
             GameOverDialog(
                 score = score,
                 best = maxOf(score, bestScore),
@@ -392,6 +479,15 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             )
         } else {
             when (dialog) {
+                Dialog.NEW_GAME -> NewGameDialog(
+                    current = pickedMode,
+                    onPick = { pickedMode = it },
+                    inProgress = !engine.isGameOver && engine.moves > 0,
+                    score = score,
+                    moves = engine.moves,
+                    onStart = { startGame(pickedMode) },
+                    onKeep = { dialog = Dialog.NONE }
+                )
                 Dialog.HELP -> HelpDialog(onClose = { dialog = Dialog.NONE })
                 Dialog.STATS -> StatsDialog(
                     history = history,
@@ -456,7 +552,8 @@ private fun GameScreen(
     onStats: () -> Unit,
     onSettings: () -> Unit,
     onHelp: () -> Unit,
-    onToggleSound: () -> Unit
+    onToggleSound: () -> Unit,
+    extras: GameExtras = GameExtras()
 ) {
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         val margin = if (maxWidth > maxHeight) 12.dp else 6.dp
@@ -473,7 +570,7 @@ private fun GameScreen(
                     Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.Center
                 ) {
-                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound)
+                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras = extras)
                 }
             }
         } else {
@@ -485,7 +582,7 @@ private fun GameScreen(
                 verticalArrangement = Arrangement.spacedBy(margin, Alignment.CenterVertically)
             ) {
                 Box(Modifier.widthIn(max = boardSize).fillMaxWidth()) {
-                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, compact = true)
+                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, compact = true, extras = extras)
                 }
                 BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize))
             }
@@ -507,7 +604,8 @@ private fun HeaderCard(
     onSettings: () -> Unit,
     onHelp: () -> Unit,
     onToggleSound: () -> Unit,
-    compact: Boolean = false
+    compact: Boolean = false,
+    extras: GameExtras = GameExtras()
 ) {
     val shape = if (palette.square) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp)
     val font = if (palette.cellStyle == CellStyle.ROUNDED) FontFamily.Default else FontFamily.Monospace
@@ -528,10 +626,11 @@ private fun HeaderCard(
             }
         }
         if (palette.windowTitleBar) {
-            Lines98Panel(score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound)
+            Lines98Panel(score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras)
             return@Card
         }
         Column(Modifier.padding(if (compact) 8.dp else 14.dp), verticalArrangement = Arrangement.spacedBy(if (compact) 6.dp else 12.dp)) {
+            ModeBar(palette, extras)
             if (compact) {
                 Row(
                     Modifier.fillMaxWidth(),
@@ -575,6 +674,7 @@ private fun HeaderCard(
                     horizontalArrangement = if (compact) Arrangement.SpaceBetween else Arrangement.spacedBy(4.dp)
                 ) {
                     ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+                    ActionButton(AppIcons.Lightbulb, stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
                     ActionButton(AppIcons.Refresh, stringResource(R.string.btn_newGame), onNewGame)
                     ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)
                     ActionButton(
@@ -586,6 +686,28 @@ private fun HeaderCard(
                     ActionButton(AppIcons.Help, stringResource(R.string.btn_help), onHelp)
                 }
             }
+        }
+    }
+}
+
+/** The mode in play, and the clock in a timed one; tapping the mode opens the new-game dialog. */
+@Composable
+private fun ModeBar(palette: Palette, extras: GameExtras) {
+    val clockText = extras.clock?.let { stringResource(R.string.mode_timeLeft, it) }
+    Row(
+        Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = listOfNotNull(extras.modeLabel, clockText).joinToString(", ") },
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(extras.modeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textMuted)
+        if (extras.clock != null) {
+            Text(
+                extras.clock,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                fontFamily = FontFamily.Monospace,
+                color = palette.accent,
+                            )
         }
     }
 }
@@ -660,7 +782,8 @@ private fun DosGameScreen(
     onUndo: () -> Unit,
     onTopTen: () -> Unit,
     onStats: () -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    extras: GameExtras = GameExtras()
 ) {
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         val margin = 12.dp
@@ -693,8 +816,10 @@ private fun DosGameScreen(
                 onCloseWindow = onCloseWindow,
                 modifier = Modifier.width(width).aspectRatio(4f / 3f)
             )
+            ModeBar(paletteFor(AppTheme.COLORLINES_92), extras)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+                ActionButton(AppIcons.Lightbulb, stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
                 ActionButton(AppIcons.Trophy, stringResource(R.string.dos_topTen), onTopTen)
                 ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)
                 ActionButton(AppIcons.Settings, stringResource(R.string.btn_settings), onSettings)
@@ -736,11 +861,13 @@ private fun Lines98Panel(
     onStats: () -> Unit,
     onSettings: () -> Unit,
     onHelp: () -> Unit,
-    onToggleSound: () -> Unit
+    onToggleSound: () -> Unit,
+    extras: GameExtras
 ) {
     val names = nextColors.map { colorLabel(it) }.joinToString(", ")
     val nextDescription = stringResource(R.string.next_label, names)
     Column(Modifier.padding(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        ModeBar(paletteFor(AppTheme.LINES_98), extras)
         Row(
             Modifier.fillMaxWidth().background(Color.Black).padding(horizontal = 10.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -775,6 +902,7 @@ private fun Lines98Panel(
         Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
             MenuItem(stringResource(R.string.btn_newGame), onNewGame)
             MenuItem(stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+            MenuItem(stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
             MenuItem(stringResource(if (soundEnabled) R.string.btn_mute else R.string.btn_unmute), onToggleSound)
             MenuItem(stringResource(R.string.btn_stats), onStats)
             MenuItem(stringResource(R.string.btn_settings), onSettings)

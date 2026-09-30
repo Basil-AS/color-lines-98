@@ -46,6 +46,12 @@ class MainScreenTest {
     private fun emptyCells() = rule.onAllNodes(emptyCell)
     private fun ballCount() = ballCells().fetchSemanticsNodes().size
 
+    /** "New game" now opens a dialog; this presses its Start button. */
+    private fun confirmNewGame() {
+        rule.onNode(hasText("Start")).performClick()
+        rule.waitForIdle()
+    }
+
     private fun playOneMove() {
         ballCells().onFirst().performClick()
         rule.onAllNodes(reachable).onFirst().performClick()
@@ -78,6 +84,7 @@ class MainScreenTest {
         assertTrue("a move adds three balls unless it clears a line", afterMove in 3..8)
 
         rule.onNodeWithContentDescription("New game").performClick()
+        confirmNewGame()
         rule.waitForIdle()
         assertEquals(5, ballCount())
         rule.onNodeWithContentDescription("Undo move").assertIsDisplayed()
@@ -114,6 +121,7 @@ class MainScreenTest {
     fun abandoningAGameWithMovesLandsInTheHistory() {
         playOneMove()
         rule.onNodeWithContentDescription("New game").performClick()
+        confirmNewGame()
         rule.waitForIdle()
         rule.onNodeWithContentDescription("Statistics").performClick()
         rule.onAllNodes(hasText("unfinished", ignoreCase = true)).onFirst().assertExists()
@@ -160,6 +168,45 @@ class MainScreenTest {
     }
 
     @Test
+    fun newGameWarnsAboutAGameInProgressAndKeepPlayingChangesNothing() {
+        playOneMove()
+        val before = ballCount()
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(hasText("counted as unfinished", substring = true)).onFirst().assertIsDisplayed()
+        rule.onNode(hasText("Keep playing")).performClick()
+        rule.waitForIdle()
+        assertEquals(before, ballCount())
+        assertTrue(rule.onAllNodes(hasText("counted as unfinished", substring = true)).fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun aFreshGameHasNoWarning() {
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.waitForIdle()
+        assertTrue(rule.onAllNodes(hasText("counted as unfinished", substring = true)).fetchSemanticsNodes().isEmpty())
+        rule.onNode(hasText("Start")).assertIsDisplayed()
+    }
+
+    @Test
+    fun theModeChosenIsUsedAndRemembered() {
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.onNode(hasText("Blitz")).performClick()
+        confirmNewGame()
+        assertEquals(io.github.basil_as.basillines.engine.ModeId.BLITZ, GameStorage(ApplicationProvider.getApplicationContext()).mode)
+        // A timed mode shows its clock.
+        rule.onAllNodes(hasText("3:00")).onFirst().assertIsDisplayed()
+    }
+
+    @Test
+    fun aHintSelectsABallAndCostsOne() {
+        rule.onNodeWithContentDescription("Hint (3 left)").performClick()
+        rule.waitForIdle()
+        assertTrue(rule.onAllNodes(reachable).fetchSemanticsNodes().isNotEmpty())
+        rule.onNodeWithContentDescription("Hint (2 left)").assertIsDisplayed()
+    }
+
+    @Test
     fun switchingTheThemeIsRemembered() {
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.onNode(hasText("Modern light")).performClick()
@@ -192,6 +239,7 @@ class MainScreenTest {
                 else -> rule.onNodeWithContentDescription("New game").performClick()
             }
             rule.waitForIdle()
+            confirmNewGame()
             assertEquals(5, ballCount())
             playOneMove()
             assertTrue("$theme keeps a valid board", ballCount() in 3..8)
@@ -273,7 +321,7 @@ class GameStorageTest {
 
     @Test
     fun corruptValuesFallBackToDefaults() {
-        prefs().edit().putString("theme", "NEON").putString("game", "garbage").putString("history", "x;y").commit()
+        prefs().edit().putString("theme", "GLITTER").putString("game", "garbage").putString("history", "x;y").commit()
         val s = GameStorage(context)
         assertEquals(AppTheme.MODERN, s.theme)
         assertEquals(null, s.loadGame())

@@ -6,6 +6,7 @@ import io.github.basil_as.basillines.engine.GameRecord
 import io.github.basil_as.basillines.engine.GameStateCodec
 import io.github.basil_as.basillines.engine.GameStats
 import io.github.basil_as.basillines.engine.Hall
+import io.github.basil_as.basillines.engine.ModeId
 import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.Progress
 import io.github.basil_as.basillines.engine.ProgressTracker
@@ -13,7 +14,7 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, LINES_98, COLORLINES_92 }
+enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, CONTRAST, LINES_98, COLORLINES_92 }
 
 /** Everything the app remembers between launches. Invalid stored data falls back to defaults. */
 class GameStorage(context: Context) {
@@ -26,6 +27,11 @@ class GameStorage(context: Context) {
     var language: AppLanguage
         get() = AppLanguage.entries.firstOrNull { it.name == prefs.getString(KEY_LANG, null) } ?: AppLanguage.AUTO
         set(value) = prefs.edit().putString(KEY_LANG, value.name).apply()
+
+    /** The mode chosen last in the new-game dialog. */
+    var mode: ModeId
+        get() = ModeId.fromId(prefs.getString(KEY_MODE, null)) ?: ModeId.CLASSIC
+        set(value) = prefs.edit().putString(KEY_MODE, value.id).apply()
 
     var bestScore: Int
         get() = prefs.getInt(KEY_BEST, 0).coerceAtLeast(0)
@@ -74,6 +80,7 @@ class GameStorage(context: Context) {
     companion object {
         private const val KEY_THEME = "theme"
         private const val KEY_LANG = "language"
+        private const val KEY_MODE = "mode"
         private const val KEY_BEST = "best_score"
         private const val KEY_HISTORY = "history"
         private const val KEY_GAME = "game"
