@@ -4,7 +4,21 @@ import kotlin.math.PI
 import kotlin.math.exp
 import kotlin.math.sin
 
-enum class Wave { SINE, TRIANGLE }
+enum class Wave { SINE, TRIANGLE, SQUARE, SAWTOOTH }
+
+/** Every look has its own voice: the same melodies played by a different instrument (mirrors src/modernsound.ts). */
+enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val gain: Double) {
+    SOFT(null, 1.0, 1.0, 1.0),
+    BELL(Wave.SINE, 2.0, 0.8, 0.85),
+    MARIMBA(Wave.TRIANGLE, 0.5, 0.7, 1.2),
+    ARCADE(Wave.SQUARE, 1.0, 0.75, 0.3),
+    SAW(Wave.SAWTOOTH, 0.5, 1.25, 0.35),
+    GLASS(Wave.SINE, 1.5, 1.5, 0.8),
+    WOOD(Wave.TRIANGLE, 0.75, 0.5, 1.3),
+    CHIP(Wave.SQUARE, 2.0, 0.5, 0.25),
+    TELETYPE(Wave.SQUARE, 0.75, 0.4, 0.25),
+    BEEP(Wave.SQUARE, 1.25, 1.6, 0.3)
+}
 
 data class ModernNote(val freq: Int, val ms: Int, val wave: Wave, val gain: Double)
 
@@ -40,6 +54,15 @@ object ModernSounds {
             listOf(C5, E5, G5, C6, G5, C6, E6).mapIndexed { i, f -> n(f, if (i == 6) 320 else 110, Wave.SINE, 0.22) }
     }
 
+    fun voiced(kind: SoundKind, points: Int, voice: VoiceId): List<ModernNote> = notes(kind, points).map {
+        ModernNote(
+            freq = Math.round(it.freq * voice.pitch).toInt(),
+            ms = maxOf(20, Math.round(it.ms * voice.tempo).toInt()),
+            wave = voice.wave ?: it.wave,
+            gain = it.gain * voice.gain
+        )
+    }
+
     /** Signed 16-bit mono PCM with a short attack and a smooth decay on every note. */
     fun render(notes: List<ModernNote>, sampleRate: Int = 22_050): ShortArray {
         val total = notes.sumOf { it.ms * sampleRate / 1000 }
@@ -53,6 +76,8 @@ object ModernSounds {
                 val wave = when (note.wave) {
                     Wave.SINE -> sin(2 * PI * phase)
                     Wave.TRIANGLE -> 4 * kotlin.math.abs(phase - 0.5) - 1
+                    Wave.SQUARE -> if (phase < 0.5) 1.0 else -1.0
+                    Wave.SAWTOOTH -> 2 * phase - 1
                 }
                 val attackEnv = if (i < attack) i.toDouble() / attack else 1.0
                 val decay = exp(-5.0 * i / count)

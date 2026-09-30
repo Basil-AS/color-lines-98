@@ -63,7 +63,7 @@ import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { defaultSpawnPreview, soundProfile } from './themes';
+import { defaultSpawnPreview, soundProfile, soundVoice } from './themes';
 import { DosScreen } from './dos/DosScreen';
 import type { DosWindow } from './dos/DosScreen';
 import type { Effect } from './dos/scene';
@@ -107,6 +107,11 @@ const THEME_COLORS: Record<Theme, string> = {
   light: '#e9ecf5',
   material: '#fef7ff',
   neon: '#07060f',
+  synthwave: '#140a2e',
+  ocean: '#04222f',
+  paper: '#efe3c8',
+  gameboy: '#8bac0f',
+  terminal: '#120900',
   contrast: '#000000',
   lines98: '#008080',
   colorlines92: '#000000',
@@ -136,6 +141,8 @@ function ballThemeClass(theme: Theme): string {
   if (theme === 'colorlines92') return 'ball-dos';
   if (theme === 'neon') return 'ball-neon';
   if (theme === 'contrast') return 'ball-contrast';
+  if (theme === 'gameboy' || theme === 'terminal') return 'ball-contrast ball-symbols';
+  if (theme === 'synthwave') return 'ball-neon ball-synth';
   return 'ball-modern';
 }
 
@@ -532,7 +539,7 @@ export default function App() {
   });
 
   useEffect(() => {
-    soundManager.setProfile(soundProfile(theme));
+    soundManager.setProfile(soundProfile(theme), soundVoice(theme));
   }, [theme]);
 
   useEffect(() => {

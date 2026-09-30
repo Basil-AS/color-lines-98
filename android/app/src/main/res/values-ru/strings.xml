@@ -3,7 +3,7 @@
 <resources>
     <string name="app_name">Color Lines</string>
     <string name="app_tagline">Классическая головоломка с цветными шарами</string>
-    <string name="app_docTitle">Color Lines — классическая головоломка с шарами</string>
+    <string name="app_docTitle">Color Lines — the classic ball puzzle</string>
     <string name="hud_score">Счёт</string>
     <string name="hud_best">Рекорд</string>
     <string name="hud_next">Далее</string>
@@ -87,6 +87,11 @@
     <string name="theme_material">Material</string>
     <string name="theme_neon">Неон</string>
     <string name="theme_contrast">Высокий контраст</string>
+    <string name="theme_synthwave">Синтвейв</string>
+    <string name="theme_ocean">Океан</string>
+    <string name="theme_paper">Бумага</string>
+    <string name="theme_gameboy">Game Boy (1989)</string>
+    <string name="theme_terminal">Янтарный терминал</string>
     <string name="theme_lines98">Lines 98 (Windows)</string>
     <string name="theme_colorlines92">Color Lines 1992 (DOS)</string>
     <string name="level_label">Уровень %1$s</string>

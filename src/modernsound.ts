@@ -1,13 +1,14 @@
 import type { SoundKind } from './pcspeaker';
+import type { VoiceId } from './themes';
 
 export interface ModernNote {
   freq: number;
   ms: number;
-  wave: 'sine' | 'triangle';
+  wave: 'sine' | 'triangle' | 'square' | 'sawtooth';
   gain: number;
 }
 
-const n = (freq: number, ms: number, wave: ModernNote['wave'] = 'sine', gain = 0.22): ModernNote => ({ freq, ms, wave, gain });
+const n = (freq: number, ms: number, wave: 'sine' | 'triangle' = 'sine', gain = 0.22): ModernNote => ({ freq, ms, wave, gain });
 
 // C major pentatonic: pleasant whatever order the notes come in.
 const C5 = 523;
@@ -18,6 +19,41 @@ const A5 = 880;
 const C6 = 1047;
 const D6 = 1175;
 const E6 = 1319;
+
+interface Voice {
+  /** Replaces the wave of every note (null keeps the soft sine/triangle mix). */
+  wave: ModernNote['wave'] | null;
+  /** Frequency multiplier: 2 is an octave up. */
+  pitch: number;
+  /** Duration multiplier. */
+  tempo: number;
+  gain: number;
+}
+
+/** What makes the looks sound different: the same melodies, played by different instruments. */
+export const VOICES: Record<VoiceId, Voice> = {
+  soft: { wave: null, pitch: 1, tempo: 1, gain: 1 },
+  bell: { wave: 'sine', pitch: 2, tempo: 0.8, gain: 0.85 },
+  marimba: { wave: 'triangle', pitch: 0.5, tempo: 0.7, gain: 1.2 },
+  arcade: { wave: 'square', pitch: 1, tempo: 0.75, gain: 0.3 },
+  saw: { wave: 'sawtooth', pitch: 0.5, tempo: 1.25, gain: 0.35 },
+  glass: { wave: 'sine', pitch: 1.5, tempo: 1.5, gain: 0.8 },
+  wood: { wave: 'triangle', pitch: 0.75, tempo: 0.5, gain: 1.3 },
+  chip: { wave: 'square', pitch: 2, tempo: 0.5, gain: 0.25 },
+  teletype: { wave: 'square', pitch: 0.75, tempo: 0.4, gain: 0.25 },
+  beep: { wave: 'square', pitch: 1.25, tempo: 1.6, gain: 0.3 },
+};
+
+/** The melody of an event in the voice of a look. */
+export function voicedNotes(kind: SoundKind, points: number, voice: VoiceId): ModernNote[] {
+  const v = VOICES[voice];
+  return modernNotes(kind, points).map((note) => ({
+    freq: Math.round(note.freq * v.pitch),
+    ms: Math.max(20, Math.round(note.ms * v.tempo)),
+    wave: v.wave ?? note.wave,
+    gain: note.gain * v.gain,
+  }));
+}
 
 /** The soft synthesised sounds of the modern themes (the older looks keep their own sounds). */
 export function modernNotes(kind: SoundKind, points = 0): ModernNote[] {

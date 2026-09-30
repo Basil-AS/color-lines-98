@@ -130,7 +130,7 @@
 
 body {
   min-height: 100dvh;
-  background-color: var(--page-bg);
+  background: var(--page-bg);
   color: var(--text-main);
   font-family: var(--font-family);
   touch-action: manipulation;
@@ -2064,5 +2064,199 @@ input[role='switch']:focus-visible {
 @media (prefers-reduced-motion: reduce) {
   .board-cell.hint-target {
     animation: none;
+  }
+}
+
+/* ---- More looks: Synthwave, Ocean, Paper, Game Boy, Amber terminal ---- */
+.theme-synthwave {
+  color-scheme: dark;
+  --page-bg: linear-gradient(180deg, #140a2e 0%, #2b0f4d 55%, #5a1466 100%);
+  --panel-bg: rgba(28, 10, 58, 0.92);
+  --panel-border: rgba(255, 79, 191, 0.5);
+  --panel-shadow: 0 0 36px rgba(255, 79, 191, 0.25), 0 0 10px rgba(79, 213, 255, 0.3);
+  --text-main: #fdeaff;
+  --text-muted: #c9a6e8;
+  --accent: #ff4fbf;
+  --accent-glow: rgba(255, 79, 191, 0.5);
+  --on-accent: #1a0630;
+  --board-bg: #1a0a3a;
+  --cell-bg: #2a1258;
+  --cell-hover: #3a1a78;
+  --cell-reachable-dot: #4fd5ff;
+  --stat-bg: #1a0a3a;
+  --stat-label: #c9a6e8;
+  --stat-value: #ffd166;
+  --title-color: #fdeaff;
+  --ctrl-bg: rgba(255, 79, 191, 0.14);
+  --ctrl-hover: rgba(255, 79, 191, 0.28);
+  --input-bg: rgba(255, 79, 191, 0.14);
+  --card-bg: rgba(0, 0, 0, 0.3);
+  --danger: #ff5d8f;
+}
+.theme-synthwave .game-title { background: linear-gradient(90deg, #ffd166, #ff4fbf, #4fd5ff); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.theme-synthwave .board-cell { box-shadow: inset 0 0 0 1px rgba(79, 213, 255, 0.2); }
+.ball-synth { filter: drop-shadow(0 0 6px currentColor); }
+.theme-ocean {
+  color-scheme: dark;
+  --page-bg: linear-gradient(180deg, #04222f 0%, #06384a 100%);
+  --panel-bg: #073447;
+  --panel-border: #0e6a82;
+  --panel-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  --text-main: #e6fbff;
+  --text-muted: #9fd3df;
+  --accent: #2ee6c5;
+  --accent-glow: rgba(46, 230, 197, 0.4);
+  --on-accent: #02201c;
+  --board-bg: #052c3b;
+  --cell-bg: #0a465c;
+  --cell-hover: #0f5a74;
+  --cell-reachable-dot: #ffd166;
+  --stat-bg: #052c3b;
+  --stat-label: #9fd3df;
+  --stat-value: #2ee6c5;
+  --title-color: #e6fbff;
+  --ctrl-bg: #0a465c;
+  --ctrl-hover: #0f5a74;
+  --input-bg: #0a465c;
+  --card-bg: #06394d;
+  --danger: #ff7a7a;
+}
+.theme-paper {
+  color-scheme: light;
+  --page-bg: #efe3c8;
+  --panel-bg: #fbf3df;
+  --panel-border: #c9b38a;
+  --panel-shadow: 0 6px 18px rgba(90, 60, 20, 0.25);
+  --text-main: #3a2a14;
+  --text-muted: #6d5a3a;
+  --accent: #9a4a1f;
+  --accent-glow: rgba(154, 74, 31, 0.3);
+  --on-accent: #ffffff;
+  --board-bg: #c59a62;
+  --cell-bg: #e9d3a7;
+  --cell-hover: #f2e0b8;
+  --cell-reachable-dot: #9a4a1f;
+  --stat-bg: #f1e2bd;
+  --stat-label: #6d5a3a;
+  --stat-value: #3a2a14;
+  --title-color: #3a2a14;
+  --ctrl-bg: #f1e2bd;
+  --ctrl-hover: #e6d0a0;
+  --input-bg: #f1e2bd;
+  --card-bg: #f6ead0;
+  --danger: #a82b1c;
+  --font-family: Georgia, 'Times New Roman', serif;
+}
+.theme-paper .board-grid { box-shadow: inset 0 0 0 3px #8a6a3a; }
+.theme-gameboy {
+  color-scheme: light;
+  --page-bg: #8bac0f;
+  --panel-bg: #9bbc0f;
+  --panel-border: #0f380f;
+  --panel-shadow: 4px 4px 0 #0f380f;
+  --text-main: #0f380f;
+  --text-muted: #306230;
+  --accent: #0f380f;
+  --accent-glow: transparent;
+  --on-accent: #9bbc0f;
+  --board-bg: #306230;
+  --cell-bg: #9bbc0f;
+  --cell-hover: #8bac0f;
+  --cell-reachable-dot: #0f380f;
+  --stat-bg: #8bac0f;
+  --stat-label: #306230;
+  --stat-value: #0f380f;
+  --title-color: #0f380f;
+  --ctrl-bg: #8bac0f;
+  --ctrl-hover: #7a9a0c;
+  --input-bg: #8bac0f;
+  --card-bg: #8bac0f;
+  --danger: #0f380f;
+  --radius: 2px;
+  --radius-sm: 2px;
+  --font-family: 'Courier New', ui-monospace, monospace;
+}
+.theme-gameboy .game-window, .theme-gameboy .stat-box, .theme-gameboy .ctrl-btn, .theme-gameboy .board-grid, .theme-gameboy .modal-content, .theme-gameboy .mode-card, .theme-gameboy .theme-card { border: 2px solid #0f380f; }
+.theme-gameboy .board-cell { box-shadow: inset 0 0 0 1px #306230; border-radius: 0; }
+.theme-terminal {
+  color-scheme: dark;
+  --page-bg: #120900;
+  --panel-bg: #1a0d00;
+  --panel-border: #ffb000;
+  --panel-shadow: 0 0 18px rgba(255, 176, 0, 0.25);
+  --text-main: #ffb000;
+  --text-muted: #c48500;
+  --accent: #ffcc33;
+  --accent-glow: rgba(255, 176, 0, 0.45);
+  --on-accent: #120900;
+  --board-bg: #120900;
+  --cell-bg: #1f1100;
+  --cell-hover: #2e1a00;
+  --cell-reachable-dot: #ffcc33;
+  --stat-bg: #120900;
+  --stat-label: #c48500;
+  --stat-value: #ffcc33;
+  --title-color: #ffb000;
+  --ctrl-bg: #1f1100;
+  --ctrl-hover: #2e1a00;
+  --input-bg: #1f1100;
+  --card-bg: #170b00;
+  --danger: #ff6a3d;
+  --radius: 0px;
+  --radius-sm: 0px;
+  --font-family: 'Courier New', ui-monospace, monospace;
+}
+.theme-terminal .game-window, .theme-terminal .stat-box, .theme-terminal .ctrl-btn, .theme-terminal .board-grid, .theme-terminal .modal-content, .theme-terminal .mode-card, .theme-terminal .theme-card { border: 1px solid #ffb000; }
+.theme-terminal .board-cell { box-shadow: inset 0 0 0 1px rgba(255, 176, 0, 0.25); border-radius: 0; }
+.theme-terminal .stat-value, .theme-terminal .game-title { text-shadow: 0 0 8px rgba(255, 176, 0, 0.7); }
+.theme-gameboy .ball-symbols { border-color: #0f380f; }
+.theme-gameboy .ball-symbols.color-red { background: #0f380f; color: #9bbc0f; }
+.theme-gameboy .ball-symbols.color-red::after { color: #9bbc0f; }
+.theme-gameboy .ball-symbols.color-green { background: #306230; color: #9bbc0f; }
+.theme-gameboy .ball-symbols.color-green::after { color: #9bbc0f; }
+.theme-gameboy .ball-symbols.color-blue { background: #0f380f; color: #8bac0f; }
+.theme-gameboy .ball-symbols.color-blue::after { color: #8bac0f; }
+.theme-gameboy .ball-symbols.color-cyan { background: #8bac0f; color: #0f380f; }
+.theme-gameboy .ball-symbols.color-cyan::after { color: #0f380f; }
+.theme-gameboy .ball-symbols.color-magenta { background: #306230; color: #8bac0f; }
+.theme-gameboy .ball-symbols.color-magenta::after { color: #8bac0f; }
+.theme-gameboy .ball-symbols.color-yellow { background: #9bbc0f; color: #0f380f; }
+.theme-gameboy .ball-symbols.color-yellow::after { color: #0f380f; }
+.theme-gameboy .ball-symbols.color-brown { background: #0f380f; color: #9bbc0f; }
+.theme-gameboy .ball-symbols.color-brown::after { color: #9bbc0f; }
+.theme-terminal .ball-symbols { border-color: #ffb000; }
+.theme-terminal .ball-symbols.color-red { background: #7a5200; color: #ffcc33; }
+.theme-terminal .ball-symbols.color-red::after { color: #ffcc33; }
+.theme-terminal .ball-symbols.color-green { background: #b37a00; color: #120900; }
+.theme-terminal .ball-symbols.color-green::after { color: #120900; }
+.theme-terminal .ball-symbols.color-blue { background: #4d3300; color: #ffb000; }
+.theme-terminal .ball-symbols.color-blue::after { color: #ffb000; }
+.theme-terminal .ball-symbols.color-cyan { background: #ffcc33; color: #120900; }
+.theme-terminal .ball-symbols.color-cyan::after { color: #120900; }
+.theme-terminal .ball-symbols.color-magenta { background: #7a5200; color: #ffe28a; }
+.theme-terminal .ball-symbols.color-magenta::after { color: #ffe28a; }
+.theme-terminal .ball-symbols.color-yellow { background: #ffb000; color: #120900; }
+.theme-terminal .ball-symbols.color-yellow::after { color: #120900; }
+.theme-terminal .ball-symbols.color-brown { background: #3d2800; color: #ffb000; }
+.theme-terminal .ball-symbols.color-brown::after { color: #ffb000; }
+
+.swatch-synthwave { background: radial-gradient(circle at 25% 50%, #ff4fbf 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #4fd5ff 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ffd166 0 8px, transparent 9px), linear-gradient(135deg, #2b0f4d, #5a1466); }
+.swatch-ocean { background: radial-gradient(circle at 25% 50%, #2ee6c5 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #ffd166 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ff7a7a 0 8px, transparent 9px), linear-gradient(135deg, #04222f, #0e6a82); }
+.swatch-paper { background: radial-gradient(circle at 25% 50%, #b3402a 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #3a6ea5 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5a8a3a 0 8px, transparent 9px), #e9d3a7; }
+.swatch-gameboy { background: radial-gradient(circle at 25% 50%, #0f380f 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #306230 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #8bac0f 0 8px, transparent 9px), #9bbc0f; border: 2px solid #0f380f; }
+.swatch-terminal { background: radial-gradient(circle at 25% 50%, #ffb000 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #b37a00 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ffcc33 0 8px, transparent 9px), #120900; border: 1px solid #ffb000; }
+
+/* Seven action buttons share one row on a phone instead of wrapping onto a second one. */
+@media (max-width: 480px) {
+  .controls-group {
+    flex-wrap: nowrap;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .controls-group .ctrl-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding-inline: 0;
   }
 }
