@@ -942,7 +942,8 @@ private fun DosGameScreen(
             soundOn = soundEnabled,
             nowMs = 0,
             effects = effects,
-            coronationStart = coronationStart
+            coronationStart = coronationStart,
+            russian = LocalContext.current.resources.configuration.locales[0].language == "ru"
         ),
         kingName = kingName,
         pretenderName = pretenderName,
