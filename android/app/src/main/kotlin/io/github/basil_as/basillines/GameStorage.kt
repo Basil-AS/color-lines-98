@@ -48,6 +48,16 @@ class GameStorage(context: Context) {
         get() = ModeId.fromId(prefs.getString(KEY_MODE, null)) ?: ModeId.CLASSIC
         set(value) = prefs.edit().putString(KEY_MODE, value.id).apply()
 
+    /** The permanent day ledger (the history keeps only the latest 1000 games); rebuilt from the history when missing. */
+    var ledger: io.github.basil_as.basillines.engine.Ledger
+        get() {
+            val raw = prefs.getString(KEY_LEDGER, null)
+            val parsed = raw?.let { io.github.basil_as.basillines.engine.Json.parseOrNull(it) }
+            return if (parsed != null) io.github.basil_as.basillines.engine.Careers.sanitize(parsed)
+            else io.github.basil_as.basillines.engine.Careers.fromHistory(history)
+        }
+        set(value) = prefs.edit().putString(KEY_LEDGER, io.github.basil_as.basillines.engine.Json.write(io.github.basil_as.basillines.engine.Careers.encode(value))).apply()
+
     var bestScore: Int
         get() = prefs.getInt(KEY_BEST, 0).coerceAtLeast(0)
         set(value) = prefs.edit().putInt(KEY_BEST, value).apply()
@@ -95,6 +105,7 @@ class GameStorage(context: Context) {
     companion object {
         private const val KEY_THEME = "theme"
         private const val KEY_LANG = "language"
+        private const val KEY_LEDGER = "ledger"
         private const val KEY_MODE = "mode"
         private const val KEY_BEST = "best_score"
         private const val KEY_HISTORY = "history"

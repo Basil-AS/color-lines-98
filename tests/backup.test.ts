@@ -90,4 +90,18 @@ describe('backup files', () => {
     expect(lines[1].startsWith('2026-01-02T00:00:00.000Z,classic,100,')).toBe(true);
     expect(lines[2]).toContain("'=cmd");
   });
+
+  it('reads a file written by the Android app', () => {
+    // Produced by Backups.encode() in core-engine (Kotlin); the two apps must understand each other.
+    const fromAndroid = "{\"format\":\"color-lines-backup\",\"version\":1,\"exportedAt\":1790000000000,\"app\":{\"platform\":\"android\",\"version\":\"1.5.0\"},\"history\":[{\"score\":300,\"endedAt\":1788436800000,\"moves\":50,\"lines\":4,\"balls\":20,\"completed\":true,\"maxLine\":6,\"durationMs\":90000,\"mode\":\"classic\"},{\"score\":120,\"endedAt\":1788350400000,\"moves\":20,\"lines\":1,\"balls\":5,\"completed\":false,\"maxLine\":5,\"durationMs\":30000,\"mode\":\"easy\"}],\"ledger\":{\"2026-09-02\":{\"games\":1,\"completed\":0,\"score\":120,\"best\":120,\"moves\":20,\"lines\":1,\"playMs\":30000},\"2026-09-03\":{\"games\":1,\"completed\":1,\"score\":300,\"best\":300,\"moves\":50,\"lines\":4,\"playMs\":90000}},\"progress\":{\"totalGames\":2,\"completedGames\":1,\"totalScore\":420,\"totalLines\":5,\"totalBalls\":25,\"totalMoves\":70,\"totalPlayMs\":120000,\"bestScore\":300,\"bestLine\":6,\"mostLinesInGame\":4,\"longestGameMoves\":50,\"days\":[\"2026-09-02\",\"2026-09-03\"],\"achievements\":{\"first_game\":1788350400000,\"first_line\":1788350400000,\"score_100\":1788350400000,\"score_250\":1788436800000}},\"hall\":[{\"name\":\"Ann\",\"score\":300,\"at\":1}],\"settings\":{\"theme\":\"neon\",\"language\":\"ru\",\"playerName\":\"Ann\",\"soundEnabled\":false,\"spawnPreview\":null,\"showNext\":true,\"mode\":\"blitz\"}}";
+    const p = parseBackup(fromAndroid);
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.backup.app).toEqual({ platform: 'android', version: '1.5.0' });
+    expect(p.backup.history.map((x) => [x.score, x.mode, x.completed])).toEqual([[300, 'classic', true], [120, 'easy', false]]);
+    expect(p.backup.settings).toEqual({ theme: 'neon', language: 'ru', playerName: 'Ann', soundEnabled: false, spawnPreview: null, showNext: true, mode: 'blitz' });
+    expect(p.backup.hall).toEqual([{ name: 'Ann', score: 300, at: 1 }]);
+    expect(p.backup.progress.totalGames).toBe(2);
+    expect(Object.keys(p.backup.ledger)).toHaveLength(2);
+  });
 });
