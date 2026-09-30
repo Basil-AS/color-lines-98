@@ -485,3 +485,120 @@ describe('end of a game', () => {
     expect(JSON.parse(localStorage.getItem('colorlines_history')!)).toHaveLength(1);
   });
 });
+
+describe('long-term statistics and data files', () => {
+  async function openStats(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('button', { name: 'Statistics' }));
+  }
+
+  it('offers five tabs, reachable by keyboard, each with its own content', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openStats(user);
+    const tabs = screen.getAllByRole('tab');
+    expect(tabs.map((x) => x.textContent)).toEqual(['Overview', 'Career', 'Seasons', 'Records', 'Data']);
+    expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+    tabs[0].focus();
+    await user.keyboard('{ArrowRight}');
+    expect(screen.getByRole('tab', { name: 'Career' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('Next milestones')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Seasons' }));
+    expect(screen.getByText(/Your typical month/)).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Records' }));
+    expect(screen.getByText(/Play a few games/)).toBeInTheDocument();
+  });
+
+  it('writes a game into the permanent ledger when it ends', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await playOneMove(user);
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    const stored = JSON.parse(localStorage.getItem('colorlines_ledger') ?? '{}') as Record<string, { games: number }>;
+    expect(Object.values(stored).reduce((n, d) => n + d.games, 0)).toBe(1);
+    await openStats(user);
+    await user.click(screen.getByRole('tab', { name: 'Career' }));
+    expect(screen.getAllByText('Days played').length).toBeGreaterThan(0);
+    expect(screen.getByText(/Activity, last 26 weeks/)).toBeInTheDocument();
+  });
+
+  it('refuses a file that is not a backup and never replaces data without the checkbox', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('colorlines_history', JSON.stringify([{ score: 50, endedAt: Date.now(), moves: 9, lines: 1, balls: 5, completed: true, maxLine: 5, durationMs: 1000, mode: 'classic' }]));
+    render(<App />);
+    await openStats(user);
+    await user.click(screen.getByRole('tab', { name: 'Data' }));
+    const file = screen.getByTestId('backup-file');
+    await user.upload(file, new File(['{"hello":1}'], 'x.json', { type: 'application/json' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('not a Color Lines backup');
+
+    const good = {
+      format: 'color-lines-backup', version: 1, exportedAt: Date.now(), app: { platform: 'android', version: '1' },
+      history: [{ score: 900, endedAt: 1_700_000_000_000, moves: 40, lines: 6, balls: 30, completed: true, maxLine: 7, durationMs: 50_000, mode: 'classic' }],
+      settings: { theme: 'neon' },
+    };
+    await user.upload(file, new File([JSON.stringify(good)], 'b.json', { type: 'application/json' }));
+    expect(await screen.findByText(/Backup from/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Replace my data' }));
+    const confirm = screen.getByRole('button', { name: 'Yes, replace' });
+    expect(confirm).toBeDisabled();
+    expect(JSON.parse(localStorage.getItem('colorlines_history')!)).toHaveLength(1);
+    await user.click(screen.getByRole('checkbox', { name: 'I understand, replace my data' }));
+    await user.click(confirm);
+    expect(JSON.parse(localStorage.getItem('colorlines_history')!)[0].score).toBe(900);
+    expect(localStorage.getItem('colorlines_theme')).toBe('neon');
+  });
+
+  it('adds a backup to the current data without losing any game', async () => {
+    const user = userEvent.setup();
+    const mine = { score: 50, endedAt: 1_600_000_000_000, moves: 9, lines: 1, balls: 5, completed: true, maxLine: 5, durationMs: 1000, mode: 'classic' };
+    localStorage.setItem('colorlines_history', JSON.stringify([mine]));
+    render(<App />);
+    await openStats(user);
+    await user.click(screen.getByRole('tab', { name: 'Data' }));
+    const theirs = { ...mine, score: 700, endedAt: 1_700_000_000_000 };
+    const backup = { format: 'color-lines-backup', version: 1, exportedAt: 1, app: {}, history: [theirs, mine] };
+    await user.upload(screen.getByTestId('backup-file'), new File([JSON.stringify(backup)], 'b.json'));
+    await user.click(await screen.findByRole('button', { name: 'Add to my data' }));
+    const after = JSON.parse(localStorage.getItem('colorlines_history')!) as { score: number }[];
+    expect(after.map((g) => g.score)).toEqual([700, 50]);
+    expect(screen.getAllByRole('status').map((e) => e.textContent).join(' ')).toContain('data added');
+  });
+
+  it('downloads the backup and the spreadsheet', async () => {
+    const user = userEvent.setup();
+    const made: string[] = [];
+    const create = vi.fn((blob: Blob) => {
+      made.push(`${blob.type}:${blob.size}`);
+      return 'blob:x';
+    });
+    Object.assign(URL, { createObjectURL: create, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+    render(<App />);
+    await openStats(user);
+    await user.click(screen.getByRole('tab', { name: 'Data' }));
+    await user.click(screen.getByRole('button', { name: 'Save backup (JSON)' }));
+    await user.click(screen.getByRole('button', { name: 'Save games as a spreadsheet (CSV)' }));
+    expect(click).toHaveBeenCalledTimes(2);
+    expect(made[0].startsWith('application/json:')).toBe(true);
+    expect(made[1].startsWith('text/csv:')).toBe(true);
+    click.mockRestore();
+  });
+});
+
+describe('the installed app shortcut', () => {
+  it('"?new=1" opens the new-game dialog with its warning and changes nothing by itself', async () => {
+    const user = userEvent.setup();
+    const engine = new GameEngine();
+    saveGame(engine);
+    render(<App />);
+    await playOneMove(user);
+    cleanup();
+    window.history.replaceState(null, '', '/?new=1');
+    render(<App />);
+    expect(screen.getByRole('dialog', { name: 'New game' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('unfinished');
+    expect(window.location.search).toBe('');
+    expect(screen.getByRole('button', { name: 'Keep playing' })).toHaveFocus();
+  });
+});
