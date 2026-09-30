@@ -55,9 +55,12 @@ class GameStateCodecTest {
         assertFalse(GameStateCodec.decode(GameStateCodec.encode(engine))!!.canUndo)
     }
 
+    /** The v3 layout (no mode fields) of a current save, to exercise the older reader. */
+    private fun asV3(v4: String) = v4.split("|").take(11).toMutableList().also { it[0] = "v3" }.joinToString("|")
+
     @Test
     fun rejectsMalformedInputWithoutThrowing() {
-        val valid = GameStateCodec.encode(playedEngine(1))
+        val valid = asV3(GameStateCodec.encode(playedEngine(1)))
         val parts = valid.split("|")
         val bad = listOf(
             null,
@@ -76,11 +79,22 @@ class GameStateCodecTest {
             parts.toMutableList().also { it[7] = "x" }.joinToString("|")
         )
         for (input in bad) assertNull("should reject: $input", GameStateCodec.decode(input))
+
+        val v4 = GameStateCodec.encode(playedEngine(1)).split("|")
+        val bad4 = listOf(
+            v4.toMutableList().also { it[11] = "turbo" },
+            v4.toMutableList().also { it[12] = "1,2" },
+            v4.toMutableList().also { it[12] = "1,1,2,3" },
+            v4.toMutableList().also { it[13] = "-5" },
+            v4.toMutableList().also { it[11] = "daily"; it[13] = "" },
+            v4.take(13).toMutableList()
+        )
+        for (input in bad4) assertNull("should reject: $input", GameStateCodec.decode(input.joinToString("|")))
     }
 
     @Test
     fun readsTheLegacyV1FormatAndReplansThePreview() {
-        val v3 = GameStateCodec.encode(playedEngine(9)).split("|")
+        val v3 = asV3(GameStateCodec.encode(playedEngine(9))).split("|")
         val v1 = (listOf("v1") + v3.subList(1, 6) + v3[8] + v3.last()).joinToString("|")
         val restored = GameStateCodec.decode(v1)
         assertNotNull(restored)
