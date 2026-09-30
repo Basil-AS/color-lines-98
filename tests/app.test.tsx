@@ -39,7 +39,7 @@ const reachableCells = () => cells().filter((c) => /reachable|можно дой�
 async function startNewGame(user: ReturnType<typeof userEvent.setup>, mode?: RegExp) {
   await user.click(screen.getByRole('button', { name: 'New game' }));
   if (mode) await user.click(screen.getByRole('radio', { name: mode }));
-  await user.click(screen.getByRole('button', { name: 'Start' }));
+  await user.click(screen.getByRole('button', { name: /^Start/ }));
 }
 
 async function playOneMove(user: ReturnType<typeof userEvent.setup>) {
@@ -383,7 +383,7 @@ describe('starting a new game', () => {
     await user.click(screen.getByRole('button', { name: 'New game' }));
     expect(screen.getAllByRole('radio').map((r) => r.textContent?.split(/(?<=[a-z])(?=[A-Z0-9])/)[0])).toHaveLength(4);
     await user.click(screen.getByRole('radio', { name: /Easy/ }));
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await user.click(screen.getByRole('button', { name: /^Start/ }));
     expect(localStorage.getItem('colorlines_mode')).toBe('easy');
     expect(screen.getByRole('button', { name: /Mode: Easy/ })).toBeInTheDocument();
     const colors = new Set(ballCells().map((c) => /(\w+) ball/.exec(c.getAttribute('aria-label')!)![1]));
@@ -513,7 +513,7 @@ describe('long-term statistics and data files', () => {
     render(<App />);
     await playOneMove(user);
     await user.click(screen.getByRole('button', { name: 'New game' }));
-    await user.click(screen.getByRole('button', { name: 'Start' }));
+    await user.click(screen.getByRole('button', { name: /^Start/ }));
     const stored = JSON.parse(localStorage.getItem('colorlines_ledger') ?? '{}') as Record<string, { games: number }>;
     expect(Object.values(stored).reduce((n, d) => n + d.games, 0)).toBe(1);
     await openStats(user);
@@ -615,5 +615,49 @@ describe('the captions of the 1992 screen', () => {
     expect(translate('ru', 'dos.pretender')).toBe('Pretender');
     expect(translate('ru', 'dos.defaultKing')).toBe('Handicap');
     expect(translate('ru', 'dos.defaultName')).toBe('Player');
+  });
+});
+
+describe('modes are explained and visible', () => {
+  it('shows colours, clock, best result and what a switch does, and names the mode on the Start button', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem(
+      'colorlines_progress',
+      JSON.stringify({ totalGames: 3, gamesByMode: { classic: 2, blitz: 1 }, bestByMode: { classic: 500, blitz: 120 } })
+    );
+    render(<App />);
+    await playOneMove(user);
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    const radios = screen.getAllByRole('radio');
+    expect(radios).toHaveLength(4);
+    const dots = (r: HTMLElement) => r.querySelectorAll('.color-dot').length;
+    expect(radios.map(dots)).toEqual([7, 5, 7, 7]);
+    const [classic, easy, blitz] = radios;
+    expect(classic).toHaveTextContent('7 colours, no time limit');
+    expect(classic).toHaveTextContent('Best: 500 · games: 2');
+    expect(easy).toHaveTextContent('5 colours');
+    expect(blitz).toHaveTextContent('3 min');
+    await user.click(blitz);
+    expect(screen.getByText(/switching from Classic to Blitz/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Start: Blitz' })).toBeInTheDocument();
+    // The game in progress is still there until Start is pressed.
+    expect(screen.getByRole('alert')).toHaveTextContent('unfinished');
+  });
+
+  it('actually plays the colours it promises', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await startNewGame(user, /Easy/);
+    const colorsOnBoard = () => new Set(ballCells().map((c) => /(\w+) ball/.exec(c.getAttribute('aria-label')!)?.[1]));
+    for (let i = 0; i < 12; i++) await playOneMove(user).catch(() => undefined);
+    expect([...colorsOnBoard()].every((c) => ['red', 'green', 'blue', 'yellow', 'magenta'].includes(c!))).toBe(true);
+  });
+
+  it('explains every mode, the hint and the goals in the help', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Rules and info' }));
+    for (const text of [/Classic: the original rules, all 7 colours/, /Easy: only 5 colours/, /Blitz: 3 minutes/, /Daily challenge: everyone gets the same balls/, /Hint: marks a ball/])
+      expect(screen.getByText(text)).toBeInTheDocument();
   });
 });
