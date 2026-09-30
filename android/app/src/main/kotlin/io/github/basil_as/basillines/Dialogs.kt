@@ -1,9 +1,5 @@
 package io.github.basil_as.basillines
 
-import android.content.Intent
-import android.net.Uri
-import android.os.Build
-import android.provider.Settings
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -44,7 +40,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -232,11 +227,12 @@ fun SettingsDialog(
     onToggleSound: () -> Unit,
     spawnPreview: Boolean,
     onTogglePreview: () -> Unit,
+    language: AppLanguage,
+    onLanguage: (AppLanguage) -> Unit,
     playerName: String,
     onPlayerName: (String) -> Unit,
     onClose: () -> Unit
 ) {
-    val context = LocalContext.current
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.settings_title)) },
@@ -268,13 +264,22 @@ fun SettingsDialog(
                 if (editingName) {
                     PlayerNameDialog(playerName, onPlayerName, onDone = { editingName = false })
                 }
-                if (Build.VERSION.SDK_INT >= 33) {
-                    TextButton(onClick = {
-                        context.startActivity(
-                            Intent(Settings.ACTION_APP_LOCALE_SETTINGS, Uri.fromParts("package", context.packageName, null))
-                                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        )
-                    }) { Text(stringResource(R.string.settings_language)) }
+                Text(stringResource(R.string.lang_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                listOf(
+                    AppLanguage.AUTO to R.string.lang_auto,
+                    AppLanguage.EN to R.string.lang_en,
+                    AppLanguage.RU to R.string.lang_ru
+                ).forEach { (value, name) ->
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .selectable(selected = language == value, role = Role.RadioButton, onClick = { onLanguage(value) })
+                            .height(48.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        RadioButton(selected = language == value, onClick = null)
+                        Text(stringResource(name), Modifier.padding(start = 12.dp))
+                    }
                 }
             }
         },

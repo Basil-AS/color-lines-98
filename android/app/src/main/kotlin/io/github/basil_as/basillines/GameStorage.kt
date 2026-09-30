@@ -10,6 +10,9 @@ import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.Progress
 import io.github.basil_as.basillines.engine.ProgressTracker
 
+/** The language the player picked inside the game; AUTO follows the system. */
+enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
+
 enum class AppTheme { MODERN, LIGHT, LINES_98, COLORLINES_92 }
 
 /** Everything the app remembers between launches. Invalid stored data falls back to defaults. */
@@ -19,6 +22,10 @@ class GameStorage(context: Context) {
     var theme: AppTheme
         get() = parseTheme(prefs.getString(KEY_THEME, null))
         set(value) = prefs.edit().putString(KEY_THEME, value.name).apply()
+
+    var language: AppLanguage
+        get() = AppLanguage.entries.firstOrNull { it.name == prefs.getString(KEY_LANG, null) } ?: AppLanguage.AUTO
+        set(value) = prefs.edit().putString(KEY_LANG, value.name).apply()
 
     var bestScore: Int
         get() = prefs.getInt(KEY_BEST, 0).coerceAtLeast(0)
@@ -66,6 +73,7 @@ class GameStorage(context: Context) {
 
     companion object {
         private const val KEY_THEME = "theme"
+        private const val KEY_LANG = "language"
         private const val KEY_BEST = "best_score"
         private const val KEY_HISTORY = "history"
         private const val KEY_GAME = "game"
@@ -77,6 +85,17 @@ class GameStorage(context: Context) {
 
         /** Names used before the four current themes existed. */
         private val LEGACY = mapOf("CLASSIC_98" to AppTheme.LINES_98)
+
+        /** A context whose resources use the language chosen in the game (the system one for AUTO). */
+        fun localized(base: Context): Context {
+            val prefs = base.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+            val tag = AppLanguage.entries.firstOrNull { it.name == prefs.getString(KEY_LANG, null) }?.tag ?: return base
+            val locale = java.util.Locale.forLanguageTag(tag)
+            java.util.Locale.setDefault(locale)
+            val config = android.content.res.Configuration(base.resources.configuration)
+            config.setLocale(locale)
+            return base.createConfigurationContext(config)
+        }
 
         fun parseTheme(raw: String?): AppTheme =
             AppTheme.entries.firstOrNull { it.name == raw } ?: LEGACY[raw] ?: AppTheme.MODERN
