@@ -169,8 +169,8 @@ private val AMBER_TINT: (BallColor) -> Pair<Color, Color> = { ball ->
 private val GameBoy = Palette(
     background = Color(0xFF8BAC0F), panel = Color(0xFF9BBC0F), chip = Color(0xFF8BAC0F),
     boardBackground = Color(0xFF306230), cell = Color(0xFF9BBC0F),
-    text = Color(0xFF0F380F), textMuted = Color(0xFF306230),
-    statBackground = Color(0xFF8BAC0F), statLabel = Color(0xFF306230), statValue = Color(0xFF0F380F),
+    text = Color(0xFF0F380F), textMuted = Color(0xFF133713),
+    statBackground = Color(0xFF8BAC0F), statLabel = Color(0xFF133713), statValue = Color(0xFF0F380F),
     accent = Color(0xFF0F380F), onAccent = Color(0xFF9BBC0F), danger = Color(0xFF0F380F),
     reachableDot = Color(0xFF0F380F),
     dark = false, cellStyle = CellStyle.DOS, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,

@@ -139,6 +139,19 @@ describe('hint', () => {
   });
 });
 
+describe('the name of the game', () => {
+  it('is Color Lines in the tab title and the page in every language', () => {
+    for (const lang of ['en', 'ru']) {
+      cleanup();
+      localStorage.clear();
+      setLanguages([lang]);
+      render(<App />);
+      expect(document.title).toMatch(/^Color Lines/);
+      expect(document.title).not.toMatch(/[А-Яа-я]/);
+    }
+  });
+});
+
 describe('consistency between themes', () => {
   const ACTIONS: [string, RegExp][] = [
     ['new game', /^(New game|F4: Restart)/],

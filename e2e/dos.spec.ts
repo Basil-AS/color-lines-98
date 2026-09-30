@@ -44,7 +44,8 @@ test('F1 opens the original Help window, F3 hides the next balls, F4 restarts', 
 
   const balls = page.locator('.dos-grid .board-cell[aria-pressed]');
   await balls.first().click();
-  await page.locator('.dos-grid .board-cell').nth(40).click();
+  // Any reachable cell will do; a fixed one could be occupied on a random board.
+  await page.locator('.dos-grid .board-cell[aria-label*="reachable"]').first().click();
   // F4 no longer restarts silently: it asks first.
   await page.keyboard.press('F4');
   await expect(page.getByRole('alert')).toContainText('unfinished');
