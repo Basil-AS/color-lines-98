@@ -16,6 +16,7 @@ import {
 } from '../progress';
 import type { Progress } from '../progress';
 import { InsightsPanel } from './InsightsPanel';
+import { MODE_IDS } from '../engine/modes';
 import { summarize } from '../stats';
 import type { GameRecord } from '../stats';
 
@@ -51,6 +52,7 @@ function Sparkline({ values, label }: { values: number[]; label: string }) {
 export function StatsDialog({ lang, history, progress, now, onClear, onClose }: StatsDialogProps) {
   const t = (key: MessageKey, params?: Record<string, string | number>) => translate(lang, key, params);
   const [confirming, setConfirming] = useState(false);
+  const [understood, setUnderstood] = useState(false);
   const [showAll, setShowAll] = useState(false);
 
   const summary = summarize(history);
@@ -104,6 +106,16 @@ export function StatsDialog({ lang, history, progress, now, onClear, onClose }: 
       </dl>
 
       <InsightsPanel lang={lang} history={history} progress={progress} now={now} />
+
+      <h3 className="stats-subtitle">{t('stats.byMode')}</h3>
+      <ul className="mode-rows">
+        {MODE_IDS.map((id) => (
+          <li key={id}>
+            <strong>{t(`mode.${id}` as MessageKey)}</strong>
+            <span>{t('stats.modeRow', { games: progress.gamesByMode[id], best: progress.bestByMode[id] })}</span>
+          </li>
+        ))}
+      </ul>
 
       <h3 className="stats-subtitle">{t('stats.trend')}</h3>
       {history.length < 2 ? (
@@ -164,26 +176,39 @@ export function StatsDialog({ lang, history, progress, now, onClear, onClose }: 
       <div className="modal-actions">
         {(history.length > 0 || progress.totalGames > 0) &&
           (confirming ? (
-            <div className="confirm-row" role="group" aria-label={t('stats.confirmClear')}>
-              <span>{t('stats.confirmClear')}</span>
-              <button
-                type="button"
-                className="modal-btn modal-btn-danger"
-                onClick={() => {
-                  onClear();
-                  setConfirming(false);
-                }}
-              >
-                {t('stats.confirmYes')}
-              </button>
-              <button
-                type="button"
-                className="modal-btn modal-btn-secondary"
-                onClick={() => setConfirming(false)}
-                autoFocus
-              >
-                {t('stats.confirmNo')}
-              </button>
+            <div className="confirm-box" role="alertdialog" aria-labelledby="clear-warning" aria-describedby="clear-warning">
+              <p id="clear-warning" className="warn-box">
+                {t('stats.confirmClear', { games: history.length, level: level.level })}
+              </p>
+              <label className="confirm-check">
+                <input type="checkbox" checked={understood} onChange={(e) => setUnderstood(e.target.checked)} />
+                <span>{t('stats.confirmCheck')}</span>
+              </label>
+              <div className="modal-actions">
+                <button
+                  type="button"
+                  className="modal-btn modal-btn-danger"
+                  disabled={!understood}
+                  onClick={() => {
+                    onClear();
+                    setConfirming(false);
+                    setUnderstood(false);
+                  }}
+                >
+                  {t('stats.confirmYes')}
+                </button>
+                <button
+                  type="button"
+                  className="modal-btn modal-btn-secondary"
+                  onClick={() => {
+                    setConfirming(false);
+                    setUnderstood(false);
+                  }}
+                  autoFocus
+                >
+                  {t('stats.confirmNo')}
+                </button>
+              </div>
             </div>
           ) : (
             <button type="button" className="modal-btn modal-btn-secondary" onClick={() => setConfirming(true)}>

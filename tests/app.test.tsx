@@ -34,6 +34,13 @@ const ballCells = () => cells().filter((c) => /(\w+ ball|шар)(,|$)/.test(c.ge
 const incomingCells = () => cells().filter((c) => /will appear|появится/.test(c.getAttribute('aria-label')!));
 const reachableCells = () => cells().filter((c) => /reachable|можно дойти/.test(c.getAttribute('aria-label')!));
 
+/** Opens the New game dialog and starts (optionally picking a mode). */
+async function startNewGame(user: ReturnType<typeof userEvent.setup>, mode?: RegExp) {
+  await user.click(screen.getByRole('button', { name: 'New game' }));
+  if (mode) await user.click(screen.getByRole('radio', { name: mode }));
+  await user.click(screen.getByRole('button', { name: 'Start' }));
+}
+
 async function playOneMove(user: ReturnType<typeof userEvent.setup>) {
   await user.click(ballCells()[0]);
   await user.click(reachableCells()[0]);
@@ -80,7 +87,7 @@ describe('board', () => {
     const user = userEvent.setup();
     render(<App />);
     await playOneMove(user);
-    await user.click(screen.getByRole('button', { name: 'New game' }));
+    await startNewGame(user);
     expect(ballCells()).toHaveLength(5);
     expect(screen.getByRole('button', { name: 'Undo move' })).toBeDisabled();
   });
@@ -122,7 +129,7 @@ describe('sound events', () => {
     expect(soundManager.play).toHaveBeenCalledWith('select');
     await user.click(reachableCells()[0]);
     expect(soundManager.play).toHaveBeenCalledWith('jump');
-    await user.click(screen.getByRole('button', { name: 'New game' }));
+    await startNewGame(user);
     expect(soundManager.play).toHaveBeenCalledWith('start');
   });
 
@@ -236,58 +243,104 @@ describe('statistics', () => {
     await user.click(screen.getByRole('button', { name: 'Close' }));
 
     await playOneMove(user);
-    await user.click(screen.getByRole('button', { name: 'New game' }));
+    await startNewGame(user);
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
     expect(screen.getByText('unfinished')).toBeInTheDocument();
   });
 
-  it('asks before deleting the history', async () => {
+  it('makes deleting the history a deliberate two-step action', async () => {
     const user = userEvent.setup();
     render(<App />);
     await playOneMove(user);
-    await user.click(screen.getByRole('button', { name: 'New game' }));
+    await startNewGame(user);
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
     await user.click(screen.getByRole('button', { name: 'Clear history' }));
-    expect(screen.getByText('Delete all saved games?')).toBeInTheDocument();
+
+    // The warning says what is lost; the safe choice has the focus; "Delete" is locked until acknowledged.
+    expect(screen.getByText(/This deletes all 1 saved games/)).toBeInTheDocument();
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+    await user.keyboard('{Enter}'); // Enter on the focused Cancel must not delete anything
+    expect(screen.getByText('unfinished')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Clear history' }));
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     expect(screen.getByText('unfinished')).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: 'Clear history' }));
+    await user.click(screen.getByRole('checkbox', { name: /cannot be undone/ }));
+    expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.queryByText('unfinished')).not.toBeInTheDocument();
     expect(localStorage.getItem('colorlines_history')).toBe(null);
+    expect(localStorage.getItem('colorlines_progress')).toBe(null);
   });
 });
 
-describe('analysis', () => {
-  const history = Array.from({ length: 25 }, (_, i) => ({
-    score: 200 - i * 4, // newest first: the player is improving
-    endedAt: Date.now() - i * 3_600_000,
-    moves: 40,
-    lines: 4,
-    balls: 20,
-    completed: true,
-    maxLine: 5,
-    durationMs: 120_000,
-  }));
-
-  it('shows the trend, charts and efficiency once there are enough games', async () => {
-    localStorage.setItem('colorlines_history', JSON.stringify(history));
+describe('starting a new game', () => {
+  it('warns before throwing away a game in progress and puts "Keep playing" in focus', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Statistics' }));
-    expect(screen.getByRole('region', { name: 'Analysis' })).toBeInTheDocument();
-    expect(screen.getByText(/better than the 10 before/)).toBeInTheDocument();
-    expect(screen.getByText(/points per move/)).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /Games per day, last 14 days/ })).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: /How your scores are spread/ })).toBeInTheDocument();
+    await playOneMove(user);
+    const before = cells().map((c) => c.getAttribute('aria-label'));
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(/will be counted as unfinished/);
+    expect(document.activeElement).toBe(screen.getByRole('button', { name: 'Keep playing' }));
+    await user.keyboard('{Enter}');
+    expect(screen.queryByRole('dialog', { name: 'New game' })).not.toBeInTheDocument();
+    expect(cells().map((c) => c.getAttribute('aria-label'))).toEqual(before);
+    expect(localStorage.getItem('colorlines_history')).toBe(null);
   });
 
-  it('asks for more games while the history is short', async () => {
-    localStorage.setItem('colorlines_history', JSON.stringify(history.slice(0, 3)));
+  it('does not warn when no move was made yet, and Escape closes the dialog', async () => {
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: 'Statistics' }));
-    expect(screen.getByText(/Finish 17 more games/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'New game' })).not.toBeInTheDocument();
+  });
+
+  it('offers the four modes and remembers the choice', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    expect(screen.getAllByRole('radio').map((r) => r.textContent?.split(/(?<=[a-z])(?=[A-Z0-9])/)[0])).toHaveLength(4);
+    await user.click(screen.getByRole('radio', { name: /Easy/ }));
+    await user.click(screen.getByRole('button', { name: 'Start' }));
+    expect(localStorage.getItem('colorlines_mode')).toBe('easy');
+    expect(screen.getByRole('button', { name: /Mode: Easy/ })).toBeInTheDocument();
+    const colors = new Set(ballCells().map((c) => /(\w+) ball/.exec(c.getAttribute('aria-label')!)![1]));
+    for (const c of colors) expect(['red', 'green', 'blue', 'yellow', 'magenta']).toContain(c);
+  });
+
+  it('starts the same daily challenge every time on the same day', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await startNewGame(user, /Daily challenge/);
+    const first = cells().map((c) => c.getAttribute('aria-label'));
+    await startNewGame(user, /Daily challenge/);
+    expect(cells().map((c) => c.getAttribute('aria-label'))).toEqual(first);
+  });
+
+  it('shows a countdown in Blitz', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await startNewGame(user, /Blitz/);
+    expect(screen.getByRole('timer')).toHaveTextContent(/^[0-3]:\d\d$/);
+    expect(screen.getByRole('timer')).toHaveAccessibleName(/Time left/);
+  });
+});
+
+describe('goals', () => {
+  it('shows three goals built from the results and how many are done', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /^Goals 0\/3/ }));
+    const dialog = screen.getByRole('dialog', { name: "Today's goals" });
+    expect(within(dialog).getAllByRole('progressbar')).toHaveLength(3);
+    expect(within(dialog).getByText(/Score \d+ points in one game/)).toBeInTheDocument();
+    expect(within(dialog).getByText(/built from your own recent results/)).toBeInTheDocument();
   });
 });
 

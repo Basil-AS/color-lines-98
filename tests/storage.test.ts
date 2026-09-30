@@ -10,7 +10,9 @@ import {
   loadGame,
   loadHistory,
   loadHall,
+  loadGoalsDone,
   loadLanguagePref,
+  loadMode,
   loadPlayerName,
   loadProgress,
   loadShowNext,
@@ -20,7 +22,9 @@ import {
   saveGame,
   saveHistory,
   saveHall,
+  saveGoalsDone,
   saveLanguagePref,
+  saveMode,
   savePlayerName,
   saveProgress,
   saveShowNext,
@@ -218,5 +222,24 @@ describe('hall of fame, player name and NEXT toggle', () => {
     expect(loadShowNext()).toBe(true);
     saveShowNext(false);
     expect(loadShowNext()).toBe(false);
+  });
+});
+
+describe('mode and goals storage', () => {
+  it('remembers the last mode and ignores unknown values', () => {
+    expect(loadMode()).toBe('classic');
+    saveMode('blitz');
+    expect(loadMode()).toBe('blitz');
+    store.setItem('colorlines_mode', 'chaos');
+    expect(loadMode()).toBe('classic');
+  });
+
+  it('keeps the goals done today and forgets other days', () => {
+    expect(loadGoalsDone('2026-09-30')).toEqual([]);
+    saveGoalsDone('2026-09-30', ['a', 'b']);
+    expect(loadGoalsDone('2026-09-30')).toEqual(['a', 'b']);
+    expect(loadGoalsDone('2026-10-01')).toEqual([]);
+    store.setItem('colorlines_goals_done', '{oops');
+    expect(loadGoalsDone('2026-09-30')).toEqual([]);
   });
 });
