@@ -23,11 +23,15 @@ test('draws the original screen: grey frame, black LCD displays, the board and t
     const data = ctx.getImageData(51, 72, 72, 73).data;
     let red = 0;
     for (let i = 0; i < data.length; i += 4) if (data[i] > 150 && data[i + 1] < 60 && data[i + 2] < 60) red++;
-    return { frame: at(5, 5), lcd: at(58, 14), redPixelsOfTheKing: red, board: at(180, 70) };
+    // A ball may stand on any one cell, so judge the board by its whole area: mostly the EGA grey of empty cells.
+    const board = ctx.getImageData(171, 61, 306, 216).data;
+    let grey = 0;
+    for (let i = 0; i < board.length; i += 4) if (board[i] === 170 && board[i + 1] === 170 && board[i + 2] === 170) grey++;
+    return { frame: at(5, 5), lcd: at(58, 14), redPixelsOfTheKing: red, greyShareOfTheBoard: grey / (board.length / 4) };
   });
   expect(px.frame).toEqual([170, 170, 170]);
   expect(px.lcd).toEqual([0, 0, 0]);
-  expect(px.board).toEqual([170, 170, 170]);
+  expect(px.greyShareOfTheBoard).toBeGreaterThan(0.5);
   expect(px.redPixelsOfTheKing).toBeGreaterThan(200);
   await expect(page.locator('.dos-grid .board-cell')).toHaveCount(81);
 });
