@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { installKind } from './install';
 import { clearInstallPrompt, onInstallPrompt, savedInstallPrompt } from './earlyInstall';
-import type { BeforeInstallPromptEvent } from './earlyInstall';
 import type { InstallKind } from './install';
 
 function isStandalone(): boolean {
@@ -11,19 +10,14 @@ function isStandalone(): boolean {
 
 /** Tracks whether and how the app can be installed in this browser. */
 export function useInstall(): { kind: InstallKind; install: () => Promise<void> } {
-  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(savedInstallPrompt);
+  // Reads the event kept since page load and follows later changes; nothing can be missed between render and effect.
+  const promptEvent = useSyncExternalStore((notify) => onInstallPrompt(() => notify()), savedInstallPrompt);
   const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
-    const off = onInstallPrompt(setPromptEvent);
     const onInstalled = () => setInstalled(true);
     window.addEventListener('appinstalled', onInstalled);
-    // The event may have arrived between the first render and this effect.
-    setPromptEvent(savedInstallPrompt());
-    return () => {
-      off();
-      window.removeEventListener('appinstalled', onInstalled);
-    };
+    return () => window.removeEventListener('appinstalled', onInstalled);
   }, []);
 
   const kind = installKind({
