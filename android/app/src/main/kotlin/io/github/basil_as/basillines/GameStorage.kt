@@ -14,7 +14,22 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, CONTRAST, LINES_98, COLORLINES_92 }
+enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, LINES_98, COLORLINES_92 }
+
+/** The instrument a look plays its sounds with (the two retro looks use samples and PC-speaker beeps instead). */
+val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
+    get() = when (this) {
+        AppTheme.LIGHT -> io.github.basil_as.basillines.engine.VoiceId.BELL
+        AppTheme.MATERIAL -> io.github.basil_as.basillines.engine.VoiceId.MARIMBA
+        AppTheme.NEON -> io.github.basil_as.basillines.engine.VoiceId.ARCADE
+        AppTheme.SYNTHWAVE -> io.github.basil_as.basillines.engine.VoiceId.SAW
+        AppTheme.OCEAN -> io.github.basil_as.basillines.engine.VoiceId.GLASS
+        AppTheme.PAPER -> io.github.basil_as.basillines.engine.VoiceId.WOOD
+        AppTheme.GAMEBOY -> io.github.basil_as.basillines.engine.VoiceId.CHIP
+        AppTheme.TERMINAL -> io.github.basil_as.basillines.engine.VoiceId.TELETYPE
+        AppTheme.CONTRAST -> io.github.basil_as.basillines.engine.VoiceId.BEEP
+        else -> io.github.basil_as.basillines.engine.VoiceId.SOFT
+    }
 
 /** Everything the app remembers between launches. Invalid stored data falls back to defaults. */
 class GameStorage(context: Context) {

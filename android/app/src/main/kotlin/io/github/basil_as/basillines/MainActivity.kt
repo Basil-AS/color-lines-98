@@ -191,6 +191,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val palette = paletteFor(theme)
     val spawnPreview = spawnStored ?: (theme != AppTheme.COLORLINES_92)
     val defaultName = stringResource(R.string.dos_defaultName)
+    soundManager.voice = theme.voice
     soundManager.profile = when (theme) {
         AppTheme.LINES_98 -> SoundManager.Profile.SAMPLED
         AppTheme.COLORLINES_92 -> SoundManager.Profile.PC_SPEAKER

@@ -231,9 +231,10 @@ private fun DrawScope.drawBall(
             )
         }
         BallStyle.CONTRAST -> {
-            drawCircle(Color.White, radius + 2f, center)
-            drawCircle(contrastColor(ball), radius - 1f, center)
-            drawContrastSymbol(ball, center, radius * 0.5f)
+            val tint = palette.symbolTint?.invoke(ball)
+            drawCircle(palette.ballBorder, radius + 2f, center)
+            drawCircle(tint?.first ?: contrastColor(ball), radius - 1f, center)
+            drawContrastSymbol(ball, center, radius * 0.5f, tint?.second ?: Color.Black)
         }
         BallStyle.GLOSSY -> {
             val base = ballColor(ball)
@@ -254,8 +255,7 @@ private fun DrawScope.drawBall(
 }
 
 /** A shape per colour (circle, triangle, square, diamond, star, plus, heart), drawn in black on the ball. */
-private fun DrawScope.drawContrastSymbol(ball: BallColor, c: Offset, r: Float) {
-    val ink = Color.Black
+private fun DrawScope.drawContrastSymbol(ball: BallColor, c: Offset, r: Float, ink: Color) {
     fun polygon(pts: List<Offset>) {
         val path = androidx.compose.ui.graphics.Path()
         path.moveTo(pts[0].x, pts[0].y)

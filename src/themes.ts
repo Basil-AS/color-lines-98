@@ -1,4 +1,17 @@
-export const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'] as const;
+export const THEMES = [
+  'modern',
+  'light',
+  'material',
+  'neon',
+  'synthwave',
+  'ocean',
+  'paper',
+  'gameboy',
+  'terminal',
+  'contrast',
+  'lines98',
+  'colorlines92',
+] as const;
 export type Theme = (typeof THEMES)[number];
 
 export const DEFAULT_THEME: Theme = 'modern';
@@ -34,4 +47,26 @@ export function isRetroTheme(theme: Theme): boolean {
  */
 export function defaultSpawnPreview(theme: Theme): boolean {
   return theme !== 'colorlines92';
+}
+
+/** Every look has its own voice; the two retro ones have theirs in samples and PC-speaker beeps. */
+export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep';
+
+const VOICES: Record<Theme, VoiceId> = {
+  modern: 'soft',
+  light: 'bell',
+  material: 'marimba',
+  neon: 'arcade',
+  synthwave: 'saw',
+  ocean: 'glass',
+  paper: 'wood',
+  gameboy: 'chip',
+  terminal: 'teletype',
+  contrast: 'beep',
+  lines98: 'soft',
+  colorlines92: 'soft',
+};
+
+export function soundVoice(theme: Theme): VoiceId {
+  return VOICES[theme];
 }

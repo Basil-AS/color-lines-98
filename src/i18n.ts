@@ -106,6 +106,11 @@ const en = {
   'theme.material': 'Material',
   'theme.neon': 'Neon',
   'theme.contrast': 'High contrast',
+  'theme.synthwave': 'Synthwave',
+  'theme.ocean': 'Ocean',
+  'theme.paper': 'Paper',
+  'theme.gameboy': 'Game Boy (1989)',
+  'theme.terminal': 'Amber terminal',
   'theme.lines98': 'Lines 98 (Windows)',
   'theme.colorlines92': 'Color Lines 1992 (DOS)',
 
@@ -286,7 +291,7 @@ type Dictionary = { readonly [K in keyof typeof en]: string };
 const ru: Dictionary = {
   'app.name': 'Color Lines',
   'app.tagline': 'Классическая головоломка с цветными шарами',
-  'app.docTitle': 'Color Lines — классическая головоломка с шарами',
+  'app.docTitle': 'Color Lines — the classic ball puzzle',
 
   'hud.score': 'Счёт',
   'hud.best': 'Рекорд',
@@ -386,6 +391,11 @@ const ru: Dictionary = {
   'theme.material': 'Material',
   'theme.neon': 'Неон',
   'theme.contrast': 'Высокий контраст',
+  'theme.synthwave': 'Синтвейв',
+  'theme.ocean': 'Океан',
+  'theme.paper': 'Бумага',
+  'theme.gameboy': 'Game Boy (1989)',
+  'theme.terminal': 'Янтарный терминал',
   'theme.lines98': 'Lines 98 (Windows)',
   'theme.colorlines92': 'Color Lines 1992 (DOS)',
 
