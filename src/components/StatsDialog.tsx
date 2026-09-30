@@ -16,6 +16,10 @@ import {
 } from '../progress';
 import type { Progress } from '../progress';
 import { InsightsPanel } from './InsightsPanel';
+import { CareerPanel, RecordsPanel, SeasonsPanel } from './LongTermPanels';
+import { DataPanel } from './DataPanel';
+import type { Backup } from '../backup';
+import type { Ledger } from '../ledger';
 import { MODE_IDS } from '../engine/modes';
 import { summarize } from '../stats';
 import type { GameRecord } from '../stats';
@@ -24,7 +28,10 @@ interface StatsDialogProps {
   lang: Language;
   history: readonly GameRecord[];
   progress: Progress;
+  ledger: Ledger;
   now: number;
+  onExport: (kind: 'json' | 'csv') => void;
+  onImport: (backup: Backup, mode: 'merge' | 'replace') => void;
   onClear: () => void;
   onClose: () => void;
 }
@@ -49,11 +56,15 @@ function Sparkline({ values, label }: { values: number[]; label: string }) {
   );
 }
 
-export function StatsDialog({ lang, history, progress, now, onClear, onClose }: StatsDialogProps) {
+const TABS = ['overview', 'career', 'seasons', 'records', 'data'] as const;
+type Tab = (typeof TABS)[number];
+
+export function StatsDialog({ lang, history, progress, ledger, now, onExport, onImport, onClear, onClose }: StatsDialogProps) {
   const t = (key: MessageKey, params?: Record<string, string | number>) => translate(lang, key, params);
   const [confirming, setConfirming] = useState(false);
   const [understood, setUnderstood] = useState(false);
   const [showAll, setShowAll] = useState(false);
+  const [tab, setTab] = useState<Tab>('overview');
 
   const summary = summarize(history);
   const level = levelInfo(xpOf(progress));
@@ -78,6 +89,39 @@ export function StatsDialog({ lang, history, progress, now, onClear, onClose }: 
 
   return (
     <Dialog titleId="stats-title" title={t('stats.title')} onClose={onClose}>
+      <div className="tabs" role="tablist" aria-label={t('stats.title')}>
+        {TABS.map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            id={`stats-tab-${id}`}
+            aria-selected={tab === id}
+            aria-controls="stats-panel"
+            tabIndex={tab === id ? 0 : -1}
+            className={`tab-btn ${tab === id ? 'active' : ''}`}
+            onClick={() => setTab(id)}
+            onKeyDown={(e) => {
+              const at = TABS.indexOf(tab);
+              const next = e.key === 'ArrowRight' ? at + 1 : e.key === 'ArrowLeft' ? at - 1 : null;
+              if (next === null) return;
+              e.preventDefault();
+              const target = TABS[(next + TABS.length) % TABS.length];
+              setTab(target);
+              document.getElementById(`stats-tab-${target}`)?.focus();
+            }}
+          >
+            {t(`stats.tab.${id}` as MessageKey)}
+          </button>
+        ))}
+      </div>
+      <div id="stats-panel" role="tabpanel" aria-labelledby={`stats-tab-${tab}`}>
+      {tab === 'career' && <CareerPanel lang={lang} ledger={ledger} now={now} />}
+      {tab === 'seasons' && <SeasonsPanel lang={lang} ledger={ledger} now={now} />}
+      {tab === 'records' && <RecordsPanel lang={lang} ledger={ledger} history={history} />}
+      {tab === 'data' && <DataPanel lang={lang} games={progress.totalGames} onExport={onExport} onImport={onImport} />}
+      {tab === 'overview' && (
+      <>
       <section className="level-card" aria-label={t('level.label', { level: level.level })}>
         <div className="level-head">
           <span className="level-badge">{t('level.label', { level: level.level })}</span>
@@ -172,9 +216,12 @@ export function StatsDialog({ lang, history, progress, now, onClear, onClose }: 
           {showAll ? t('stats.showLess') : t('stats.showAll', { n: history.length })}
         </button>
       )}
+      </>
+      )}
+      </div>
 
       <div className="modal-actions">
-        {(history.length > 0 || progress.totalGames > 0) &&
+        {tab === 'overview' && (history.length > 0 || progress.totalGames > 0) &&
           (confirming ? (
             <div className="confirm-box" role="alertdialog" aria-labelledby="clear-warning" aria-describedby="clear-warning">
               <p id="clear-warning" className="warn-box">

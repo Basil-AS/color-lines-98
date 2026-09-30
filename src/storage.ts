@@ -4,6 +4,8 @@ import type { ModeId } from './engine/modes';
 import { sanitizeHall } from './dos/hall';
 import type { HallEntry } from './dos/hall';
 import { sanitizeProgress } from './progress';
+import { ledgerFromHistory, sanitizeLedger } from './ledger';
+import type { Ledger } from './ledger';
 import type { Progress } from './progress';
 import { sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
@@ -26,6 +28,7 @@ const NAME_KEY = 'colorlines_player_name';
 const NEXT_KEY = 'colorlines_show_next';
 const MODE_KEY = 'colorlines_mode';
 const GOALS_KEY = 'colorlines_goals_done';
+const LEDGER_KEY = 'colorlines_ledger';
 
 export const LANGUAGE_PREFS = ['auto', 'en', 'ru'] as const;
 export type LanguagePref = (typeof LANGUAGE_PREFS)[number];
@@ -220,4 +223,29 @@ export function loadGoalsDone(day: string): string[] {
 
 export function saveGoalsDone(day: string, ids: readonly string[]): void {
   write(GOALS_KEY, JSON.stringify({ day, ids }));
+}
+
+/** The permanent day ledger; built from the game history the first time (installs that predate it). */
+export function loadLedger(): Ledger {
+  const raw = read(LEDGER_KEY);
+  if (raw !== null) {
+    try {
+      return sanitizeLedger(JSON.parse(raw));
+    } catch {
+      // fall through to a rebuild
+    }
+  }
+  return ledgerFromHistory(loadHistory());
+}
+
+export function saveLedger(ledger: Ledger): void {
+  write(LEDGER_KEY, JSON.stringify(ledger));
+}
+
+export function clearLedger(): void {
+  try {
+    localStorage.removeItem(LEDGER_KEY);
+  } catch {
+    // See note above.
+  }
 }
