@@ -89,6 +89,8 @@ const en = {
 
   'btn.settings': 'Settings',
   'menu.game': 'Game',
+  'menu.score': 'Score',
+  'menu.help': 'Help',
 
   'settings.title': 'Settings',
   'settings.theme': 'Theme',
@@ -362,6 +364,8 @@ const ru: Dictionary = {
 
   'btn.settings': 'Настройки',
   'menu.game': 'Игра',
+  'menu.score': 'Результаты',
+  'menu.help': 'Справка',
 
   'settings.title': 'Настройки',
   'settings.theme': 'Тема',

@@ -225,8 +225,17 @@ describe('themes', () => {
 
   it('gives the Windows theme its own title bar and menu', async () => {
     localStorage.setItem('colorlines_theme', 'lines98');
+    const user = userEvent.setup();
     render(<App />);
-    expect(screen.getByRole('navigation')).toBeInTheDocument();
+    expect(screen.getByRole('menubar', { name: 'Game' })).toBeInTheDocument();
+    // Real drop-down menus: open, use, close with Escape and get the focus back.
+    await user.click(screen.getByRole('menuitem', { name: 'Game' }));
+    expect(screen.getByRole('menu', { name: 'Game' })).toBeInTheDocument();
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('menuitem', { name: 'Score' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Statistics' }));
+    expect(screen.getByRole('dialog', { name: 'Statistics' })).toBeInTheDocument();
   });
 
   it('migrates the old theme names', () => {
