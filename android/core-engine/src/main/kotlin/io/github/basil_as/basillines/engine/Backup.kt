@@ -52,7 +52,8 @@ object Backups {
                 "totalScore" to b.progress.totalScore, "totalLines" to b.progress.totalLines, "totalBalls" to b.progress.totalBalls,
                 "totalMoves" to b.progress.totalMoves, "totalPlayMs" to b.progress.totalPlayMs, "bestScore" to b.progress.bestScore,
                 "bestLine" to b.progress.bestLine, "mostLinesInGame" to b.progress.mostLinesInGame,
-                "longestGameMoves" to b.progress.longestGameMoves, "days" to b.progress.days, "achievements" to b.progress.achievements
+                "longestGameMoves" to b.progress.longestGameMoves, "days" to b.progress.days, "achievements" to b.progress.achievements,
+                "bonusXp" to b.progress.bonusXp, "goalDays" to b.progress.goalDays
             ),
             "hall" to b.hall.map { mapOf("name" to it.name, "score" to it.score, "at" to it.at) },
             "settings" to buildMap<String, Any?> {
@@ -110,7 +111,8 @@ object Backups {
         fun i(name: String) = n(name).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         return Progress(
             i("totalGames"), i("completedGames"), i("totalScore"), i("totalLines"), i("totalBalls"), i("totalMoves"), n("totalPlayMs"),
-            i("bestScore"), i("bestLine"), i("mostLinesInGame"), i("longestGameMoves"), days, ach
+            i("bestScore"), i("bestLine"), i("mostLinesInGame"), i("longestGameMoves"), days, ach,
+            i("bonusXp"), (o["goalDays"] as? List<*>)?.filterIsInstance<String>()?.filter { Regex("""\d{4}-\d{2}-\d{2}""").matches(it) }?.sorted()?.takeLast(ProgressTracker.DAYS_LIMIT) ?: emptyList()
         )
     }
 
@@ -184,7 +186,9 @@ object Backups {
             maxOf(base.mostLinesInGame, current.mostLinesInGame, incoming.mostLinesInGame),
             maxOf(base.longestGameMoves, current.longestGameMoves, incoming.longestGameMoves),
             (current.days + incoming.days + base.days).toSortedSet().toList().takeLast(ProgressTracker.DAYS_LIMIT),
-            ach
+            ach,
+            maxOf(current.bonusXp, incoming.bonusXp),
+            (current.goalDays + incoming.goalDays).toSortedSet().toList().takeLast(ProgressTracker.DAYS_LIMIT)
         )
     }
 

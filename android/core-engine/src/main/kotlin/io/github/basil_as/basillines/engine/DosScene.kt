@@ -90,7 +90,10 @@ object DosScene {
 
         val dt = state.coronationStart?.let { state.nowMs - it } ?: -1L
         var kingFrame = ((state.nowMs / 700) % 2).toInt() // the gold on the crown glints
-        var pretenderFrame = 0
+        // The pretender lifts his sword now and then, more eagerly the closer he gets to the record (as on the web).
+        val closing = state.kingScore > 0 && state.score >= state.kingScore * 0.75
+        val swordPeriod = if (closing) 1800L else 4200L
+        var pretenderFrame = if (state.nowMs % swordPeriod >= swordPeriod - 650) 5 else 0
         if (dt >= 0) {
             val step = (dt / CORONATION_STEP).toInt()
             kingFrame = when (step) { 0 -> 2; 1 -> 3; else -> 4 }
