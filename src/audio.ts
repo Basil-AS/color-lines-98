@@ -1,6 +1,6 @@
-import type { SoundProfile } from './themes';
+import type { SoundProfile, VoiceId } from './themes';
 
-import { modernNotes } from './modernsound';
+import { voicedNotes } from './modernsound';
 import { pcSpeakerNotes } from './pcspeaker';
 import { sampleFor } from './samples';
 import type { SoundKind } from './pcspeaker';
@@ -8,6 +8,7 @@ import type { SoundKind } from './pcspeaker';
 class SoundManager {
   private enabled: boolean = true;
   private profile: SoundProfile = 'sampled';
+  private voice: VoiceId = 'soft';
   private context: AudioContext | null = null;
   private audioCache: Map<string, HTMLAudioElement> = new Map();
 
@@ -32,8 +33,9 @@ class SoundManager {
     return this.enabled;
   }
 
-  setProfile(profile: SoundProfile): void {
+  setProfile(profile: SoundProfile, voice: VoiceId = 'soft'): void {
     this.profile = profile;
+    this.voice = voice;
   }
 
   /** Plays synthesised notes: square beeps for the PC speaker, soft tones for the modern themes. */
@@ -47,14 +49,14 @@ class SoundManager {
       const notes =
         this.profile === 'pcspeaker'
           ? pcSpeakerNotes(kind, points).map((b) => ({ freq: b.freq, ms: b.ms, wave: 'square' as const, gain: 0.06 }))
-          : modernNotes(kind, points);
+          : voicedNotes(kind, points, this.voice);
       for (const note of notes) {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = note.wave;
         osc.frequency.value = note.freq;
         const end = t + note.ms / 1000;
-        if (note.wave === 'square') {
+        if (this.profile === 'pcspeaker') {
           gain.gain.value = note.gain;
         } else {
           // A quick attack and a smooth decay keep the soft tones free of clicks.

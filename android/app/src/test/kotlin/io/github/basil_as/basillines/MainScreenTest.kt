@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.test.core.app.ApplicationProvider
@@ -159,7 +160,7 @@ class MainScreenTest {
     @Test
     fun theLanguageCanBeSwitchedInsideTheGame() {
         rule.onNodeWithContentDescription("Settings").performClick()
-        rule.onNode(hasText("Русский")).performClick()
+        rule.onNode(hasText("Русский")).performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(AppLanguage.RU, GameStorage(ApplicationProvider.getApplicationContext()).language)
         // The activity is recreated with the chosen language, whatever the system uses.

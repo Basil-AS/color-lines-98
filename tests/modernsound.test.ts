@@ -48,3 +48,36 @@ describe('sound profile per theme', () => {
     expect(soundProfile('colorlines92')).toBe('pcspeaker');
   });
 });
+
+describe('a voice for every look', () => {
+  it('gives every theme a voice and every voice valid notes for every event', async () => {
+    const { THEMES, soundVoice } = await import('../src/themes');
+    const { voicedNotes } = await import('../src/modernsound');
+    const { ALL_SOUND_KINDS: SOUND_KINDS } = await import('./soundkinds');
+    for (const theme of THEMES) {
+      const voice = soundVoice(theme);
+      for (const kind of SOUND_KINDS) {
+        const notes = voicedNotes(kind, 40, voice);
+        expect(notes.length, `${theme}/${kind}`).toBeGreaterThan(0);
+        for (const n of notes) {
+          expect(n.freq).toBeGreaterThan(80);
+          expect(n.freq).toBeLessThan(6000);
+          expect(n.ms).toBeGreaterThan(0);
+          expect(n.gain).toBeGreaterThan(0);
+          expect(n.gain).toBeLessThan(0.5);
+        }
+      }
+    }
+  });
+
+  it('makes the six new-style looks sound different from each other', async () => {
+    const { THEMES, soundVoice, soundProfile } = await import('../src/themes');
+    const { voicedNotes } = await import('../src/modernsound');
+    const fingerprints = new Map<string, string>();
+    for (const theme of THEMES.filter((t) => soundProfile(t) === 'modern')) {
+      const fp = JSON.stringify(voicedNotes('eat', 30, soundVoice(theme)));
+      expect(fingerprints.has(fp), `${theme} sounds like ${fingerprints.get(fp)}`).toBe(false);
+      fingerprints.set(fp, theme);
+    }
+  });
+});

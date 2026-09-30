@@ -24,7 +24,10 @@ data class Palette(
     val dark: Boolean,
     val cellStyle: CellStyle,
     val ballStyle: BallStyle,
-    val windowTitleBar: Boolean
+    val windowTitleBar: Boolean,
+    /** Fill and ink per ball for the shape-coded looks (Game Boy, terminal); null uses the high-contrast colours. */
+    val symbolTint: ((BallColor) -> Pair<Color, Color>)? = null,
+    val ballBorder: Color = Color.White
 ) {
     val square: Boolean get() = cellStyle != CellStyle.ROUNDED
 }
@@ -104,11 +107,98 @@ private val Contrast = Palette(
     dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false
 )
 
+
+/** Synthwave: violet dusk with hot pink and cyan glow. */
+private val Synthwave = Palette(
+    background = Color(0xFF140A2E), panel = Color(0xFF1C0A3A), chip = Color(0xFF3A1A78),
+    boardBackground = Color(0xFF1A0A3A), cell = Color(0xFF2A1258),
+    text = Color(0xFFFDEAFF), textMuted = Color(0xFFC9A6E8),
+    statBackground = Color(0xFF1A0A3A), statLabel = Color(0xFFC9A6E8), statValue = Color(0xFFFFD166),
+    accent = Color(0xFFFF4FBF), onAccent = Color(0xFF1A0630), danger = Color(0xFFFF5D8F),
+    reachableDot = Color(0xFF4FD5FF).copy(alpha = 0.85f),
+    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.NEON, windowTitleBar = false
+)
+
+/** Ocean: deep teal water with aqua accents. */
+private val Ocean = Palette(
+    background = Color(0xFF04222F), panel = Color(0xFF073447), chip = Color(0xFF0A465C),
+    boardBackground = Color(0xFF052C3B), cell = Color(0xFF0A465C),
+    text = Color(0xFFE6FBFF), textMuted = Color(0xFF9FD3DF),
+    statBackground = Color(0xFF052C3B), statLabel = Color(0xFF9FD3DF), statValue = Color(0xFF2EE6C5),
+    accent = Color(0xFF2EE6C5), onAccent = Color(0xFF02201C), danger = Color(0xFFFF7A7A),
+    reachableDot = Color(0xFFFFD166).copy(alpha = 0.85f),
+    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.GLOSSY, windowTitleBar = false
+)
+
+/** Paper: a wooden board on warm sepia paper. */
+private val Paper = Palette(
+    background = Color(0xFFEFE3C8), panel = Color(0xFFFBF3DF), chip = Color(0xFFF1E2BD),
+    boardBackground = Color(0xFFC59A62), cell = Color(0xFFE9D3A7),
+    text = Color(0xFF3A2A14), textMuted = Color(0xFF6D5A3A),
+    statBackground = Color(0xFFF1E2BD), statLabel = Color(0xFF6D5A3A), statValue = Color(0xFF3A2A14),
+    accent = Color(0xFF9A4A1F), onAccent = Color.White, danger = Color(0xFFA82B1C),
+    reachableDot = Color(0xFF9A4A1F).copy(alpha = 0.8f),
+    dark = false, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.GLOSSY, windowTitleBar = false
+)
+
+private val GB_TINT: (BallColor) -> Pair<Color, Color> = { ball ->
+        when (ball) {
+            BallColor.RED -> Color(0xFF0F380F) to Color(0xFF9BBC0F)
+            BallColor.GREEN -> Color(0xFF306230) to Color(0xFF9BBC0F)
+            BallColor.BLUE -> Color(0xFF0F380F) to Color(0xFF8BAC0F)
+            BallColor.CYAN -> Color(0xFF8BAC0F) to Color(0xFF0F380F)
+            BallColor.MAGENTA -> Color(0xFF306230) to Color(0xFF8BAC0F)
+            BallColor.YELLOW -> Color(0xFF9BBC0F) to Color(0xFF0F380F)
+            BallColor.BROWN -> Color(0xFF0F380F) to Color(0xFF9BBC0F)
+        }
+    }
+
+private val AMBER_TINT: (BallColor) -> Pair<Color, Color> = { ball ->
+        when (ball) {
+            BallColor.RED -> Color(0xFF7A5200) to Color(0xFFFFCC33)
+            BallColor.GREEN -> Color(0xFFB37A00) to Color(0xFF120900)
+            BallColor.BLUE -> Color(0xFF4D3300) to Color(0xFFFFB000)
+            BallColor.CYAN -> Color(0xFFFFCC33) to Color(0xFF120900)
+            BallColor.MAGENTA -> Color(0xFF7A5200) to Color(0xFFFFE28A)
+            BallColor.YELLOW -> Color(0xFFFFB000) to Color(0xFF120900)
+            BallColor.BROWN -> Color(0xFF3D2800) to Color(0xFFFFB000)
+        }
+    }
+
+/** Game Boy (1989): four greens; the shape on each ball tells the colours apart. */
+private val GameBoy = Palette(
+    background = Color(0xFF8BAC0F), panel = Color(0xFF9BBC0F), chip = Color(0xFF8BAC0F),
+    boardBackground = Color(0xFF306230), cell = Color(0xFF9BBC0F),
+    text = Color(0xFF0F380F), textMuted = Color(0xFF306230),
+    statBackground = Color(0xFF8BAC0F), statLabel = Color(0xFF306230), statValue = Color(0xFF0F380F),
+    accent = Color(0xFF0F380F), onAccent = Color(0xFF9BBC0F), danger = Color(0xFF0F380F),
+    reachableDot = Color(0xFF0F380F),
+    dark = false, cellStyle = CellStyle.DOS, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    symbolTint = GB_TINT, ballBorder = Color(0xFF0F380F)
+)
+
+/** Amber terminal: phosphor orange on black. */
+private val Terminal = Palette(
+    background = Color(0xFF120900), panel = Color(0xFF1A0D00), chip = Color(0xFF2E1A00),
+    boardBackground = Color(0xFF120900), cell = Color(0xFF1F1100),
+    text = Color(0xFFFFB000), textMuted = Color(0xFFC48500),
+    statBackground = Color(0xFF120900), statLabel = Color(0xFFC48500), statValue = Color(0xFFFFCC33),
+    accent = Color(0xFFFFCC33), onAccent = Color(0xFF120900), danger = Color(0xFFFF6A3D),
+    reachableDot = Color(0xFFFFCC33),
+    dark = true, cellStyle = CellStyle.DOS, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    symbolTint = AMBER_TINT, ballBorder = Color(0xFFFFB000)
+)
+
 fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.MODERN -> Modern
     AppTheme.LIGHT -> Light
     AppTheme.MATERIAL -> Material
     AppTheme.NEON -> Neon
+    AppTheme.SYNTHWAVE -> Synthwave
+    AppTheme.OCEAN -> Ocean
+    AppTheme.PAPER -> Paper
+    AppTheme.GAMEBOY -> GameBoy
+    AppTheme.TERMINAL -> Terminal
     AppTheme.CONTRAST -> Contrast
     AppTheme.LINES_98 -> Lines98
     AppTheme.COLORLINES_92 -> ColorLines92

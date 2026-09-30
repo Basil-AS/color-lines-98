@@ -21,6 +21,7 @@ class SoundManager(private val context: Context) {
     enum class Profile { SAMPLED, PC_SPEAKER, MODERN }
 
     var profile: Profile = Profile.MODERN
+    var voice: io.github.basil_as.basillines.engine.VoiceId = io.github.basil_as.basillines.engine.VoiceId.SOFT
 
     private val soundPool: SoundPool = SoundPool.Builder()
         .setMaxStreams(5)
@@ -57,7 +58,7 @@ class SoundManager(private val context: Context) {
         val pcm = if (profile == Profile.PC_SPEAKER) {
             PcSpeaker.render(PcSpeaker.notes(kind, points))
         } else {
-            ModernSounds.render(ModernSounds.notes(kind, points))
+            ModernSounds.render(ModernSounds.voiced(kind, points, voice))
         }
         if (pcm.isEmpty()) return
         val track = AudioTrack.Builder()

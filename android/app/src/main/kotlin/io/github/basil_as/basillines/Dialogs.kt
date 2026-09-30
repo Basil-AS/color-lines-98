@@ -94,6 +94,11 @@ private val THEME_NAMES = listOf(
     AppTheme.LIGHT to R.string.theme_light,
     AppTheme.MATERIAL to R.string.theme_material,
     AppTheme.NEON to R.string.theme_neon,
+    AppTheme.SYNTHWAVE to R.string.theme_synthwave,
+    AppTheme.OCEAN to R.string.theme_ocean,
+    AppTheme.PAPER to R.string.theme_paper,
+    AppTheme.GAMEBOY to R.string.theme_gameboy,
+    AppTheme.TERMINAL to R.string.theme_terminal,
     AppTheme.CONTRAST to R.string.theme_contrast,
     AppTheme.LINES_98 to R.string.theme_lines98,
     AppTheme.COLORLINES_92 to R.string.theme_colorlines92
