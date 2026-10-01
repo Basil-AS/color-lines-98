@@ -165,6 +165,8 @@
     <string name="data_replaceCheck">Понимаю, заменить мои данные</string>
     <string name="data_replaceConfirm">Да, заменить</string>
     <string name="data_cancel">Отмена</string>
+    <string name="data_error_export">Не удалось сохранить файл. Выберите другое место и повторите.</string>
+    <string name="data_done_export">Сохранено.</string>
     <string name="data_done_merge">Готово: данные добавлены.</string>
     <string name="data_done_replace">Готово: данные заменены.</string>
     <string name="stats_streak">Серия дней</string>

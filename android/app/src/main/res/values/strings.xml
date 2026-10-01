@@ -165,6 +165,8 @@
     <string name="data_replaceCheck">I understand, replace my data</string>
     <string name="data_replaceConfirm">Yes, replace</string>
     <string name="data_cancel">Cancel</string>
+    <string name="data_error_export">The file could not be saved. Choose another place and try again.</string>
+    <string name="data_done_export">Saved.</string>
     <string name="data_done_merge">Done: data added.</string>
     <string name="data_done_replace">Done: data replaced.</string>
     <string name="stats_streak">Day streak</string>
