@@ -39,6 +39,10 @@ object Careers {
         return out
     }
 
+    /** Two ledgers, then every day re-counted from the merged games, taking the fuller of each (same-day games of two devices all stay). */
+    fun mergeWithHistory(a: Ledger, b: Ledger, mergedHistory: List<GameRecord>, zone: ZoneId = ZoneId.systemDefault()): Ledger =
+        merge(merge(a, b), fromHistory(mergedHistory, zone))
+
     fun sanitize(raw: Any?): Ledger {
         val map = raw as? Map<*, *> ?: return emptyMap()
         val out = linkedMapOf<String, DayEntry>()

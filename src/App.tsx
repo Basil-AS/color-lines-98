@@ -19,7 +19,7 @@ import { MODES, MODE_IDS } from './engine/modes';
 import { buildBackup, historyToCsv, mergeHalls, mergeHistories, mergeProgress } from './backup';
 import type { Backup } from './backup';
 import { downloadText } from './download';
-import { addGame, mergeLedgers } from './ledger';
+import { addGame, mergeLedgersWithHistory } from './ledger';
 import type { Ledger } from './ledger';
 import type { ModeId } from './engine/modes';
 import { findHint, type Hint } from './engine/hint';
@@ -517,7 +517,7 @@ export default function App() {
     const nextHistory = how === 'merge' ? mergeHistories(history, backup.history) : backup.history;
     const nextProgress = how === 'merge' ? mergeProgress(progress, backup.progress, nextHistory) : backup.progress;
     const nextHall = how === 'merge' ? mergeHalls(hall, backup.hall) : backup.hall;
-    const nextLedger = how === 'merge' ? mergeLedgers(ledger, backup.ledger) : backup.ledger;
+    const nextLedger = how === 'merge' ? mergeLedgersWithHistory(ledger, backup.ledger, nextHistory) : backup.ledger;
     setHistory(nextHistory);
     saveHistory(nextHistory);
     setProgress(nextProgress);
