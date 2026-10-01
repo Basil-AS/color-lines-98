@@ -243,3 +243,12 @@ describe('mode and goals storage', () => {
     expect(loadGoalsDone('2026-09-30')).toEqual([]);
   });
 });
+
+describe('a corrupt ledger', () => {
+  it('is kept aside instead of being lost when the ledger is rebuilt from the games', async () => {
+    const { loadLedger } = await import('../src/storage');
+    localStorage.setItem('colorlines_ledger', '{broken');
+    expect(loadLedger()).toEqual({});
+    expect(localStorage.getItem('colorlines_ledger_corrupt')).toBe('{broken');
+  });
+});
