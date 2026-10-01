@@ -87,7 +87,12 @@ val ACHIEVEMENT_TEXT: Map<String, Pair<Int, Int>> = mapOf(
     "streak_7" to (R.string.ach_streak_7_name to R.string.ach_streak_7_desc),
     "marathon" to (R.string.ach_marathon_name to R.string.ach_marathon_desc),
     "level_5" to (R.string.ach_level_5_name to R.string.ach_level_5_desc),
-    "level_10" to (R.string.ach_level_10_name to R.string.ach_level_10_desc)
+    "level_10" to (R.string.ach_level_10_name to R.string.ach_level_10_desc),
+    "daily_first" to (R.string.ach_daily_first_name to R.string.ach_daily_first_desc),
+    "all_modes" to (R.string.ach_all_modes_name to R.string.ach_all_modes_desc),
+    "goal_first" to (R.string.ach_goal_first_name to R.string.ach_goal_first_desc),
+    "goal_day" to (R.string.ach_goal_day_name to R.string.ach_goal_day_desc),
+    "goals_7" to (R.string.ach_goals_7_name to R.string.ach_goals_7_desc)
 )
 
 private val THEME_NAMES = listOf(

@@ -45,8 +45,9 @@ object Careers {
         for ((k, v) in map) {
             val key = k as? String ?: continue
             val o = v as? Map<*, *> ?: continue
-            if (!DAY_RE.matches(key)) continue
-            fun n(name: String): Long = (o[name] as? Double)?.takeIf { it >= 0 && it.isFinite() }?.toLong() ?: 0L
+            if (!ProgressTracker.isDay(key)) continue
+            // Bounded, so a hostile file cannot overflow the sums.
+            fun n(name: String): Long = (o[name] as? Double)?.takeIf { it >= 0 && it.isFinite() }?.coerceAtMost(1e12)?.toLong() ?: 0L
             val games = n("games").coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
             if (games <= 0) continue
             out[key] = DayEntry(games, n("completed").coerceAtMost(games.toLong()).toInt(), n("score"), n("best").coerceAtMost(Int.MAX_VALUE.toLong()).toInt(), n("moves"), n("lines"), n("playMs"))
