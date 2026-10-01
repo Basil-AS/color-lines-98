@@ -526,11 +526,9 @@ export default function App() {
     saveHall(nextHall);
     setLedger(nextLedger);
     saveLedger(nextLedger);
-    setBestScore((b) => {
-      const best = Math.max(b, nextProgress.bestScore);
-      saveBestScore(best);
-      return best;
-    });
+    const best = Math.max(bestScore, nextProgress.bestScore);
+    setBestScore(best);
+    saveBestScore(best);
     if (how === 'replace') {
       const s = backup.settings;
       if (s.theme) {

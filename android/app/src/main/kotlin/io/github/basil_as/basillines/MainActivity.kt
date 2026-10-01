@@ -77,6 +77,7 @@ import io.github.basil_as.basillines.engine.Hall
 import io.github.basil_as.basillines.engine.HallEntry
 import io.github.basil_as.basillines.engine.GameEngine
 import io.github.basil_as.basillines.engine.GameStats
+import kotlinx.coroutines.launch
 import io.github.basil_as.basillines.engine.Goals
 import io.github.basil_as.basillines.engine.Hint
 import io.github.basil_as.basillines.engine.Hinter
@@ -239,8 +240,12 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         val alreadyDone = storage.loadGoalsDone(goalDay)
         val goalBonus = Goals.bonus(alreadyDone, doneNow, dayGoals.size)
         var nextProgress = applied.progress
+        val newlyUnlocked = applied.unlocked.toMutableList()
         if (goalBonus.newlyDone.isNotEmpty()) {
             nextProgress = ProgressTracker.applyGoalBonus(nextProgress, goalDay, goalBonus)
+            val extra = ProgressTracker.awardAchievements(nextProgress, rec)
+            nextProgress = extra.progress
+            newlyUnlocked += extra.unlocked
             storage.saveGoalsDone(goalDay, doneNow)
             if (goalDay == dayKey()) goalsDone = doneNow
         }
@@ -256,7 +261,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             xp = ProgressTracker.xpOf(nextProgress) - ProgressTracker.xpOf(before),
             goalXp = goalBonus.xp,
             levelUp = if (levelAfter > levelBefore) levelAfter else null,
-            unlocked = applied.unlocked
+            unlocked = newlyUnlocked
         )
     }
 
@@ -356,8 +361,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     // The clock of a timed mode runs while the game is on screen and no dialog is open.
     val lifecycleOwner = LocalContext.current as? androidx.lifecycle.LifecycleOwner
-    LaunchedEffect(engine, dialog) {
-        while (engine.mode.timeLimitMs != null && dialog == Dialog.NONE) {
+    LaunchedEffect(engine, dialog, pendingImport) {
+        while (engine.mode.timeLimitMs != null && dialog == Dialog.NONE && pendingImport == null) {
             kotlinx.coroutines.delay(250)
             val visible = lifecycleOwner?.lifecycle?.currentState?.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) ?: true
             if (!visible || engine.isGameOver) continue
@@ -391,9 +396,16 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val mergedMsg = stringResource(R.string.data_done_merge)
     val replacedMsg = stringResource(R.string.data_done_replace)
 
+    val exportFailed = stringResource(R.string.data_error_export)
+    val exportDone = stringResource(R.string.data_done_export)
+
     fun writeTo(uri: android.net.Uri?, text: String) {
         if (uri == null) return
-        runCatching { context.contentResolver.openOutputStream(uri)?.use { it.write(text.toByteArray(Charsets.UTF_8)) } }
+        // "wt" truncates: an old, longer file picked in the save dialog must not leave its tail behind the new JSON.
+        val ok = runCatching {
+            context.contentResolver.openOutputStream(uri, "wt")?.use { it.write(text.toByteArray(Charsets.UTF_8)) } != null
+        }.getOrDefault(false)
+        dataMessage = if (ok) exportDone else exportFailed
     }
 
     val exportJson = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
@@ -414,20 +426,27 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val exportCsv = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("text/csv")) { uri ->
         writeTo(uri, io.github.basil_as.basillines.engine.Backups.toCsv(history))
     }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
     val importPicker = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
-            val limit = io.github.basil_as.basillines.engine.Backups.MAX_CHARS + 1
-            val text = runCatching {
-                context.contentResolver.openInputStream(uri)?.use { input ->
-                    val out = java.io.ByteArrayOutputStream()
-                    val buf = ByteArray(64 * 1024)
-                    while (out.size() < limit) { val n = input.read(buf); if (n < 0) break; out.write(buf, 0, n) }
-                    out.toString(Charsets.UTF_8.name())
+            // Reading and parsing a file from a cloud provider can be slow: do it off the main thread.
+            scope.launch(kotlinx.coroutines.Dispatchers.IO) {
+                val limit = io.github.basil_as.basillines.engine.Backups.MAX_CHARS + 1
+                val text = runCatching {
+                    context.contentResolver.openInputStream(uri)?.use { input ->
+                        val out = java.io.ByteArrayOutputStream()
+                        val buf = ByteArray(64 * 1024)
+                        while (out.size() < limit) { val n = input.read(buf); if (n < 0) break; out.write(buf, 0, n) }
+                        out.toString(Charsets.UTF_8.name())
+                    }
+                }.getOrNull()?.removePrefix("\uFEFF") ?: ""
+                val parsed = io.github.basil_as.basillines.engine.Backups.parse(text)
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    when (parsed) {
+                        is io.github.basil_as.basillines.engine.ParsedBackup.Ok -> { pendingImport = parsed.backup; dataMessage = null }
+                        is io.github.basil_as.basillines.engine.ParsedBackup.Error -> dataMessage = errors.getValue(parsed)
+                    }
                 }
-            }.getOrNull() ?: ""
-            when (val parsed = io.github.basil_as.basillines.engine.Backups.parse(text)) {
-                is io.github.basil_as.basillines.engine.ParsedBackup.Ok -> { pendingImport = parsed.backup; dataMessage = null }
-                is io.github.basil_as.basillines.engine.ParsedBackup.Error -> dataMessage = errors.getValue(parsed)
             }
         }
     }

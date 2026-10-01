@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { describeBackup, parseBackup } from '../backup';
+import { BACKUP_MAX_BYTES, describeBackup, parseBackup } from '../backup';
 import type { Backup } from '../backup';
 import { formatDate, translate } from '../i18n';
 import type { Language, MessageKey } from '../i18n';
@@ -32,7 +32,19 @@ export function DataPanel({ lang, games, onExport, onImport }: DataPanelProps) {
     setDone(null);
     reset();
     if (!file) return;
-    const parsed = parseBackup(await file.text());
+    // Checked before reading: a huge file must not be loaded into memory just to be refused.
+    if (file.size > BACKUP_MAX_BYTES) {
+      setError('data.error.tooBig');
+      return;
+    }
+    let text: string;
+    try {
+      text = await file.text();
+    } catch {
+      setError('data.error.notJson');
+      return;
+    }
+    const parsed = parseBackup(text);
     if (!parsed.ok) {
       setError(`data.error.${parsed.error}` as MessageKey);
       return;

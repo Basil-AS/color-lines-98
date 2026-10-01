@@ -8,10 +8,12 @@ function isStandalone(): boolean {
   return iosStandalone || (window.matchMedia?.('(display-mode: standalone)').matches ?? false);
 }
 
+const subscribe = (notify: () => void) => onInstallPrompt(() => notify());
+
 /** Tracks whether and how the app can be installed in this browser. */
 export function useInstall(): { kind: InstallKind; install: () => Promise<void> } {
   // Reads the event kept since page load and follows later changes; nothing can be missed between render and effect.
-  const promptEvent = useSyncExternalStore((notify) => onInstallPrompt(() => notify()), savedInstallPrompt);
+  const promptEvent = useSyncExternalStore(subscribe, savedInstallPrompt);
   const [installed, setInstalled] = useState(isStandalone);
 
   useEffect(() => {
@@ -29,8 +31,12 @@ export function useInstall(): { kind: InstallKind; install: () => Promise<void> 
 
   const install = async () => {
     if (!promptEvent) return;
-    await promptEvent.prompt();
-    await promptEvent.userChoice;
+    try {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+    } catch {
+      // The browser refused to show the prompt (already used, or no gesture); the menu hint still applies.
+    }
     clearInstallPrompt();
   };
 

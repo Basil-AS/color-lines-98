@@ -57,7 +57,8 @@ describe('backup files', () => {
     expect(p.backup.settings).toEqual({ playerName: 'A'.repeat(12) });
     expect(p.backup.hall).toEqual([]);
     expect(p.backup.exportedAt).toBe(0);
-    expect(p.backup.progress).toEqual(emptyProgress());
+    expect(p.backup.progress).toMatchObject({ totalGames: 0, bonusXp: 0, achievements: {} });
+    expect(emptyProgress().totalGames).toBe(0);
   });
 
   it('merges games without duplicates, newest first, and keeps everything from both sides', () => {
@@ -103,5 +104,31 @@ describe('backup files', () => {
     expect(p.backup.hall).toEqual([{ name: 'Ann', score: 300, at: 1 }]);
     expect(p.backup.progress.totalGames).toBe(2);
     expect(Object.keys(p.backup.ledger)).toHaveLength(2);
+  });
+
+  it('keeps the newest games when a file is in the wrong order and trusts the ledger it carries', () => {
+    const file = JSON.stringify({
+      format: BACKUP_FORMAT, version: 1,
+      history: [g(1, 10), g(2, 99)],
+      ledger: { '2026-01-01': { games: 7, completed: 7, score: 70, best: 20, moves: 1, lines: 1, playMs: 1 } },
+    });
+    const p = parseBackup(file);
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.backup.history.map((x) => x.endedAt)).toEqual([99, 10]);
+    expect(Object.keys(p.backup.ledger)).toEqual(['2026-01-01']);
+  });
+
+  it('derives the per-mode counters from the games when the file has none (a file from Android)', () => {
+    const file = JSON.stringify({
+      format: BACKUP_FORMAT, version: 1,
+      history: [g(120, 5, { mode: 'daily' }), g(300, 4, { mode: 'daily' }), g(50, 3, { mode: 'easy' })],
+      progress: { totalGames: 3, achievements: { goals_7: 9 } },
+    });
+    const p = parseBackup(file);
+    expect(p.ok).toBe(true);
+    if (!p.ok) return;
+    expect(p.backup.progress.gamesByMode).toMatchObject({ daily: 2, easy: 1, classic: 0 });
+    expect(p.backup.progress.bestByMode.daily).toBe(300);
   });
 });

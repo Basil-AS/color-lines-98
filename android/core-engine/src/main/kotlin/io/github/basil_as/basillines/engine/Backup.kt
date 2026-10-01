@@ -53,7 +53,9 @@ object Backups {
                 "totalMoves" to b.progress.totalMoves, "totalPlayMs" to b.progress.totalPlayMs, "bestScore" to b.progress.bestScore,
                 "bestLine" to b.progress.bestLine, "mostLinesInGame" to b.progress.mostLinesInGame,
                 "longestGameMoves" to b.progress.longestGameMoves, "days" to b.progress.days, "achievements" to b.progress.achievements,
-                "bonusXp" to b.progress.bonusXp, "goalDays" to b.progress.goalDays
+                "bonusXp" to b.progress.bonusXp, "goalDays" to b.progress.goalDays,
+                "gamesByMode" to ModeId.entries.associate { it.id to (b.progress.gamesByMode[it] ?: 0) },
+                "bestByMode" to ModeId.entries.associate { it.id to (b.progress.bestByMode[it] ?: 0) }
             ),
             "hall" to b.hall.map { mapOf("name" to it.name, "score" to it.score, "at" to it.at) },
             "settings" to buildMap<String, Any?> {
@@ -84,7 +86,7 @@ object Backups {
             val duration = i("durationMs", true) ?: return@mapNotNull null
             if (maxOf(score, moves, lines, balls, maxLine) > Int.MAX_VALUE) return@mapNotNull null
             GameRecord(score.toInt(), endedAt, moves.toInt(), lines.toInt(), balls.toInt(), completed, maxLine.toInt(), duration, mode)
-        }.take(GameStats.HISTORY_LIMIT)
+        }.sortedByDescending { it.endedAt }.take(GameStats.HISTORY_LIMIT)
     }
 
     private fun sanitizeHall(raw: Any?): List<HallEntry> {
@@ -101,18 +103,25 @@ object Backups {
     private fun sanitizeProgress(raw: Any?, history: List<GameRecord>): Progress {
         val o = raw as? Map<*, *> ?: return ProgressTracker.rebuild(history)
         fun n(name: String): Long = num(o[name]) ?: 0L
-        val ids = ProgressTracker.ACHIEVEMENTS.map { it.id }.toSet()
+        // Achievement ids this version does not know are kept, so a round trip between the apps loses nothing.
         val ach = (o["achievements"] as? Map<*, *>)?.mapNotNull { (k, v) ->
             val id = k as? String ?: return@mapNotNull null
             val at = num(v) ?: return@mapNotNull null
-            if (id in ids) id to at else null
+            if (Regex("[a-z0-9_]{1,40}").matches(id)) id to at else null
         }?.toMap() ?: emptyMap()
-        val days = (o["days"] as? List<*>)?.filterIsInstance<String>()?.filter { Regex("""\d{4}-\d{2}-\d{2}""").matches(it) }?.sorted()?.takeLast(ProgressTracker.DAYS_LIMIT) ?: emptyList()
+        fun mode(name: String): Map<ModeId, Int> {
+            val m = o[name] as? Map<*, *> ?: return ModeId.entries.associateWith { id -> history.count { it.mode == id } }.let { counts ->
+                if (name == "gamesByMode") counts else ModeId.entries.associateWith { id -> history.filter { it.mode == id }.maxOfOrNull { it.score } ?: 0 }
+            }
+            return ModeId.entries.associateWith { id -> num(m[id.id])?.coerceAtMost(Int.MAX_VALUE.toLong())?.toInt() ?: 0 }
+        }
+        val days = (o["days"] as? List<*>)?.filterIsInstance<String>()?.filter { ProgressTracker.isDay(it) }?.sorted()?.takeLast(ProgressTracker.DAYS_LIMIT) ?: emptyList()
         fun i(name: String) = n(name).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         return Progress(
             i("totalGames"), i("completedGames"), i("totalScore"), i("totalLines"), i("totalBalls"), i("totalMoves"), n("totalPlayMs"),
             i("bestScore"), i("bestLine"), i("mostLinesInGame"), i("longestGameMoves"), days, ach,
-            i("bonusXp"), (o["goalDays"] as? List<*>)?.filterIsInstance<String>()?.filter { Regex("""\d{4}-\d{2}-\d{2}""").matches(it) }?.sorted()?.takeLast(ProgressTracker.DAYS_LIMIT) ?: emptyList()
+            i("bonusXp"), (o["goalDays"] as? List<*>)?.filterIsInstance<String>()?.filter { ProgressTracker.isDay(it) }?.sorted()?.takeLast(ProgressTracker.DAYS_LIMIT) ?: emptyList(),
+            mode("gamesByMode"), mode("bestByMode")
         )
     }
 
@@ -146,7 +155,8 @@ object Backups {
                 platform = (app?.get("platform") as? String)?.take(20) ?: "unknown",
                 appVersion = (app?.get("version") as? String)?.take(20) ?: "",
                 history = history,
-                ledger = Careers.merge(Careers.sanitize(o["ledger"]), Careers.fromHistory(history)),
+                // The file's own ledger is trusted over one rebuilt in this device's time zone (games near midnight would double up).
+                ledger = if (o["ledger"] != null) Careers.sanitize(o["ledger"]) else Careers.fromHistory(history),
                 progress = sanitizeProgress(o["progress"], history),
                 hall = sanitizeHall(o["hall"]),
                 settings = sanitizeSettings(o["settings"])
@@ -188,7 +198,9 @@ object Backups {
             (current.days + incoming.days + base.days).toSortedSet().toList().takeLast(ProgressTracker.DAYS_LIMIT),
             ach,
             maxOf(current.bonusXp, incoming.bonusXp),
-            (current.goalDays + incoming.goalDays).toSortedSet().toList().takeLast(ProgressTracker.DAYS_LIMIT)
+            (current.goalDays + incoming.goalDays).toSortedSet().toList().takeLast(ProgressTracker.DAYS_LIMIT),
+            ModeId.entries.associateWith { maxOf(base.gamesByMode[it] ?: 0, current.gamesByMode[it] ?: 0, incoming.gamesByMode[it] ?: 0) },
+            ModeId.entries.associateWith { maxOf(base.bestByMode[it] ?: 0, current.bestByMode[it] ?: 0, incoming.bestByMode[it] ?: 0) }
         )
     }
 

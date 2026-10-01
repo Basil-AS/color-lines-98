@@ -300,7 +300,7 @@ class MainScreenTest {
     fun statisticsStartAtLevelOneWithAllAchievementsLocked() {
         rule.onNodeWithContentDescription("Statistics").performClick()
         rule.onAllNodes(hasText("Level 1")).onFirst().assertIsDisplayed()
-        assertTrue(rule.onAllNodes(hasText("locked")).fetchSemanticsNodes().size == 18)
+        assertTrue(rule.onAllNodes(hasText("locked")).fetchSemanticsNodes().size == 23)
     }
 
     @Test

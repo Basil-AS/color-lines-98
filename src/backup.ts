@@ -1,8 +1,8 @@
 import { HALL_SIZE, sanitizeHall } from './dos/hall';
 import type { HallEntry } from './dos/hall';
-import { mergeLedgers, ledgerFromHistory, sanitizeLedger } from './ledger';
+import { ledgerFromHistory, sanitizeLedger } from './ledger';
 import type { Ledger } from './ledger';
-import { emptyProgress, rebuildProgress, sanitizeProgress } from './progress';
+import { DAYS_LIMIT, emptyProgress, rebuildProgress, sanitizeProgress } from './progress';
 import type { Progress } from './progress';
 import { HISTORY_LIMIT, sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
@@ -59,6 +59,14 @@ function sanitizeSettings(raw: unknown): BackupSettings {
   return out;
 }
 
+/** A profile from an older or other-platform file may lack the per-mode counters: derive them from the games. */
+function withModeCounters(progress: Progress, raw: unknown, history: readonly GameRecord[]): Progress {
+  const has = (key: string) => typeof raw === 'object' && raw !== null && typeof (raw as Record<string, unknown>)[key] === 'object';
+  if (has('gamesByMode') && has('bestByMode')) return progress;
+  const derived = rebuildProgress(history);
+  return { ...progress, gamesByMode: has('gamesByMode') ? progress.gamesByMode : derived.gamesByMode, bestByMode: has('bestByMode') ? progress.bestByMode : derived.bestByMode };
+}
+
 /** Reads a backup file; nothing from it is trusted, every part goes through the same validation as stored data. */
 export function parseBackup(text: string): ParsedBackup {
   if (text.trim() === '') return { ok: false, error: 'empty' };
@@ -73,8 +81,10 @@ export function parseBackup(text: string): ParsedBackup {
   const r = raw as Record<string, unknown>;
   if (r.format !== BACKUP_FORMAT || typeof r.version !== 'number') return { ok: false, error: 'notBackup' };
   if (r.version > BACKUP_VERSION) return { ok: false, error: 'newer' };
-  const history = sanitizeHistory(r.history).slice(0, HISTORY_LIMIT);
-  const ledger = mergeLedgers(sanitizeLedger(r.ledger), ledgerFromHistory(history));
+  // Newest first whatever the order in the file, so the 1000-game cut keeps the latest games.
+  const history = sanitizeHistory(r.history).sort((a, b) => b.endedAt - a.endedAt).slice(0, HISTORY_LIMIT);
+  // The file's own ledger is trusted over one rebuilt in this device's time zone (games near midnight would double up).
+  const ledger = r.ledger === undefined ? ledgerFromHistory(history) : sanitizeLedger(r.ledger);
   const app = (typeof r.app === 'object' && r.app !== null ? r.app : {}) as Record<string, unknown>;
   return {
     ok: true,
@@ -85,7 +95,7 @@ export function parseBackup(text: string): ParsedBackup {
       app: { platform: typeof app.platform === 'string' ? app.platform.slice(0, 20) : 'unknown', version: typeof app.version === 'string' ? app.version.slice(0, 20) : '' },
       history,
       ledger,
-      progress: r.progress === undefined ? rebuildProgress(history) : sanitizeProgress(r.progress),
+      progress: r.progress === undefined ? rebuildProgress(history) : withModeCounters(sanitizeProgress(r.progress), r.progress, history),
       hall: sanitizeHall(r.hall),
       settings: sanitizeSettings(r.settings),
     },
@@ -122,7 +132,7 @@ export function mergeHalls(a: readonly HallEntry[], b: readonly HallEntry[]): Ha
 export function mergeProgress(current: Progress, incoming: Progress, history: readonly GameRecord[]): Progress {
   const rebuilt = rebuildProgress(history);
   const base = history.length > 0 ? rebuilt : emptyProgress();
-  const days = [...new Set([...current.days, ...incoming.days, ...base.days])].sort();
+  const days = [...new Set([...current.days, ...incoming.days, ...base.days])].sort().slice(-DAYS_LIMIT);
   const achievements = { ...incoming.achievements, ...current.achievements };
   for (const [id, when] of Object.entries(base.achievements)) achievements[id] = Math.min(when, achievements[id] ?? when);
   return {

@@ -112,4 +112,28 @@ class BackupTest {
         assertFalse(Json.parseOrNull("{\"a\":1,}") != null)
         assertNotNull(Json.parseOrNull(" [1 , 2 ] "))
     }
+
+    @Test
+    fun aBackupWithImpossibleDatesCannotCrashTheApp() {
+        val file = """{"format":"color-lines-backup","version":1,"history":[],"ledger":{"2026-13-45":{"games":3},"2026-02-30":{"games":1},"2026-05-05":{"games":2}},
+            "progress":{"days":["2026-13-45","2026-05-05"],"goalDays":["9999-99-99"]}}"""
+        val b = (Backups.parse(file) as ParsedBackup.Ok).backup
+        assertEquals(listOf("2026-05-05"), b.ledger.keys.toList())
+        assertEquals(listOf("2026-05-05"), b.progress.days)
+        assertEquals(emptyList<String>(), b.progress.goalDays)
+        // Every date calculation still works on what was accepted.
+        Careers.streaks(b.ledger, "2026-05-06")
+        Careers.season(b.ledger, java.time.LocalDate.of(2026, 5, 6))
+    }
+
+    @Test
+    fun anImportedHistoryIsNewestFirstAndAchievementsFromTheWebSurvive() {
+        val file = """{"format":"color-lines-backup","version":1,
+            "history":[{"score":1,"endedAt":10,"moves":1,"lines":0,"balls":0,"completed":true},{"score":2,"endedAt":99,"moves":1,"lines":0,"balls":0,"completed":true,"mode":"daily"}],
+            "progress":{"achievements":{"goals_7":5,"all_modes":6,"BAD ID":7},"gamesByMode":{"daily":4}}}"""
+        val b = (Backups.parse(file) as ParsedBackup.Ok).backup
+        assertEquals(listOf(99L, 10L), b.history.map { it.endedAt })
+        assertEquals(setOf("goals_7", "all_modes"), b.progress.achievements.keys)
+        assertEquals(4, b.progress.gamesByMode[ModeId.DAILY])
+    }
 }

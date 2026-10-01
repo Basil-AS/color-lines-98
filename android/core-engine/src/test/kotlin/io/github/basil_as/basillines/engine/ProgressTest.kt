@@ -150,11 +150,13 @@ class ProgressTest {
     fun codecDropsInvalidPartsButKeepsValidOnes() {
         val played = ProgressTracker.applyGame(ProgressTracker.empty(), game()).progress
         val parts = ProgressTracker.encode(played).split("|").toMutableList()
-        parts[2] = "2026-09-29,yesterday,7"
-        parts[3] = "first_game:5,nonsense:1,first_line:x"
+        parts[2] = "2026-09-29,yesterday,7,2026-13-45"
+        parts[3] = "first_game:5,from_the_web:1,BAD ID:2,first_line:x"
         val clean = ProgressTracker.decode(parts.joinToString("|"))
+        // A date with the right shape but no such day (2026-13-45) is dropped: it would crash the date maths.
         assertEquals(listOf("2026-09-29"), clean.days)
-        assertEquals(mapOf("first_game" to 5L), clean.achievements)
+        // Ids from the other platform are kept; malformed ones and bad times are not.
+        assertEquals(mapOf("first_game" to 5L, "from_the_web" to 1L), clean.achievements)
         assertEquals(played.totalGames, clean.totalGames)
     }
 
@@ -164,5 +166,19 @@ class ProgressTest {
         assertEquals(listOf(3, 4, 5), ProgressTracker.scoreTrend(history, 3))
         assertEquals(listOf(1, 2, 3, 4, 5), ProgressTracker.scoreTrend(history, 10))
         assertEquals(emptyList<Int>(), ProgressTracker.scoreTrend(emptyList(), 5))
+    }
+
+    @Test
+    fun modeCountersAndTheFiveModeAndGoalAchievementsWork() {
+        var p = ProgressTracker.empty()
+        for (m in ModeId.entries) p = ProgressTracker.applyGame(p, game().copy(mode = m)).progress
+        assertEquals(1, p.gamesByMode[ModeId.BLITZ])
+        assertTrue("daily_first" in p.achievements && "all_modes" in p.achievements)
+        val bonus = ProgressTracker.applyGoalBonus(p, "2026-09-29", Goals.bonus(emptyList(), listOf("a", "b", "c"), 3))
+        val awarded = ProgressTracker.awardAchievements(bonus, game()).progress
+        assertTrue("goal_first" in awarded.achievements && "goal_day" in awarded.achievements)
+        val back = ProgressTracker.decode(ProgressTracker.encode(awarded))
+        assertEquals(awarded.gamesByMode, back.gamesByMode)
+        assertEquals(awarded.bestByMode, back.bestByMode)
     }
 }
