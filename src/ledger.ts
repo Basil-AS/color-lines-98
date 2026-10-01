@@ -51,6 +51,14 @@ export function mergeLedgers(a: Ledger, b: Ledger): Ledger {
   return out;
 }
 
+/**
+ * The ledger after combining two devices: the two ledgers, then every day re-counted from the merged games, taking the
+ * fuller of each. Two devices that played on the same day keep both sets of games.
+ */
+export function mergeLedgersWithHistory(a: Ledger, b: Ledger, mergedHistory: readonly GameRecord[]): Ledger {
+  return mergeLedgers(mergeLedgers(a, b), ledgerFromHistory(mergedHistory));
+}
+
 const DAY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const count = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
 

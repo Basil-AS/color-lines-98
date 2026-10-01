@@ -53,6 +53,8 @@ class GameStorage(context: Context) {
         get() {
             val raw = prefs.getString(KEY_LEDGER, null)
             val parsed = raw?.let { io.github.basil_as.basillines.engine.Json.parseOrNull(it) }
+            // An unreadable ledger is kept aside: the rebuild covers only the latest games and the next save would overwrite it.
+            if (raw != null && parsed == null) prefs.edit().putString(KEY_LEDGER + "_corrupt", raw).apply()
             return if (parsed != null) io.github.basil_as.basillines.engine.Careers.sanitize(parsed)
             else io.github.basil_as.basillines.engine.Careers.fromHistory(history)
         }

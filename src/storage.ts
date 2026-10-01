@@ -232,7 +232,9 @@ export function loadLedger(): Ledger {
     try {
       return sanitizeLedger(JSON.parse(raw));
     } catch {
-      // fall through to a rebuild
+      // Keep the unreadable value aside: the rebuild below covers only the latest games, and the next save would
+      // overwrite the permanent ledger with it.
+      write(LEDGER_KEY + '_corrupt', raw);
     }
   }
   return ledgerFromHistory(loadHistory());

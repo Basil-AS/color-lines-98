@@ -458,7 +458,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         history = nextHistory; storage.history = nextHistory
         progress = nextProgress; storage.progress = nextProgress
         hall = if (replace) b.hall else backups.mergeHalls(hall, b.hall); storage.hall = hall
-        ledger = if (replace) b.ledger else io.github.basil_as.basillines.engine.Careers.merge(ledger, b.ledger); storage.ledger = ledger
+        ledger = if (replace) b.ledger else io.github.basil_as.basillines.engine.Careers.mergeWithHistory(ledger, b.ledger, nextHistory); storage.ledger = ledger
         bestScore = maxOf(bestScore, nextProgress.bestScore); storage.bestScore = bestScore
         if (replace) {
             val st = b.settings

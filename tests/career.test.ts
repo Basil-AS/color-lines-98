@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { addGame, ledgerFromHistory, mergeLedgers, sanitizeLedger } from '../src/ledger';
+import { addGame, ledgerFromHistory, mergeLedgers, mergeLedgersWithHistory, sanitizeLedger } from '../src/ledger';
 import type { Ledger } from '../src/ledger';
 import { heatmap, ladder, milestones, monthly, records, season, seasonBaseline, streaks, tierOf, totals } from '../src/career';
 import type { GameRecord } from '../src/stats';
@@ -149,5 +149,16 @@ describe('heatmap and records', () => {
     expect(r.bestEfficiency?.value).toBe(25);
     expect(r.bestDay).toEqual({ day: '2026-09-01', score: 1700 });
     expect(records([], {})).toMatchObject({ bestScore: null, bestEfficiency: null, bestDay: null, bestLine: 0 });
+  });
+});
+
+describe('combining two devices', () => {
+  it('keeps the games both devices played on the same day', () => {
+    const mine = [game({ endedAt: at(2026, 9, 1, 10), score: 100, moves: 11 }), game({ endedAt: at(2026, 9, 1, 11), score: 200, moves: 12 })];
+    const theirs = [game({ endedAt: at(2026, 9, 1, 15), score: 300, moves: 13 })];
+    const merged = [...theirs, ...mine];
+    const ledger = mergeLedgersWithHistory(ledgerFromHistory(mine), ledgerFromHistory(theirs), merged);
+    expect(ledger['2026-09-01'].games).toBe(3);
+    expect(ledger['2026-09-01'].score).toBe(600);
   });
 });

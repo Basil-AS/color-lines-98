@@ -91,4 +91,13 @@ class CareerTest {
         assertEquals(mapOf("2026-01-01" to DayEntry(2, 2, 0, 0, 0, 0, 0)), Careers.sanitize(dirty))
         assertTrue(Careers.sanitize(null).isEmpty())
     }
+
+    @Test
+    fun twoDevicesPlayingTheSameDayKeepAllGames() {
+        val mine = listOf(g(100, at(2026, 9, 1)), g(200, at(2026, 9, 1)))
+        val theirs = listOf(g(300, at(2026, 9, 1)))
+        val merged = Careers.mergeWithHistory(Careers.fromHistory(mine, utc), Careers.fromHistory(theirs, utc), theirs + mine, utc)
+        assertEquals(3, merged["2026-09-01"]!!.games)
+        assertEquals(600L, merged["2026-09-01"]!!.score)
+    }
 }
