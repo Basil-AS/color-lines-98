@@ -80,4 +80,15 @@ describe('a voice for every look', () => {
       fingerprints.set(fp, theme);
     }
   });
+
+  it('never plays a voice below the original pitch and keeps every voice loud enough to hear', async () => {
+    const { VOICES, modernNotes, voicedNotes } = await import('../src/modernsound');
+    const { ALL_SOUND_KINDS } = await import('./soundkinds');
+    for (const [id, v] of Object.entries(VOICES)) expect(v.pitch, id).toBeGreaterThanOrEqual(1);
+    for (const id of Object.keys(VOICES) as (keyof typeof VOICES)[]) {
+      const peak = Math.max(...ALL_SOUND_KINDS.flatMap((k) => voicedNotes(k, 30, id).map((n) => n.gain)));
+      const soft = Math.max(...ALL_SOUND_KINDS.flatMap((k) => modernNotes(k, 30).map((n) => n.gain)));
+      expect(peak, id).toBeGreaterThan(soft * 0.3);
+    }
+  });
 });

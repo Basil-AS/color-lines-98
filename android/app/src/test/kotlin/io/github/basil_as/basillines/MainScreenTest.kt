@@ -231,6 +231,28 @@ class MainScreenTest {
     }
 
     @Test
+    fun theDrawnF1ToF4KeysOfTheDosLookAreTappable() {
+        GameStorage(ApplicationProvider.getApplicationContext()).theme = AppTheme.COLORLINES_92
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+        // F1 opens the original Help window, a second tap closes it again.
+        rule.onNodeWithContentDescription("F1: Help").performClick()
+        rule.waitForIdle()
+        rule.onNodeWithContentDescription("Close").assertExists()
+        rule.onNodeWithContentDescription("Close").performClick()
+        rule.waitForIdle()
+        // F2 switches the sound, F3 hides the next balls.
+        val sound = GameStorage(ApplicationProvider.getApplicationContext())
+        rule.onNodeWithContentDescription("F2: Sound").performClick()
+        rule.onNodeWithContentDescription("F3: Show next balls").performClick()
+        // F4 asks before restarting.
+        rule.onNodeWithContentDescription("F4: Restart").performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Start", substring = true)).assertExists()
+        assertTrue(sound.showNext.not())
+    }
+
+    @Test
     fun aFreshGameHasNoWarning() {
         rule.onNodeWithContentDescription("New game").performClick()
         rule.waitForIdle()

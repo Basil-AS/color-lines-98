@@ -3,7 +3,15 @@ package io.github.basil_as.basillines
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
+import kotlinx.coroutines.launch
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,10 +94,14 @@ private object Regions {
     val TOP = SpriteRect(0, 0, 640, 40)
     val BOARD = SpriteRect(165, 55, 318, 228)
     val BUTTONS = SpriteRect(0, 316, 640, 34)
+
+    // The king's sprite is 72 pixels wide and the pretender's 50. Each region is cut so that, shown at the same width,
+    // both heroes appear equally large (88 / 72 = 61 / 50).
     val KING = SpriteRect(42, 66, 88, 92)
+    val PRETENDER = SpriteRect(511, 150, 61, 64)
     val KING_FULL = SpriteRect(30, 62, 116, 204)
-    val PRETENDER = SpriteRect(500, 150, 80, 74)
-    val PRETENDER_FULL = SpriteRect(490, 150, 100, 88)
+    // Same height as the king's block when shown at the same width (116 / 204 = 80 / 141), so both captions share a line.
+    val PRETENDER_FULL = SpriteRect(501, 150, 80, 141)
 }
 
 private fun SpriteRect.heightPerWidth() = h * PIXEL_ASPECT / w
@@ -191,7 +203,7 @@ private fun Caption(text: String) {
         text,
         color = Color(0xFFFFFF55),
         fontFamily = FontFamily(Font(R.font.unifraktur_cook)),
-        fontSize = 18.sp,
+        fontSize = 16.sp,
         maxLines = 1,
         softWrap = false,
         textAlign = TextAlign.Center
@@ -268,17 +280,41 @@ fun DosLayout(
         }
     }
 
+    // F1..F4: a tap lights the label for a moment, gives a haptic tick and runs the action. The touch area is at least
+    // 48 dp tall (the drawn bar is only about 26 dp), split into four equal columns like the four keys.
+    var pressedKey by remember { mutableStateOf<DosButton?>(null) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+
     @Composable
-    fun Buttons(m: Modifier) = SceneRegion(Regions.BUTTONS, state, clock, bitmaps, m) { ux, uy ->
-        DosButton.entries.forEachIndexed { i, button ->
-            val description = "F${i + 1}: ${labels.getValue(button)}"
-            Box(
-                Modifier
-                    .offset(ux * (DosSprites.buttonX(button) - 36 - Regions.BUTTONS.x), uy * (DosSprites.BUTTON_Y - 4 - Regions.BUTTONS.y))
-                    .size(ux * 109, uy * 30)
-                    .semantics { contentDescription = description; role = Role.Button }
-                    .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onButton(button) }
-            )
+    fun Buttons(m: Modifier) {
+        val shown = state.copy(pressed = pressedKey?.let { setOf(it) } ?: emptySet())
+        Box(m.fillMaxWidth().defaultMinSize(minHeight = 48.dp), contentAlignment = Alignment.Center) {
+            SceneRegion(Regions.BUTTONS, shown, clock, bitmaps, Modifier.fillMaxWidth())
+            Row(Modifier.matchParentSize()) {
+                DosButton.entries.forEachIndexed { i, button ->
+                    val description = "F${i + 1}: ${labels.getValue(button)}"
+                    Box(
+                        Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .semantics { contentDescription = description; role = Role.Button }
+                            .pointerInput(button) {
+                                detectTapGestures(
+                                    onPress = {
+                                        pressedKey = button
+                                        tryAwaitRelease()
+                                        scope.launch { delay(160); if (pressedKey == button) pressedKey = null }
+                                    },
+                                    onTap = {
+                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                                        onButton(button)
+                                    }
+                                )
+                            }
+                    )
+                }
+            }
         }
     }
 
@@ -295,18 +331,19 @@ fun DosLayout(
                 Top(Modifier.fillMaxWidth())
                 Board(Modifier.fillMaxWidth())
                 Buttons(Modifier.fillMaxWidth())
-                val headW = minOf(w * 0.27f, left / Regions.KING.heightPerWidth() * 0.85f)
-                Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (headW >= 64.dp) {
-                        Column(Modifier.width(maxOf(headW, 96.dp)), horizontalAlignment = Alignment.CenterHorizontally) {
+                // Both heroes get exactly the same width; the row (hero, five tool buttons, hero) must fit, so neither is squeezed.
+                val headW = minOf(w * 0.27f, (w - 240.dp) / 2, left / Regions.KING.heightPerWidth() * 0.85f)
+                Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween) {
+                    if (headW >= 72.dp) {
+                        Column(Modifier.width(headW), horizontalAlignment = Alignment.CenterHorizontally) {
                             SceneRegion(Regions.KING, state, clock, bitmaps, Modifier.width(headW))
                             Caption(kingName)
                         }
                     }
                     tools(true)
-                    if (headW >= 64.dp) {
-                        Column(Modifier.width(maxOf(headW, 96.dp)), horizontalAlignment = Alignment.CenterHorizontally) {
-                            SceneRegion(Regions.PRETENDER, state, clock, bitmaps, Modifier.width(headW * 0.85f))
+                    if (headW >= 72.dp) {
+                        Column(Modifier.width(headW), horizontalAlignment = Alignment.CenterHorizontally) {
+                            SceneRegion(Regions.PRETENDER, state, clock, bitmaps, Modifier.width(headW))
                             Caption(pretenderName)
                         }
                     }
@@ -317,12 +354,12 @@ fun DosLayout(
             val margin = 4.dp
             val centre = minOf(
                 maxWidth * 0.62f,
-                (maxHeight - margin * 2 - 26.dp) / (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth())
+                (maxHeight - margin * 2 - 26.dp - 28.dp) / (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth())
             )
             val side = (maxWidth - centre - 56.dp - margin * 4) / 2
             Row(Modifier.fillMaxSize().padding(margin), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(margin, Alignment.CenterHorizontally)) {
                 Column(Modifier.width(side), horizontalAlignment = Alignment.CenterHorizontally) {
-                    SceneRegion(Regions.KING_FULL, state, clock, bitmaps, Modifier.widthIn(max = side).heightIn(max = availH * 0.78f))
+                    SceneRegion(Regions.KING_FULL, state, clock, bitmaps, Modifier.width(minOf(side, availH * 0.78f / Regions.KING_FULL.heightPerWidth())))
                     Caption(kingName)
                 }
                 Column(Modifier.width(centre), verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -332,7 +369,7 @@ fun DosLayout(
                     Buttons(Modifier.fillMaxWidth())
                 }
                 Column(Modifier.width(side), horizontalAlignment = Alignment.CenterHorizontally) {
-                    SceneRegion(Regions.PRETENDER_FULL, state, clock, bitmaps, Modifier.widthIn(max = side).heightIn(max = availH * 0.6f))
+                    SceneRegion(Regions.PRETENDER_FULL, state, clock, bitmaps, Modifier.width(minOf(side, availH * 0.78f / Regions.KING_FULL.heightPerWidth())))
                     Caption(pretenderName)
                 }
                 tools(false)
