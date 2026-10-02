@@ -9,15 +9,15 @@ enum class Wave { SINE, TRIANGLE, SQUARE, SAWTOOTH }
 /** Every look has its own voice: the same melodies played by a different instrument (mirrors src/modernsound.ts). */
 enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val gain: Double) {
     SOFT(null, 1.0, 1.0, 1.0),
-    BELL(Wave.SINE, 2.0, 0.8, 0.85),
-    MARIMBA(Wave.TRIANGLE, 0.5, 0.7, 1.2),
-    ARCADE(Wave.SQUARE, 1.0, 0.75, 0.3),
-    SAW(Wave.SAWTOOTH, 0.5, 1.25, 0.35),
-    GLASS(Wave.SINE, 1.5, 1.5, 0.8),
-    WOOD(Wave.TRIANGLE, 0.75, 0.5, 1.3),
-    CHIP(Wave.SQUARE, 2.0, 0.5, 0.25),
-    TELETYPE(Wave.SQUARE, 0.75, 0.4, 0.25),
-    BEEP(Wave.SQUARE, 1.25, 1.6, 0.3)
+    BELL(Wave.SINE, 2.0, 0.8, 1.0),
+    MARIMBA(Wave.TRIANGLE, 1.0, 0.7, 1.5),
+    ARCADE(Wave.SQUARE, 1.0, 0.75, 0.45),
+    SAW(Wave.SAWTOOTH, 1.0, 1.25, 0.5),
+    GLASS(Wave.SINE, 1.5, 1.5, 1.0),
+    WOOD(Wave.TRIANGLE, 1.5, 0.5, 1.6),
+    CHIP(Wave.SQUARE, 2.0, 0.5, 0.4),
+    TELETYPE(Wave.SQUARE, 1.5, 0.4, 0.4),
+    BEEP(Wave.SQUARE, 1.25, 1.6, 0.45)
 }
 
 data class ModernNote(val freq: Int, val ms: Int, val wave: Wave, val gain: Double)
