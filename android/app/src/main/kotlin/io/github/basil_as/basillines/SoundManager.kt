@@ -54,6 +54,11 @@ class SoundManager(private val context: Context) {
     }
 
     private fun beep(kind: SoundKind, points: Int = 0) {
+        // Some devices refuse to build an AudioTrack; the game must go on silently rather than crash.
+        runCatching { beepUnsafe(kind, points) }
+    }
+
+    private fun beepUnsafe(kind: SoundKind, points: Int) {
         if (!isEnabled) return
         val pcm = if (profile == Profile.PC_SPEAKER) {
             PcSpeaker.render(PcSpeaker.notes(kind, points))

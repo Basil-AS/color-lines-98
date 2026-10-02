@@ -30,18 +30,22 @@ interface Voice {
   gain: number;
 }
 
-/** What makes the looks sound different: the same melodies, played by different instruments. */
+/**
+ * What makes the looks sound different: the same melodies, played by different instruments. No voice plays below the
+ * original pitch (phone speakers hardly reproduce tones under 300 Hz) and the square and saw voices are boosted to match
+ * the loudness of the sine ones.
+ */
 export const VOICES: Record<VoiceId, Voice> = {
   soft: { wave: null, pitch: 1, tempo: 1, gain: 1 },
-  bell: { wave: 'sine', pitch: 2, tempo: 0.8, gain: 0.85 },
-  marimba: { wave: 'triangle', pitch: 0.5, tempo: 0.7, gain: 1.2 },
-  arcade: { wave: 'square', pitch: 1, tempo: 0.75, gain: 0.3 },
-  saw: { wave: 'sawtooth', pitch: 0.5, tempo: 1.25, gain: 0.35 },
-  glass: { wave: 'sine', pitch: 1.5, tempo: 1.5, gain: 0.8 },
-  wood: { wave: 'triangle', pitch: 0.75, tempo: 0.5, gain: 1.3 },
-  chip: { wave: 'square', pitch: 2, tempo: 0.5, gain: 0.25 },
-  teletype: { wave: 'square', pitch: 0.75, tempo: 0.4, gain: 0.25 },
-  beep: { wave: 'square', pitch: 1.25, tempo: 1.6, gain: 0.3 },
+  bell: { wave: 'sine', pitch: 2, tempo: 0.8, gain: 1 },
+  marimba: { wave: 'triangle', pitch: 1, tempo: 0.7, gain: 1.5 },
+  arcade: { wave: 'square', pitch: 1, tempo: 0.75, gain: 0.45 },
+  saw: { wave: 'sawtooth', pitch: 1, tempo: 1.25, gain: 0.5 },
+  glass: { wave: 'sine', pitch: 1.5, tempo: 1.5, gain: 1 },
+  wood: { wave: 'triangle', pitch: 1.5, tempo: 0.5, gain: 1.6 },
+  chip: { wave: 'square', pitch: 2, tempo: 0.5, gain: 0.4 },
+  teletype: { wave: 'square', pitch: 1.5, tempo: 0.4, gain: 0.4 },
+  beep: { wave: 'square', pitch: 1.25, tempo: 1.6, gain: 0.45 },
 };
 
 /** The melody of an event in the voice of a look. */
