@@ -45,6 +45,7 @@ class SoundManager {
       this.context ??= new AudioContext();
       const ctx = this.context;
       void ctx.resume();
+      const out = this.output(ctx);
       let t = ctx.currentTime;
       const notes =
         this.profile === 'pcspeaker'
@@ -64,7 +65,7 @@ class SoundManager {
           gain.gain.linearRampToValueAtTime(note.gain, t + 0.008);
           gain.gain.exponentialRampToValueAtTime(0.0001, end);
         }
-        osc.connect(gain).connect(ctx.destination);
+        osc.connect(gain).connect(out);
         osc.start(t);
         osc.stop(end + 0.02);
         t = end;
@@ -72,6 +73,21 @@ class SoundManager {
     } catch {
       // Audio can be unavailable (no output device, blocked before a gesture); the game goes on silently.
     }
+  }
+
+  private master: GainNode | null = null;
+
+  /** The synthesised notes are written quiet (a click peaks at 16%); a master gain and a limiter bring them to a normal level. */
+  private output(ctx: AudioContext): AudioNode {
+    if (this.master) return this.master;
+    const gain = ctx.createGain();
+    gain.gain.value = 2.6;
+    const limiter = ctx.createDynamicsCompressor();
+    limiter.threshold.value = -6;
+    limiter.ratio.value = 12;
+    gain.connect(limiter).connect(ctx.destination);
+    this.master = gain;
+    return gain;
   }
 
   private playSound(path: string, volume = 0.7): void {

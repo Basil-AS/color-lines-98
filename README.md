@@ -36,6 +36,7 @@ and a native Android app, sharing one rule set.
 - **Progress and analysis:** levels with titles, 18 achievements, day streaks, personal records, active play time, the
   full history (up to 1000 games) and an analysis: trend against your previous games, games per day, score
   distribution, best weekdays, efficiency (points per move), record progression and the games left to the next level.
+- **Updates (Android):** the app checks the project's newest GitHub release once a day (switch it off in Settings), offers "Version X is available" and downloads it; releases are signed with one project key, so the update installs over the app and keeps your games. Settings show the version and whether the build carries that key.
 - **English and Russian**, picked automatically from the browser or system language (web: also switchable in Settings;
   Android: Auto / English / Русский inside the game).
 - **Everywhere:** responsive layout for phones, tablets and desktops (portrait and landscape), keyboard play and screen

@@ -52,6 +52,8 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 | 44 | Use GitHub's mechanisms to the maximum | done | signed release on merge, CodeQL, Dependabot with auto-merge, labels, PR title check, Lighthouse, protected `main`, templates |
 | 45 | Permanent statistics, results moved by file | done | day ledger, seasons, milestones, heatmap, records; JSON/CSV, import with confirmation; files readable by both platforms |
 | 46 | Code and quality reviewed with the workstation skills | done | `docs/SECURITY_REVIEW.md`; axe over 12 looks and dialogs (`e2e/quality.spec.ts`); independent diff review |
+| 47 | Sound in the APK must work | fixed | every synthesised sound is rendered once into a WAV file and played through a SoundPool (the old AudioTrack-per-sound leaked and went silent), loudness normalised, voices never below the original pitch; **not heard on a device** |
+| 48 | The app updates itself, and is signed | done | daily check against the project's GitHub release (switchable), "Version X is available" dialog, one-tap download that installs over the app; releases are signed with the project key and the release pipeline fails if the APK is not; Settings show the version and whether the signature is the release key |
 
 ## Not verified or approximated
 

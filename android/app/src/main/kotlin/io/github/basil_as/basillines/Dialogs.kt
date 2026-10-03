@@ -258,6 +258,12 @@ fun SettingsDialog(
     onLanguage: (AppLanguage) -> Unit,
     playerName: String,
     onPlayerName: (String) -> Unit,
+    versionName: String,
+    signature: String,
+    autoUpdate: Boolean,
+    onAutoUpdate: (Boolean) -> Unit,
+    updateStatus: String?,
+    onCheckUpdate: () -> Unit,
     onClose: () -> Unit
 ) {
     AlertDialog(
@@ -308,6 +314,14 @@ fun SettingsDialog(
                         Text(stringResource(name), Modifier.padding(start = 12.dp))
                     }
                 }
+                Text(stringResource(R.string.update_version, versionName), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+                Text(signature, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                SwitchRow(stringResource(R.string.update_auto), autoUpdate) { onAutoUpdate(!autoUpdate) }
+                Text(stringResource(R.string.update_autoHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                OutlinedButton(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text(stringResource(R.string.update_check))
+                }
+                if (updateStatus != null) Text(updateStatus, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
@@ -801,5 +815,21 @@ fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress
             }
         },
         confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+    )
+}
+
+@Composable
+fun UpdateDialog(version: String, current: String, onDownload: () -> Unit, onLater: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onLater,
+        title = { Text(stringResource(R.string.update_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(stringResource(R.string.update_available, version, current), fontWeight = FontWeight.SemiBold)
+                Text(stringResource(R.string.update_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        },
+        confirmButton = { Button(onClick = onDownload) { Text(stringResource(R.string.update_download)) } },
+        dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) } }
     )
 }
