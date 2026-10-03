@@ -73,11 +73,10 @@ bubbleshooter: yes; DOS 1992: no) and KLines' choice to cost score for showing t
 | 9 | n/s | n/s | n/s | n/s | 315 images | no sound files in the package (may be inside Unity data) | n/s | n/s | AdMob code; `READ_PHONE_STATE`, storage permissions |
 | 10 | n/s | n/s | n/s | n/s | 349 images | as 9 | n/s | n/s | AdMob code; `READ_PHONE_STATE`, storage permissions |
 | 11 | n/s | n/s | n/s | n/s | 92 images, 3 fonts | **20 sound files**: click, win, lose, screen appear, bomb, break, `eat`, `eatScore_1…5` … | English and German splits | n/s | AdMob code; `READ_PHONE_STATE`, storage permissions |
-| 12 | yes (20 steps) | **yes**, 3 per game | **4**: Classic, Easy, Blitz, Daily (same on web and Android) | ledger for every day, months, seasons, milestones, records, heatmap, 18 achievements, goals from your own history; Top Ten | **12 looks** | sampled (Windows look), PC-speaker synthesis (DOS), 10 synthesised voices, one per look | English, Russian, switchable in the game | yes (PWA, APK) | no ads; the APK asks only for `VIBRATE` (haptic feedback) |
+| 12 | yes (20 steps) | **yes**, 3 per game | **4**: Classic, Easy, Blitz, Daily (same on web and Android) | ledger for every day, months, seasons, milestones, records, heatmap, 18 achievements, goals from your own history; Top Ten | **12 looks** | sampled (Windows look), PC-speaker synthesis (DOS), 10 synthesised voices, one per look | English, Russian, switchable in the game | yes (PWA, APK) | no ads; the APK asks for `VIBRATE` (haptic feedback) and `INTERNET` (only the update check) |
 
 The three Android clones (9–11) ask for the phone-state permission and ship ad code; the game does not need either. This
-project asks for neither (only `VIBRATE`) and sends nothing anywhere: results live on the device and move only through a backup file
-you save yourself.
+project asks for neither; its only network request is the optional daily update check against its own GitHub release. Results live on the device and move only through a backup file you save yourself.
 
 ## Sounds and look
 

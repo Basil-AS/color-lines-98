@@ -253,6 +253,31 @@ class MainScreenTest {
     }
 
     @Test
+    fun settingsShowTheVersionTheSignatureAndTheUpdateControls() {
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Version", substring = true)).performScrollTo().assertExists()
+        // The test build is not signed with the release key (or Robolectric has no signature to read): never "release key".
+        rule.onNode(hasText("Signed with another key", substring = true) or hasText("The signature could not be read.")).performScrollTo().assertExists()
+        assertTrue(rule.onAllNodes(hasText("Signed with the Color Lines release key", substring = true)).fetchSemanticsNodes().isEmpty())
+        rule.onNode(hasText("Check for updates automatically")).performScrollTo().assertExists()
+        rule.onNode(hasText("Check for updates")).performScrollTo().performClick()
+        rule.waitForIdle()
+        // Offline in tests: the answer is the friendly failure, not a crash.
+        rule.waitUntil(5_000) { rule.onAllNodes(hasText("Could not check for updates", substring = true)).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    @Test
+    fun theAutomaticCheckIsOnByDefaultAndCanBeSwitchedOff() {
+        assertTrue(GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck)
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.onNode(hasText("Check for updates automatically")).performScrollTo().performClick()
+        rule.waitForIdle()
+        assertTrue(!GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck)
+        GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck = true
+    }
+
+    @Test
     fun aFreshGameHasNoWarning() {
         rule.onNodeWithContentDescription("New game").performClick()
         rule.waitForIdle()

@@ -71,6 +71,20 @@ class GameStorage(context: Context) {
         prefs.edit().putString(KEY_GOALS, day + "|" + ids.joinToString(",")).apply()
     }
 
+    /** Ask GitHub once a day for the newest release (on by default; switch it off in Settings). */
+    var autoUpdateCheck: Boolean
+        get() = prefs.getBoolean(KEY_UPDATE_AUTO, true)
+        set(value) = prefs.edit().putBoolean(KEY_UPDATE_AUTO, value).apply()
+
+    var lastUpdateCheck: Long
+        get() = prefs.getLong(KEY_UPDATE_AT, 0L)
+        set(value) = prefs.edit().putLong(KEY_UPDATE_AT, value).apply()
+
+    /** The version the player said "Later" to, so the same one is not offered again at every start. */
+    var dismissedUpdate: String
+        get() = prefs.getString(KEY_UPDATE_SKIP, "") ?: ""
+        set(value) = prefs.edit().putString(KEY_UPDATE_SKIP, value).apply()
+
     var bestScore: Int
         get() = prefs.getInt(KEY_BEST, 0).coerceAtLeast(0)
         set(value) = prefs.edit().putInt(KEY_BEST, value).apply()
@@ -118,6 +132,9 @@ class GameStorage(context: Context) {
     companion object {
         private const val KEY_THEME = "theme"
         private const val KEY_LANG = "language"
+        private const val KEY_UPDATE_AUTO = "update_auto"
+        private const val KEY_UPDATE_AT = "update_checked_at"
+        private const val KEY_UPDATE_SKIP = "update_skipped"
         private const val KEY_GOALS = "goals_done"
         private const val KEY_LEDGER = "ledger"
         private const val KEY_MODE = "mode"
