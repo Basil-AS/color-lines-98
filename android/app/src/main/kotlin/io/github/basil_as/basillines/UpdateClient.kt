@@ -37,7 +37,16 @@ object UpdateClient {
             try {
                 if (conn.responseCode != 200) return@runCatching Result.Failed
                 // A release answer is a few kilobytes; refuse anything much bigger.
-                val body = conn.inputStream.use { it.readNBytes(512 * 1024) }.toString(Charsets.UTF_8)
+                val body = conn.inputStream.use { input ->
+                    val out = java.io.ByteArrayOutputStream()
+                    val buf = ByteArray(16 * 1024)
+                    while (out.size() < 512 * 1024) {
+                        val n = input.read(buf)
+                        if (n < 0) break
+                        out.write(buf, 0, n)
+                    }
+                    out.toString(Charsets.UTF_8.name())
+                }
                 Updates.fromReleaseJson(body, current)?.let { Result.Newer(it) } ?: Result.UpToDate
             } finally {
                 conn.disconnect()
