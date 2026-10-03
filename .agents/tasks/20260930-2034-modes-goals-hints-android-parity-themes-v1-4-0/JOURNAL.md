@@ -26,3 +26,4 @@ NEXT: Inspect project and refine TASK.md.
 - 12 themes with voices, tab title English, contrast check; 572 vitest, e2e 41, Android tests OK.
 - v1.5.0: stats ledger/career/seasons/backup, DOS reflow, modes UX, goals on Android, PWA install fix, APK latest link, 12 implementations comparison.
 - 1.5.2: independent review findings fixed (impossible dates in Android import, achievement/mode-counter parity, export truncation, import off main thread, ledger/time zone, history order); Android Russian DOS labels.
+- 1.6.0: Android sound via SoundPool+WAV with normalised loudness; in-app update check (GitHub release), signature display, release pipeline verifies the signing key.

@@ -2,8 +2,6 @@ package io.github.basil_as.basillines
 
 import android.content.Context
 import android.media.AudioAttributes
-import android.media.AudioFormat
-import android.media.AudioTrack
 import android.media.SoundPool
 import io.github.basil_as.basillines.engine.ModernSounds
 import io.github.basil_as.basillines.engine.PcSpeaker
@@ -21,7 +19,17 @@ class SoundManager(private val context: Context) {
     enum class Profile { SAMPLED, PC_SPEAKER, MODERN }
 
     var profile: Profile = Profile.MODERN
+        set(value) {
+            if (field != value) { field = value; prepare() }
+        }
     var voice: io.github.basil_as.basillines.engine.VoiceId = io.github.basil_as.basillines.engine.VoiceId.SOFT
+        set(value) {
+            if (field != value) { field = value; prepare() }
+        }
+
+    private val ready: MutableSet<Int> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+    private val synthIds = java.util.concurrent.ConcurrentHashMap<String, Int>()
+    private val cacheDir = java.io.File(context.cacheDir, "sounds").apply { mkdirs() }
 
     private val soundPool: SoundPool = SoundPool.Builder()
         .setMaxStreams(5)
@@ -32,6 +40,7 @@ class SoundManager(private val context: Context) {
                 .build()
         )
         .build()
+        .also { pool -> pool.setOnLoadCompleteListener { _, id, status -> if (status == 0) ready.add(id) } }
 
     private val selectSoundId = soundPool.load(context, R.raw.select_ball, 1)
     private val jumpSoundId = soundPool.load(context, R.raw.jump, 1)
@@ -50,51 +59,52 @@ class SoundManager(private val context: Context) {
 
     private fun play(soundId: Int, volume: Float = 0.8f) {
         if (!isEnabled) return
-        soundPool.play(soundId, volume, volume, 1, 0, 1.0f)
+        // A sound still decoding is skipped (it is ready within a moment of start-up); never block or fail the game.
+        if (soundId in ready) soundPool.play(soundId, volume, volume, 1, 0, 1.0f)
+    }
+
+    /** How many sizes of "eat" there are (more balls cleared, longer rising run of notes). */
+    private fun bucketOf(kind: SoundKind, points: Int) = if (kind == SoundKind.EAT) (points / 12).coerceIn(0, 5) else 0
+
+    /**
+     * The SoundPool id of a synthesised sound, created once: the notes are rendered into a small WAV file in the cache
+     * and loaded into the pool. (An AudioTrack per play leaked when its end marker never fired, and eventually nothing
+     * was audible.)
+     */
+    private fun synthId(kind: SoundKind, bucket: Int): Int {
+        val key = "${profile.name}-${voice.name}-${kind.name}-$bucket"
+        synthIds[key]?.let { return it }
+        val points = bucket * 12
+        // Normalised: the synthesised notes are quiet (a click peaks at 5% of full scale), the beeps flat and harsh.
+        val pcm = if (profile == Profile.PC_SPEAKER) io.github.basil_as.basillines.engine.Wav.normalize(PcSpeaker.render(PcSpeaker.notes(kind, points)), 0.5)
+        else io.github.basil_as.basillines.engine.Wav.normalize(ModernSounds.render(ModernSounds.voiced(kind, points, voice)), 0.8)
+        if (pcm.isEmpty()) return -1
+        val file = java.io.File(cacheDir, "$key.wav")
+        file.writeBytes(io.github.basil_as.basillines.engine.Wav.encode(pcm))
+        val id = soundPool.load(file.absolutePath, 1)
+        return synthIds.putIfAbsent(key, id) ?: id
+    }
+
+    /** Renders and loads every sound of the current look in the background, so the first play is instant. */
+    private fun prepare() {
+        if (profile == Profile.SAMPLED) return
+        Thread {
+            runCatching {
+                for (kind in SoundKind.entries) {
+                    val buckets = if (kind == SoundKind.EAT) 0..5 else 0..0
+                    for (b in buckets) synthId(kind, b)
+                }
+            }
+        }.start()
     }
 
     private fun beep(kind: SoundKind, points: Int = 0) {
-        // Some devices refuse to build an AudioTrack; the game must go on silently rather than crash.
-        runCatching { beepUnsafe(kind, points) }
-    }
-
-    private fun beepUnsafe(kind: SoundKind, points: Int) {
         if (!isEnabled) return
-        val pcm = if (profile == Profile.PC_SPEAKER) {
-            PcSpeaker.render(PcSpeaker.notes(kind, points))
-        } else {
-            ModernSounds.render(ModernSounds.voiced(kind, points, voice))
+        // Some devices refuse to load a file; the game must go on silently rather than crash.
+        runCatching {
+            val id = synthId(kind, bucketOf(kind, points))
+            if (id > 0 && id in ready) soundPool.play(id, 1f, 1f, 1, 0, 1.0f)
         }
-        if (pcm.isEmpty()) return
-        val track = AudioTrack.Builder()
-            .setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-            .setAudioFormat(
-                AudioFormat.Builder()
-                    .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
-                    .setSampleRate(22_050)
-                    .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
-                    .build()
-            )
-            .setTransferMode(AudioTrack.MODE_STATIC)
-            .setBufferSizeInBytes(pcm.size * 2)
-            .build()
-        if (track.state != AudioTrack.STATE_INITIALIZED) {
-            // No usable audio output right now: stay silent instead of failing the game.
-            track.release()
-            return
-        }
-        track.write(pcm, 0, pcm.size)
-        track.setNotificationMarkerPosition(pcm.size)
-        track.setPlaybackPositionUpdateListener(object : AudioTrack.OnPlaybackPositionUpdateListener {
-            override fun onMarkerReached(t: AudioTrack) = t.release()
-            override fun onPeriodicNotification(t: AudioTrack) = Unit
-        })
-        track.play()
     }
 
     /** Plays a game event in the voice of the current look: samples, PC-speaker beeps or soft tones. */

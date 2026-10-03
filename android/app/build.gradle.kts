@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.basil_as.basillines"
         minSdk = 26
         targetSdk = 35
-        versionCode = 10
-        versionName = "1.5.4"
+        versionCode = 11
+        versionName = "1.6.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -50,6 +50,8 @@ android {
     }
     testOptions {
         unitTests.isIncludeAndroidResources = true
+        // Unit tests never touch the network: the update check answers "failed" at once.
+        unitTests.all { it.systemProperty("colorlines.offline", "true") }
     }
 }
 

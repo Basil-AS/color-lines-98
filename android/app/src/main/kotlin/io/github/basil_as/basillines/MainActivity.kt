@@ -179,6 +179,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var history by remember { mutableStateOf(storage.history) }
     var ledger by remember { mutableStateOf(storage.ledger) }
     var goalsDone by remember { mutableStateOf(storage.loadGoalsDone(dayKey())) }
+    var updateOffer by remember { mutableStateOf<io.github.basil_as.basillines.engine.UpdateInfo?>(null) }
+    var updateStatus by remember { mutableStateOf<String?>(null) }
+    val appVersion = remember { UpdateClient.versionName(context) }
     var dataMessage by remember { mutableStateOf<String?>(null) }
     var pendingImport by remember { mutableStateOf<io.github.basil_as.basillines.engine.Backup?>(null) }
     var progress by remember { mutableStateOf<Progress>(storage.progress) }
@@ -382,6 +385,42 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             soundManager.play(SoundKind.CLICK)
             commit()
         }
+    }
+
+    // ---- updates: one HTTPS question to GitHub, once a day, never blocking ------------------------------
+    val updateLatest = stringResource(R.string.update_latest)
+    val updateFailed = stringResource(R.string.update_failed)
+    val updateChecking = stringResource(R.string.update_checking)
+    val signatureText = remember {
+        val sha = UpdateClient.signatureSha256(context)
+        sha
+    }
+    val signedOk = if (signatureText == null) null else stringResource(R.string.update_signedOk, io.github.basil_as.basillines.engine.Updates.shortFingerprint(signatureText))
+    val signedOther = if (signatureText == null) null else stringResource(R.string.update_signedOther, io.github.basil_as.basillines.engine.Updates.shortFingerprint(signatureText))
+    val signatureLine = when {
+        signatureText == null -> stringResource(R.string.update_signedUnknown)
+        io.github.basil_as.basillines.engine.Updates.isProjectKey(signatureText) -> signedOk!!
+        else -> signedOther!!
+    }
+    var autoUpdate by remember { mutableStateOf(storage.autoUpdateCheck) }
+    val checkScope = androidx.compose.runtime.rememberCoroutineScope()
+
+    fun checkNow(manual: Boolean) {
+        if (manual) updateStatus = updateChecking
+        checkScope.launch {
+            storage.lastUpdateCheck = System.currentTimeMillis()
+            when (val r = UpdateClient.check(context)) {
+                is UpdateClient.Result.Newer -> {
+                    updateStatus = null
+                    if (manual || storage.dismissedUpdate != r.info.version) updateOffer = r.info
+                }
+                UpdateClient.Result.UpToDate -> updateStatus = if (manual) updateLatest else null
+                UpdateClient.Result.Failed -> updateStatus = if (manual) updateFailed else null
+            }
+        }
+    }
+    LaunchedEffect(Unit) {
+        if (storage.autoUpdateCheck && System.currentTimeMillis() - storage.lastUpdateCheck > 24 * 60 * 60 * 1000L) checkNow(manual = false)
     }
 
     // ---- saving results to a file and loading them back -------------------------------------
@@ -597,6 +636,15 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             )
         }
 
+        updateOffer?.let { info ->
+            UpdateDialog(
+                version = info.version,
+                current = appVersion,
+                onDownload = { UpdateClient.download(context, info); updateOffer = null },
+                onLater = { storage.dismissedUpdate = info.version; updateOffer = null }
+            )
+        }
+
         pendingImport?.let { b ->
             val times = b.history.map { it.endedAt }
             ImportDialog(
@@ -686,7 +734,13 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                         playerName = it.take(Hall.NAME_LIMIT)
                         storage.playerName = playerName
                     },
-                    onClose = { dialog = Dialog.NONE }
+                    versionName = appVersion,
+                    signature = signatureLine,
+                    autoUpdate = autoUpdate,
+                    onAutoUpdate = { autoUpdate = it; storage.autoUpdateCheck = it },
+                    updateStatus = updateStatus,
+                    onCheckUpdate = { checkNow(manual = true) },
+                    onClose = { dialog = Dialog.NONE; updateStatus = null }
                 )
                 Dialog.NONE -> Unit
             }

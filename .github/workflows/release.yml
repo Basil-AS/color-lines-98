@@ -98,6 +98,14 @@ jobs:
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew testDebugUnitTest assembleRelease
 
+      - name: The APK must carry the project's release signature
+        run: |
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          GOT="$("$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | sed -n 's/.*certificate SHA-256 digest: //p' | head -1 | tr 'a-f' 'A-F')"
+          WANT="$(sed -n 's/.*PROJECT_KEY_SHA256 = "\(.*\)".*/\1/p' android/core-engine/src/main/kotlin/io/github/basil_as/basillines/engine/Updates.kt)"
+          echo "signed with $GOT, expected $WANT"
+          test -n "$GOT" && test "$GOT" = "$WANT"
+
       - name: Name the files and checksum them
         run: |
           cp android/app/build/outputs/apk/release/app-release.apk "ColorLines-${VERSION}.apk"
