@@ -1,7 +1,9 @@
+import { emptyCognition } from '../src/engine/telemetry';
 import { describe, expect, it } from 'vitest';
 import {
-  HISTORY_LIMIT,
   addRecord,
+  compactHistory,
+  expandHistory,
   isNewRecord,
   sanitizeHistory,
   summarize,
@@ -29,12 +31,12 @@ describe('addRecord', () => {
     expect(before).toHaveLength(1);
   });
 
-  it('keeps at most HISTORY_LIMIT games, dropping the oldest', () => {
+  it('keeps every game, however many (no limit)', () => {
     let history: GameRecord[] = [];
-    for (let i = 1; i <= HISTORY_LIMIT + 5; i++) history = addRecord(history, rec(i));
-    expect(history).toHaveLength(HISTORY_LIMIT);
-    expect(history[0].score).toBe(HISTORY_LIMIT + 5);
-    expect(history.at(-1)!.score).toBe(6);
+    for (let i = 1; i <= 2500; i++) history = addRecord(history, rec(i));
+    expect(history).toHaveLength(2500);
+    expect(history[0].score).toBe(2500);
+    expect(history[2499].score).toBe(1);
   });
 });
 
@@ -106,8 +108,15 @@ describe('sanitizeHistory', () => {
     expect(sanitizeHistory([{ ...rec(7), mode: 'chaos' }])).toEqual([]);
   });
 
-  it('caps the length', () => {
-    const many = Array.from({ length: HISTORY_LIMIT + 20 }, (_, i) => rec(i));
-    expect(sanitizeHistory(many)).toHaveLength(HISTORY_LIMIT);
+  it('does not cap the length', () => {
+    const many = Array.from({ length: 1500 }, (_, i) => rec(i));
+    expect(sanitizeHistory(many)).toHaveLength(1500);
+  });
+
+  it('round-trips through the compact device format, with and without play data', () => {
+    const withPlay = { ...rec(5), cog: { ...emptyCognition(), tz: 112, tm: 10, think: 40000, minEmpty: 20 } };
+    const history = [withPlay, rec(4)];
+    expect(expandHistory(JSON.parse(JSON.stringify(compactHistory(history))))).toEqual(history);
+    expect(expandHistory([[1, 2, 3]])).toEqual([]);
   });
 });

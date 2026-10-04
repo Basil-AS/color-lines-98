@@ -1450,6 +1450,34 @@ input[role='switch']:focus-visible {
   min-height: 2px;
 }
 
+.bar-low {
+  opacity: 0.55;
+}
+
+.bar-none {
+  opacity: 0.25;
+}
+
+.findings {
+  margin: 0 0 12px;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.storage-note {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.storage-warning {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--danger, #d33);
+}
+
 .theme-lines98 .bar,
 .theme-lines98 .bar-col,
 .theme-colorlines92 .bar {

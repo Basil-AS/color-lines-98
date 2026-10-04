@@ -1,7 +1,7 @@
 import { formatDay, formatDuration, formatMonth } from '../format';
 import { translate, translatePlural } from '../i18n';
 import type { Language, MessageKey } from '../i18n';
-import { heatmap, milestones, monthly, records, season, streaks, totals } from '../career';
+import { heatmap, memories, milestones, monthly, records, season, streaks, totals, yearly } from '../career';
 import type { Ledger } from '../ledger';
 import { dayKey } from '../progress';
 import type { GameRecord } from '../stats';
@@ -28,6 +28,8 @@ export function CareerPanel({ lang, ledger, now }: Omit<PanelProps, 'history'>) 
   const run = streaks(ledger, dayKey(now));
   const grid = heatmap(ledger, now, HEAT_WEEKS);
   const months = monthly(ledger).slice(-12).reverse();
+  const years = yearly(ledger).reverse();
+  const memory = memories(ledger, dayKey(now));
 
   const cards: [string, string][] = [
     [t('stats.gamesPlayed'), n(sum.games)],
@@ -100,6 +102,38 @@ export function CareerPanel({ lang, ledger, now }: Omit<PanelProps, 'history'>) 
           </li>
         ))}
       </ul>
+
+      {memory.length > 0 && (
+        <>
+          <h3 className="stats-subtitle">{t('career.memories')}</h3>
+          <ul className="mode-rows">
+            {memory.map((m) => (
+              <li key={m.day}>
+                <strong>{formatDay(lang, m.day)}</strong>
+                <span>
+                  {m.yearsAgo === 0
+                    ? t('career.memory.monthAgo', { day: formatDay(lang, m.day), games: m.games, best: n(m.best) })
+                    : t('career.memory.yearsAgo', { year: m.day.slice(0, 4), games: m.games, best: n(m.best) })}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {years.length > 0 && (
+        <>
+          <h3 className="stats-subtitle">{t('career.years')}</h3>
+          <ul className="mode-rows">
+            {years.map((y) => (
+              <li key={y.year}>
+                <strong>{y.year}</strong>
+                <span>{t('career.yearRow', { games: n(y.games), days: y.activeDays, best: n(y.best), month: y.bestMonth ? formatMonth(lang, y.bestMonth) : '–' })}</span>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h3 className="stats-subtitle">{t('career.months')}</h3>
       {months.length === 0 ? (

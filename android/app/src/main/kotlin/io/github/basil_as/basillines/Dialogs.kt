@@ -696,6 +696,9 @@ fun NewGameDialog(
         dismissButton = {
             if (inProgress) {
                 OutlinedButton(onClick = onStart) { Text(stringResource(R.string.newgame_startMode, stringResource(modeName(current)))) }
+            } else {
+                // Always a way back: opening the dialog must never force a new game.
+                OutlinedButton(onClick = onKeep) { Text(stringResource(R.string.data_cancel)) }
             }
         }
     )
