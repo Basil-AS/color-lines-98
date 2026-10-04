@@ -1,7 +1,7 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const THEMES = ['modern', 'light', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'lines98', 'colorlines92'];
+const THEMES = ['modern', 'light', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'lines98', 'lines98plus', 'colorlines92'];
 
 async function open(page: import('@playwright/test').Page, theme: string) {
   await page.goto('/');

@@ -85,6 +85,18 @@ export function modernNotes(kind: SoundKind, points = 0): ModernNote[] {
       return [C5, E5, G5, C6, E6].map((f, i) => n(f, 90, 'sine', 0.2 + i * 0.01));
     case 'achievement':
       return [n(E6, 70, 'sine', 0.2), n(G5 * 2, 130, 'sine', 0.22)];
+    case 'combo': {
+      const ladder = [G5, C6, E6, 1568, 2093];
+      return ladder.slice(0, Math.min(ladder.length, 1 + Math.max(1, points))).map((f, i) => n(f, 60, 'sine', 0.2 + i * 0.01));
+    }
+    case 'danger':
+      return [n(262, 130, 'triangle', 0.18), n(247, 190, 'triangle', 0.18)];
+    case 'tick':
+      return [n(1200, 25, 'triangle', 0.14)];
+    case 'hint':
+      return [n(E6, 60, 'sine', 0.18), n(1568, 90, 'sine', 0.18)];
+    case 'pop':
+      return [n(880, 25, 'sine', 0.12), n(1109, 25, 'sine', 0.12), n(1319, 30, 'sine', 0.12)];
     case 'record':
     case 'crown':
       return [C5, E5, G5, C6, G5, C6, E6].map((f, i) => n(f, i === 6 ? 320 : 110, 'sine', 0.22));

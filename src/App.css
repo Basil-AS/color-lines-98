@@ -2431,3 +2431,291 @@ input[role='switch']:focus-visible {
 .mode-facts {
   font-size: 0.78rem;
 }
+
+/* ==========================================================================
+   98 Modern: the glossy Lines 98 balls on a clean, current interface.
+   ========================================================================== */
+.theme-lines98plus {
+  color-scheme: light;
+  --page-bg: #dde5ef;
+  --panel-bg: #fbfcfe;
+  --panel-border: #c4cddb;
+  --panel-shadow: 0 14px 36px rgba(30, 50, 90, 0.18);
+  --text-main: #1b2333;
+  --text-muted: #566177;
+  --accent: #1f5fd1;
+  --accent-glow: rgba(31, 95, 209, 0.32);
+  --on-accent: #ffffff;
+  --board-bg: #aeb6c4;
+  --cell-bg: #d3d8e1;
+  --cell-hover: #dfe4ec;
+  --cell-reachable-dot: #1f5fd1;
+  --stat-bg: #151a24;
+  --stat-label: #9fb0cc;
+  --stat-value: #ff4d4d;
+  --title-color: #1b2333;
+  --ctrl-bg: #eaeff6;
+  --ctrl-hover: #dbe4f1;
+  --input-bg: #eaeff6;
+  --card-bg: #f1f4f9;
+  --danger: #c62828;
+  --radius: 14px;
+  --radius-sm: 8px;
+}
+
+.theme-lines98plus .board-cell {
+  border-radius: 6px;
+  border: 0;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.85), inset -1px -1px 0 rgba(60, 72, 96, 0.35);
+}
+
+.theme-lines98plus .board-cell:hover {
+  background: var(--cell-hover);
+}
+
+.theme-lines98plus .board-cell.selected {
+  box-shadow: inset 0 0 0 2px var(--accent), 0 0 12px var(--accent-glow);
+}
+
+.theme-lines98plus .ball-classic {
+  image-rendering: auto;
+  filter: drop-shadow(0 2px 2px rgba(20, 30, 50, 0.35));
+}
+
+.swatch-lines98plus { background: radial-gradient(circle at 25% 50%, #e53935 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #1e88e5 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #43a047 0 8px, transparent 9px), linear-gradient(#1f5fd1 0 4px, #d3d8e1 4px); border-radius: 8px; }
+
+/* ==========================================================================
+   Life on the board: effects drawn over it (see effects.ts).
+   ========================================================================== */
+.board-container {
+  position: relative;
+}
+
+.fx-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.fx-ghost {
+  z-index: 4;
+  will-change: transform;
+}
+
+.fx-pop {
+  position: absolute;
+  z-index: 6;
+  transform: translate(-50%, -50%);
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: #fff;
+  text-shadow: 0 0 6px rgba(0, 0, 0, 0.8), 0 2px 0 rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  animation: fxFloat 1.05s ease-out forwards;
+}
+
+.fx-pop-big {
+  font-size: 2.1rem;
+  color: #ffeb3b;
+}
+
+.fx-pop-combo {
+  font-size: 1.6rem;
+  color: #ff80ab;
+  animation-duration: 1.2s;
+}
+
+@keyframes fxFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -30%) scale(0.5);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -60%) scale(1.25);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -190%) scale(1);
+  }
+}
+
+.ball-land {
+  animation: ballLand 0.36s cubic-bezier(0.3, 1.4, 0.5, 1);
+}
+
+@keyframes ballLand {
+  0% {
+    transform: scale(1.18, 0.78);
+  }
+  45% {
+    transform: scale(0.92, 1.1);
+  }
+  100% {
+    transform: scale(1, 1);
+  }
+}
+
+.ball-pop {
+  animation: ballPop 0.5s cubic-bezier(0.3, 1.5, 0.5, 1) both;
+}
+
+@keyframes ballPop {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.ball-wiggle {
+  animation: ballWiggle 0.8s ease-in-out;
+}
+
+@keyframes ballWiggle {
+  0%,
+  100% {
+    transform: rotate(0) scale(1);
+  }
+  20% {
+    transform: rotate(-10deg) scale(1.08);
+  }
+  40% {
+    transform: rotate(9deg) scale(1.1, 0.94);
+  }
+  60% {
+    transform: rotate(-6deg) scale(1.05);
+  }
+  80% {
+    transform: rotate(3deg) scale(1);
+  }
+}
+
+.cell-deny {
+  animation: cellDeny 0.38s ease-in-out;
+}
+
+@keyframes cellDeny {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+
+.board-shake {
+  animation: boardShake 0.34s ease-out;
+}
+
+.board-shake-big {
+  animation: boardShakeBig 0.48s ease-out;
+}
+
+@keyframes boardShake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, 1px);
+  }
+}
+
+@keyframes boardShakeBig {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0);
+  }
+  15% {
+    transform: translate(-5px, 2px) rotate(-0.6deg);
+  }
+  35% {
+    transform: translate(5px, -2px) rotate(0.6deg);
+  }
+  55% {
+    transform: translate(-3px, 2px) rotate(-0.3deg);
+  }
+  75% {
+    transform: translate(2px, -1px) rotate(0.2deg);
+  }
+}
+
+/* A nearly full board glows red and breathes. */
+.board-danger .board-grid {
+  box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.55), 0 0 22px rgba(255, 82, 82, 0.45);
+  animation: dangerBreath 1.6s ease-in-out infinite;
+}
+
+@keyframes dangerBreath {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.35), 0 0 10px rgba(255, 82, 82, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(255, 82, 82, 0.8), 0 0 26px rgba(255, 82, 82, 0.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .board-danger .board-grid,
+  .ball-wiggle,
+  .fx-pop {
+    animation: none;
+  }
+}
+
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.segment {
+  padding: 6px 12px;
+  background: var(--ctrl-bg);
+  color: var(--text-main);
+  border: 0;
+  border-left: 1px solid var(--panel-border);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  min-height: 36px;
+}
+
+.segment:first-child {
+  border-left: 0;
+}
+
+.segment.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
+.settings-hint {
+  margin: -4px 0 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

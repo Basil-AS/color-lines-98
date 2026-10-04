@@ -38,5 +38,15 @@ export function sampleFor(kind: SoundKind, points = 0): Sample {
       return s('fireworks', 0.7);
     case 'achievement':
       return s('jumpBonus', 0.7);
+    case 'combo':
+      return s(`eatScore_${Math.min(5, 2 + Math.max(0, points))}`, 0.8);
+    case 'danger':
+      return s('ButtonClick', 0.3);
+    case 'tick':
+      return s('ButtonClick', 0.2);
+    case 'hint':
+      return s('selectBall', 0.5);
+    case 'pop':
+      return s('selectBall', 0.25);
   }
 }

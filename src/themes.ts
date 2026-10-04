@@ -10,6 +10,7 @@ export const THEMES = [
   'terminal',
   'contrast',
   'lines98',
+  'lines98plus',
   'colorlines92',
 ] as const;
 export type Theme = (typeof THEMES)[number];
@@ -33,7 +34,12 @@ export type SoundProfile = 'sampled' | 'pcspeaker' | 'modern';
 
 export function soundProfile(theme: Theme): SoundProfile {
   if (theme === 'colorlines92') return 'pcspeaker';
-  return theme === 'lines98' ? 'sampled' : 'modern';
+  return theme === 'lines98' || theme === 'lines98plus' ? 'sampled' : 'modern';
+}
+
+/** Themes whose balls are the sprites of Lines 98. */
+export function usesSprites(theme: Theme): boolean {
+  return theme === 'lines98' || theme === 'lines98plus';
 }
 
 /** Themes drawn with the original game's own sprites and window chrome. */
@@ -64,6 +70,7 @@ const VOICES: Record<Theme, VoiceId> = {
   terminal: 'teletype',
   contrast: 'beep',
   lines98: 'soft',
+  lines98plus: 'soft',
   colorlines92: 'soft',
 };
 
