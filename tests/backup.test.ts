@@ -38,7 +38,7 @@ describe('backup files', () => {
     expect(parseBackup('[1,2]')).toEqual({ ok: false, error: 'notBackup' });
     expect(parseBackup('{"format":"other","version":1}')).toEqual({ ok: false, error: 'notBackup' });
     expect(parseBackup(JSON.stringify({ format: BACKUP_FORMAT, version: 99 }))).toEqual({ ok: false, error: 'newer' });
-    expect(parseBackup('x'.repeat(9 * 1024 * 1024))).toEqual({ ok: false, error: 'tooBig' });
+    expect(parseBackup('x'.repeat(65 * 1024 * 1024))).toEqual({ ok: false, error: 'tooBig' });
   });
 
   it('never trusts the content: bad games, themes and names are dropped or cut', () => {
@@ -84,7 +84,7 @@ describe('backup files', () => {
   it('writes a spreadsheet that cannot run formulas', () => {
     const csv = historyToCsv([g(200, Date.UTC(2026, 0, 3), { mode: '=cmd' as never }), g(100, Date.UTC(2026, 0, 2))]);
     const lines = csv.trim().split('\n');
-    expect(lines[0]).toBe('date,mode,score,moves,lines,balls,longest_line,play_seconds,completed');
+    expect(lines[0].startsWith('date,mode,score,moves,lines,balls,longest_line,play_seconds,completed,local_hour,')).toBe(true);
     expect(lines).toHaveLength(3);
     // The history is newest first, the sheet reads oldest first.
     expect(lines[2].startsWith('2026-01-03T00:00:00.000Z,')).toBe(true);

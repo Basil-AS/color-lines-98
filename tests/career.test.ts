@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { addGame, ledgerFromHistory, mergeLedgers, mergeLedgersWithHistory, sanitizeLedger } from '../src/ledger';
 import type { Ledger } from '../src/ledger';
-import { heatmap, ladder, milestones, monthly, records, season, seasonBaseline, streaks, tierOf, totals } from '../src/career';
+import { heatmap, ladder, milestones, monthly, records, season, seasonBaseline, streaks, tierOf, totals, yearly, memories } from '../src/career';
 import type { GameRecord } from '../src/stats';
 import { dayKey } from '../src/progress';
 
@@ -160,5 +160,31 @@ describe('combining two devices', () => {
     const ledger = mergeLedgersWithHistory(ledgerFromHistory(mine), ledgerFromHistory(theirs), merged);
     expect(ledger['2026-09-01'].games).toBe(3);
     expect(ledger['2026-09-01'].score).toBe(600);
+  });
+});
+
+describe('years and memories', () => {
+  const ledger = ledgerFromHistory([
+    game({ score: 300, endedAt: at(2024, 3, 5) }),
+    game({ score: 500, endedAt: at(2024, 3, 6) }),
+    game({ score: 100, endedAt: at(2024, 7, 1) }),
+    game({ score: 900, endedAt: at(2025, 3, 5) }),
+  ]);
+
+  it('sums every year and names its best month', () => {
+    const years = yearly(ledger);
+    expect(years.map((y) => y.year)).toEqual([2024, 2025]);
+    expect(years[0]).toMatchObject({ games: 3, score: 900, best: 500, activeDays: 3, bestMonth: '2024-03' });
+    expect(years[1]).toMatchObject({ games: 1, bestMonth: '2025-03' });
+    expect(yearly({})).toEqual([]);
+  });
+
+  it('remembers the same date in earlier years and a month ago', () => {
+    expect(memories(ledger, '2026-03-05')).toEqual([
+      { day: '2025-03-05', yearsAgo: 1, games: 1, best: 900 },
+      { day: '2024-03-05', yearsAgo: 2, games: 1, best: 300 },
+    ]);
+    expect(memories(ledger, '2024-04-05')).toEqual([{ day: '2024-03-05', yearsAgo: 0, games: 1, best: 300 }]);
+    expect(memories(ledger, '2026-01-01')).toEqual([]);
   });
 });

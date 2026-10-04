@@ -1,7 +1,9 @@
 import { useRef, useState } from 'react';
 import { BACKUP_MAX_BYTES, describeBackup, parseBackup } from '../backup';
 import type { Backup } from '../backup';
+import { formatBytes } from '../format';
 import { formatDate, translate } from '../i18n';
+import { historyStorage } from '../storage';
 import type { Language, MessageKey } from '../i18n';
 
 interface DataPanelProps {
@@ -52,6 +54,7 @@ export function DataPanel({ lang, games, onExport, onImport }: DataPanelProps) {
     setBackup(parsed.backup);
   };
 
+  const storage = historyStorage();
   const info = backup ? describeBackup(backup) : null;
   const day = (ms: number) => formatDate(lang, ms).split(',')[0];
 
@@ -59,6 +62,9 @@ export function DataPanel({ lang, games, onExport, onImport }: DataPanelProps) {
     <div className="long-panel">
       <h3 className="stats-subtitle">{t('data.title')}</h3>
       <p className="modal-text">{t('data.intro')}</p>
+      <p className={storage.failed ? 'storage-warning' : 'storage-note'} role={storage.failed ? 'alert' : undefined}>
+        {storage.failed ? t('data.storageFull') : t('data.storage', { games: games.toLocaleString(lang), size: formatBytes(lang, storage.bytes) })}
+      </p>
       <div className="modal-actions data-actions">
         <button type="button" className="modal-btn" onClick={() => onExport('json')}>
           {t('data.exportJson')}

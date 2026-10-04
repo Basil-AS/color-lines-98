@@ -18,6 +18,7 @@ import type { Progress } from '../progress';
 import { InsightsPanel } from './InsightsPanel';
 import { CareerPanel, RecordsPanel, SeasonsPanel } from './LongTermPanels';
 import { DataPanel } from './DataPanel';
+import { MindPanel } from './MindPanel';
 import type { Backup } from '../backup';
 import type { Ledger } from '../ledger';
 import { MODE_IDS } from '../engine/modes';
@@ -56,7 +57,7 @@ function Sparkline({ values, label }: { values: number[]; label: string }) {
   );
 }
 
-const TABS = ['overview', 'career', 'seasons', 'records', 'data'] as const;
+const TABS = ['overview', 'career', 'mind', 'seasons', 'records', 'data'] as const;
 type Tab = (typeof TABS)[number];
 
 export function StatsDialog({ lang, history, progress, ledger, now, onExport, onImport, onClear, onClose }: StatsDialogProps) {
@@ -117,6 +118,7 @@ export function StatsDialog({ lang, history, progress, ledger, now, onExport, on
       </div>
       <div id="stats-panel" role="tabpanel" aria-labelledby={`stats-tab-${tab}`}>
       {tab === 'career' && <CareerPanel lang={lang} ledger={ledger} now={now} />}
+      {tab === 'mind' && <MindPanel lang={lang} history={history} />}
       {tab === 'seasons' && <SeasonsPanel lang={lang} ledger={ledger} now={now} />}
       {tab === 'records' && <RecordsPanel lang={lang} ledger={ledger} history={history} />}
       {tab === 'data' && <DataPanel lang={lang} games={progress.totalGames} onExport={onExport} onImport={onImport} />}
