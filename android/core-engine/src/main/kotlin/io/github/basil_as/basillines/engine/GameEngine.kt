@@ -74,6 +74,10 @@ class GameEngine(
 
     private val undoStack = mutableListOf<GameSnapshot>()
 
+    /** How the game is being played: decision times, hesitation, danger. */
+    var tel: TelemetryCounters = TelemetryCounters()
+        private set
+
     init {
         startNewGame()
     }
@@ -87,6 +91,7 @@ class GameEngine(
         ballsCleared = 0
         maxLine = 0
         playMs = 0
+        tel = TelemetryCounters()
         isGameOver = false
         selectedPoint = null
         undoStack.clear()
@@ -197,12 +202,13 @@ class GameEngine(
         }
 
         val path = PathFinder.findPath(from, to, board)
-            ?: return MoveResult(success = false, reason = "No unblocked path to destination")
+            ?: run { tel.miss(); return MoveResult(success = false, reason = "No unblocked path to destination") }
 
         // Save snapshot for Undo
         saveUndoSnapshot()
 
         // Execute move
+        val linesBefore = linesCleared
         moves++
         reseedTurn()
         board[from] = null
@@ -226,6 +232,7 @@ class GameEngine(
             }
 
             // In classic Color Lines, scoring a line gives a free turn: NO balls spawn!
+            tel.moved(moves, linesCleared - linesBefore, board.getEmptyCells().size)
             return MoveResult(
                 success = true,
                 path = path,
@@ -276,6 +283,7 @@ class GameEngine(
             isGameOver = true
         }
 
+        tel.moved(moves, linesCleared - linesBefore, board.getEmptyCells().size)
         return MoveResult(
             success = true,
             path = path,
@@ -334,8 +342,20 @@ class GameEngine(
         nextSpawnPoints = snapshot.nextPoints
         selectedPoint = null
         isGameOver = false
+        tel.undo()
         return true
     }
+
+    /**
+     * The UI reports every touch on the board with the time since the previous one (null when unknown). A timed game
+     * keeps its own clock, so it passes [countTime] = false.
+     */
+    fun noteAction(deltaMs: Long?, countTime: Boolean = true) {
+        if (deltaMs != null && countTime) addPlayTime(deltaMs)
+        tel.action(deltaMs)
+    }
+
+    fun noteHint() = tel.hint()
 
     /** Replaces the whole game with a previously saved one. The undo history is dropped. */
     internal fun restoreState(
@@ -348,7 +368,8 @@ class GameEngine(
         playMs: Long,
         nextColors: List<BallColor>,
         nextPoints: List<Point>?,
-        isGameOver: Boolean
+        isGameOver: Boolean,
+        telemetry: List<Long>? = null
     ) {
         require(cells.size == size * size) { "Expected ${size * size} cells" }
         for (y in 0 until size) for (x in 0 until size) board[x, y] = cells[y * size + x]
@@ -359,6 +380,7 @@ class GameEngine(
         this.ballsCleared = ballsCleared
         this.maxLine = maxLine
         this.playMs = playMs
+        tel = TelemetryCounters().also { it.load(telemetry) }
         this.nextColors = nextColors
         this.isGameOver = isGameOver
         selectedPoint = null

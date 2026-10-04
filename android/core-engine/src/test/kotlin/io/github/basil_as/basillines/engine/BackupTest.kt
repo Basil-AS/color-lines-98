@@ -48,6 +48,30 @@ class BackupTest {
         assertEquals(b.settings, back.settings)
     }
 
+    /** Written by the web app (version 2): games carry their play data, settings the effects. */
+    private val webFileV2 = "{\"format\":\"color-lines-backup\",\"version\":2,\"exportedAt\":1790000000000,\"app\":{\"platform\":\"web\",\"version\":\"2.0.0\"},\"history\":[{\"score\":300,\"endedAt\":1788436800000,\"moves\":50,\"lines\":4,\"balls\":20,\"completed\":true,\"maxLine\":6,\"durationMs\":90000,\"mode\":\"classic\",\"cog\":{\"tz\":112,\"tm\":40,\"think\":120000,\"thinkMax\":15000,\"thinkSq\":5200,\"fast\":5,\"slow\":3,\"lat\":60000,\"first\":4000,\"p1\":50000,\"n1\":20,\"p2\":70000,\"n2\":20,\"p3\":0,\"n3\":0,\"undo\":2,\"hint\":1,\"miss\":3,\"clears\":6,\"multi\":1,\"danger\":4,\"minEmpty\":9}}],\"settings\":{\"effects\":\"calm\",\"vibration\":false}}"
+
+    @Test
+    fun readsPlayDataAndEffectsWrittenByTheWebApp() {
+        val b = (Backups.parse(webFileV2) as ParsedBackup.Ok).backup
+        val cog = b.history.single().cog!!
+        assertEquals(112L, cog[CogKey.TZ]); assertEquals(120000L, cog[CogKey.THINK]); assertEquals(9L, cog[CogKey.MIN_EMPTY])
+        assertEquals("calm", b.settings.effects)
+        assertEquals(false, b.settings.vibration)
+        // ...and what Android writes carries it back.
+        val again = (Backups.parse(Backups.encode(b)) as ParsedBackup.Ok).backup
+        assertEquals(b.history, again.history)
+        assertEquals(b.settings, again.settings)
+    }
+
+    @Test
+    fun theSameGameWithPlayDataWinsAMerge() {
+        val plain = g(300, 3000)
+        val rich = plain.copy(cog = Cognition.of(List(CogKey.entries.size) { 1L }))
+        assertEquals(listOf(rich), Backups.mergeHistories(listOf(plain), listOf(rich)))
+        assertEquals(listOf(rich), Backups.mergeHistories(listOf(rich), listOf(plain)))
+    }
+
     @Test
     fun refusesFilesThatAreNotBackups() {
         assertEquals(ParsedBackup.Error.EMPTY, Backups.parse("  "))
@@ -95,7 +119,7 @@ class BackupTest {
     fun csvCannotRunFormulas() {
         val csv = Backups.toCsv(listOf(g(200, 3000), g(100, 2000)))
         val lines = csv.trim().split("\n")
-        assertEquals("date,mode,score,moves,lines,balls,longest_line,play_seconds,completed", lines[0])
+        assertTrue(lines[0].startsWith("date,mode,score,moves,lines,balls,longest_line,play_seconds,completed,local_hour,"))
         assertEquals(3, lines.size)
         assertTrue(lines[1].contains(",classic,100,"))
         assertEquals("'=x", Backups.toCsv(emptyList()).let { "'=x" })

@@ -4,14 +4,15 @@ import kotlin.random.Random
 
 /**
  * Compact text format for saving a game:
- * `v4|score|moves|lines|balls|over|maxLine|playMs|next|points|cells` where `next` is three comma-separated colour ids,
+ * `v5|score|moves|lines|balls|over|maxLine|playMs|next|points|cells|mode|colors|seed|play data` where `next` is three comma-separated colour ids,
  * `points` the cells where they will appear as `x:y` pairs and `cells` 81 digits (0 = empty,
  * otherwise the colour id). The older `v1` (no `points`) and `v2` (no `maxLine`/`playMs`) formats
  * can still be read.
  * Undo history is not saved.
  */
 object GameStateCodec {
-    private const val VERSION = "v4"
+    private const val VERSION = "v5"
+    private const val V4 = "v4"
     private const val V3 = "v3"
     private const val V2 = "v2"
     private const val V1 = "v1"
@@ -36,7 +37,8 @@ object GameStateCodec {
             cells,
             engine.mode.id,
             engine.colors.joinToString(",") { it.id.toString() },
-            engine.seed ?: ""
+            engine.seed ?: "",
+            engine.tel.toList().joinToString(",")
         ).joinToString("|")
     }
 
@@ -49,12 +51,14 @@ object GameStateCodec {
             V1 -> 8
             V2 -> 9
             V3 -> 11
-            VERSION -> 14
+            V4 -> 14
+            VERSION -> 15
             else -> return null
         }
         if (parts.size != expected) return null
         val hasPoints = version != V1
-        val hasExtras = version == VERSION || version == V3
+        val current = version == VERSION || version == V4
+        val hasExtras = current || version == V3
 
         val counters = (1..4).map { parts[it].toIntOrNull()?.takeIf { n -> n >= 0 } ?: return null }
         val over = when (parts[5]) {
@@ -75,7 +79,7 @@ object GameStateCodec {
         var mode = ModeId.CLASSIC
         var colors = BallColor.entries.toList()
         var seed: Long? = null
-        if (version == VERSION) {
+        if (current) {
             mode = ModeId.fromId(parts[11]) ?: return null
             colors = parts[12].split(",").map { BallColor.fromId(it.toIntOrNull() ?: return null) ?: return null }
             if (colors.size < 3 || colors.toSet().size != colors.size) return null
@@ -84,7 +88,7 @@ object GameStateCodec {
             if (next.any { it !in colors }) return null
         }
 
-        val cellText = if (version == VERSION) parts[10] else parts.last()
+        val cellText = if (current) parts[10] else parts.last()
         if (cellText.length != SIZE * SIZE) return null
         val cells = cellText.map { ch ->
             when (ch) {
@@ -113,7 +117,8 @@ object GameStateCodec {
         }
 
         val engine = GameEngine(size = SIZE, random = random, colors = colors, mode = mode, seed = seed)
-        engine.restoreState(cells, counters[0], counters[1], counters[2], counters[3], maxLine, playMs, next, points, over)
+        val telemetry = if (version == VERSION) parts[14].split(",").map { it.toLongOrNull() ?: -1L } else null
+        engine.restoreState(cells, counters[0], counters[1], counters[2], counters[3], maxLine, playMs, next, points, over, telemetry)
         return engine
     }
 }

@@ -9,12 +9,12 @@ class GameStatsTest {
         GameRecord(score = score, endedAt = 1_700_000_000_000L + score, moves = score, lines = 1, balls = 5, completed = completed, maxLine = 5, durationMs = 60_000L)
 
     @Test
-    fun addRecordPutsNewestFirstAndCaps() {
+    fun addRecordPutsNewestFirstAndKeepsEverything() {
         var history = emptyList<GameRecord>()
-        for (i in 1..(GameStats.HISTORY_LIMIT + 5)) history = GameStats.addRecord(history, rec(i))
-        assertEquals(GameStats.HISTORY_LIMIT, history.size)
-        assertEquals(GameStats.HISTORY_LIMIT + 5, history.first().score)
-        assertEquals(6, history.last().score)
+        for (i in 1..2500) history = GameStats.addRecord(history, rec(i))
+        assertEquals(2500, history.size)
+        assertEquals(2500, history.first().score)
+        assertEquals(1, history.last().score)
     }
 
     @Test
@@ -71,9 +71,16 @@ class GameStatsTest {
     }
 
     @Test
-    fun historyDecodeCapsLength() {
-        val many = (1..(GameStats.HISTORY_LIMIT + 20)).map { rec(it) }
-        assertEquals(GameStats.HISTORY_LIMIT, GameStats.decodeHistory(GameStats.encodeHistory(many)).size)
+    fun historyDecodeDoesNotCapLength() {
+        val many = (1..1500).map { rec(it) }
+        assertEquals(1500, GameStats.decodeHistory(GameStats.encodeHistory(many)).size)
+    }
+
+    @Test
+    fun playDataSurvivesTheDeviceFormat() {
+        val cog = Cognition.of(CogKey.entries.map { if (it == CogKey.MIN_EMPTY) 20L else (it.ordinal + 1).toLong() }.let { l -> l.mapIndexed { i, v -> if (i == 0) 112L else v } })!!
+        val withPlay = rec(5).copy(cog = cog)
+        assertEquals(listOf(withPlay, rec(4)), GameStats.decodeHistory(GameStats.encodeHistory(listOf(withPlay, rec(4)))))
     }
 
     @Test
