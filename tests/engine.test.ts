@@ -369,11 +369,11 @@ describe('engine invariants over random games', () => {
           const t = [...engine.getReachableCells()][0];
           if (!t) continue;
           const [tx, ty] = t.split(',').map(Number);
-          const before = JSON.stringify(engine.getState());
+          const before = JSON.stringify({ ...engine.getState(), tel: 0 });
           expect(engine.moveBall({ x, y }, { x: tx, y: ty }).success).toBe(true);
           if (!engine.isGameOver) {
             expect(engine.undo()).toBe(true);
-            expect(JSON.stringify(engine.getState())).toBe(before);
+            expect(JSON.stringify({ ...engine.getState(), tel: 0 })).toBe(before);
             engine.moveBall({ x, y }, { x: tx, y: ty });
           }
           moved = true;

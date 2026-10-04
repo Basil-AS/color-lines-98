@@ -1,8 +1,8 @@
 import type { GameEngine } from './engine/gameengine';
-import { isModeId } from './engine/modes';
+import { isModeId, MODE_IDS } from './engine/modes';
 import type { ModeId } from './engine/modes';
-
-export const HISTORY_LIMIT = 1000;
+import { COG_KEYS, sanitizeCognition, timeZoneCode } from './engine/telemetry';
+import type { Cognition } from './engine/telemetry';
 
 export interface GameRecord {
   score: number;
@@ -21,6 +21,8 @@ export interface GameRecord {
   durationMs: number;
   /** Which mode was played. */
   mode: ModeId;
+  /** How it was played (decision times, hesitation, danger). Absent in games recorded by older versions. */
+  cog?: Cognition;
 }
 
 export interface StatsSummary {
@@ -46,12 +48,13 @@ export function recordFromEngine(engine: GameEngine, completed: boolean, now: nu
     maxLine: engine.maxLine,
     durationMs: engine.playMs,
     mode: engine.mode,
+    cog: engine.tel.snapshot(timeZoneCode(new Date(now))),
   };
 }
 
-/** Newest first, capped at HISTORY_LIMIT. */
+/** Newest first. Nothing is ever dropped: every game stays for the analysis of the years. */
 export function addRecord(history: readonly GameRecord[], record: GameRecord): GameRecord[] {
-  return [record, ...history].slice(0, HISTORY_LIMIT);
+  return [record, ...history];
 }
 
 export function summarize(history: readonly GameRecord[]): StatsSummary {
@@ -107,6 +110,7 @@ export function sanitizeHistory(raw: unknown): GameRecord[] {
       isCount(r.balls) &&
       typeof r.completed === 'boolean'
     ) {
+      const cog = sanitizeCognition(r.cog);
       out.push({
         score: r.score,
         endedAt: r.endedAt,
@@ -117,8 +121,35 @@ export function sanitizeHistory(raw: unknown): GameRecord[] {
         maxLine,
         durationMs,
         mode,
+        ...(cog ? { cog } : {}),
       });
     }
   }
-  return out.slice(0, HISTORY_LIMIT);
+  return out;
+}
+
+/**
+ * The compact form kept on the device: one short array per game. A game with its play data is about 150 characters, so
+ * tens of thousands of games fit in the few megabytes a browser allows. Files use the readable named form instead.
+ */
+export function compactHistory(history: readonly GameRecord[]): unknown[][] {
+  return history.map((r) => [
+    r.score, r.endedAt, r.moves, r.lines, r.balls, r.completed ? 1 : 0, r.maxLine, r.durationMs, MODE_IDS.indexOf(r.mode),
+    ...(r.cog ? COG_KEYS.map((k) => r.cog![k]) : []),
+  ]);
+}
+
+export function expandHistory(raw: unknown): GameRecord[] {
+  if (!Array.isArray(raw)) return [];
+  const objects: unknown[] = [];
+  for (const row of raw) {
+    if (!Array.isArray(row) || (row.length !== 9 && row.length !== 9 + COG_KEYS.length)) continue;
+    const o: Record<string, unknown> = {
+      score: row[0], endedAt: row[1], moves: row[2], lines: row[3], balls: row[4], completed: row[5] === 1,
+      maxLine: row[6], durationMs: row[7], mode: MODE_IDS[row[8] as number],
+    };
+    if (row.length > 9) o.cog = Object.fromEntries(COG_KEYS.map((k, i) => [k, row[9 + i]]));
+    objects.push(o);
+  }
+  return sanitizeHistory(objects);
 }

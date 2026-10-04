@@ -23,3 +23,15 @@ export function formatDay(lang: Language, day: string): string {
   const [y, m, d] = day.split('-').map(Number);
   return new Intl.DateTimeFormat(lang, { dateStyle: 'medium' }).format(new Date(y, m - 1, d));
 }
+
+/** "1.4 MB" style size. */
+export function formatBytes(lang: string, bytes: number): string {
+  const units = lang === 'ru' ? ['Б', 'КБ', 'МБ', 'ГБ'] : ['B', 'KB', 'MB', 'GB'];
+  let v = bytes;
+  let u = 0;
+  while (v >= 1024 && u < units.length - 1) {
+    v /= 1024;
+    u++;
+  }
+  return `${u === 0 ? Math.round(v) : v.toFixed(1)} ${units[u]}`;
+}

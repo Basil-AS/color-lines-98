@@ -1,3 +1,4 @@
+import { Telemetry } from './telemetry';
 import { Board } from './board';
 import { LineDetector } from './linedetector';
 import type { ScoringSystem } from './linedetector';
@@ -46,6 +47,8 @@ export interface GameState {
   ballsCleared?: number;
   maxLine?: number;
   playMs?: number;
+  /** Play data (see telemetry.ts); optional so older saves still load. */
+  tel?: number[];
 }
 
 interface GameSnapshot {
@@ -75,6 +78,8 @@ export class GameEngine {
   maxLine: number = 0;
   /** Active play time in milliseconds, reported by the UI through addPlayTime. */
   playMs: number = 0;
+  /** How the game is being played: decision times, hesitation, danger. */
+  tel: Telemetry = new Telemetry();
   isGameOver: boolean = false;
   selectedPoint: Point | null = null;
   nextColors: BallColor[] = [];
@@ -116,6 +121,7 @@ export class GameEngine {
     this.ballsCleared = 0;
     this.maxLine = 0;
     this.playMs = 0;
+    this.tel = new Telemetry();
     this.isGameOver = false;
     this.selectedPoint = null;
     this.undoStack = [];
@@ -198,7 +204,8 @@ export class GameEngine {
       linesCleared: this.linesCleared,
       ballsCleared: this.ballsCleared,
       maxLine: this.maxLine,
-      playMs: this.playMs
+      playMs: this.playMs,
+      tel: this.tel.toArray()
     };
   }
 
@@ -268,6 +275,7 @@ export class GameEngine {
     engine.ballsCleared = ballsCleared;
     engine.maxLine = maxLine;
     engine.playMs = playMs;
+    engine.tel = Telemetry.fromArray(s.tel);
     engine.undoStack = [];
     engine.reseedTurn();
     if (nextPoints) engine.nextSpawnPoints = nextPoints;
@@ -327,6 +335,7 @@ export class GameEngine {
 
     const path = PathFinder.findPath(from, to, this.board);
     if (!path) {
+      this.tel.miss();
       return { success: false, clearedPoints: [], pointsEarned: 0, spawnedBalls: [], isGameOver: false, reason: 'Path blocked' };
     }
 
@@ -334,6 +343,7 @@ export class GameEngine {
     this.saveUndoSnapshot();
 
     // Execute move
+    const linesBefore = this.linesCleared;
     this.moves++;
     this.reseedTurn();
     this.board.set(from.x, from.y, null);
@@ -355,6 +365,7 @@ export class GameEngine {
         this.bestScore = this.score;
       }
 
+      this.tel.moved(this.moves, this.linesCleared - linesBefore, this.board.getEmptyCells().length);
       return {
         success: true,
         path,
@@ -401,6 +412,7 @@ export class GameEngine {
       this.isGameOver = true;
     }
 
+    this.tel.moved(this.moves, this.linesCleared - linesBefore, this.board.getEmptyCells().length);
     return {
       success: true,
       path,
@@ -466,6 +478,17 @@ export class GameEngine {
     this.nextSpawnPoints = snap.nextPoints.map((p) => ({ ...p }));
     this.selectedPoint = null;
     this.isGameOver = false;
+    this.tel.undo();
     return true;
+  }
+
+  /** The UI reports every touch on the board with the time since the previous one (null when unknown). */
+  noteAction(deltaMs: number | null): void {
+    if (deltaMs !== null) this.addPlayTime(deltaMs);
+    this.tel.action(deltaMs);
+  }
+
+  noteHint(): void {
+    this.tel.hint();
   }
 }

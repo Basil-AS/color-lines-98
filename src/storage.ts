@@ -7,7 +7,7 @@ import { sanitizeProgress } from './progress';
 import { ledgerFromHistory, sanitizeLedger } from './ledger';
 import type { Ledger } from './ledger';
 import type { Progress } from './progress';
-import { sanitizeHistory } from './stats';
+import { compactHistory, expandHistory, sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 
 import { parseTheme } from './themes';
@@ -20,6 +20,8 @@ const THEME_KEY = 'colorlines_theme';
 const BEST_KEY = 'colorlines_best_score';
 const GAME_KEY = 'colorlines_game';
 const HISTORY_KEY = 'colorlines_history';
+/** The compact form (arrays); the first form (objects) is still read and replaced on the next save. */
+const HISTORY_KEY_V2 = 'colorlines_history2';
 const LANG_KEY = 'colorlines_lang';
 const PROGRESS_KEY = 'colorlines_progress';
 const PREVIEW_KEY = 'colorlines_spawn_preview';
@@ -43,11 +45,13 @@ function read(key: string): string | null {
   }
 }
 
-function write(key: string, value: string): void {
+function write(key: string, value: string): boolean {
   try {
     localStorage.setItem(key, value);
+    return true;
   } catch {
     // Persistence is optional; see note above.
+    return false;
   }
 }
 
@@ -92,22 +96,41 @@ export function clearGame(): void {
 }
 
 export function loadHistory(): GameRecord[] {
-  const raw = read(HISTORY_KEY);
+  const compact = read(HISTORY_KEY_V2);
+  const raw = compact ?? read(HISTORY_KEY);
   if (raw === null) return [];
   try {
-    return sanitizeHistory(JSON.parse(raw));
+    const parsed: unknown = JSON.parse(raw);
+    return compact !== null ? expandHistory(parsed) : sanitizeHistory(parsed);
   } catch {
     return [];
   }
 }
 
+/** Set when the browser refused to store the games (its quota is full): the game list must be exported, see the data tab. */
+let historyWriteFailed = false;
+
 export function saveHistory(history: readonly GameRecord[]): void {
-  write(HISTORY_KEY, JSON.stringify(history));
+  historyWriteFailed = !write(HISTORY_KEY_V2, JSON.stringify(compactHistory(history)));
+  if (!historyWriteFailed) {
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {
+      // See note above.
+    }
+  }
+}
+
+/** How much room the game list takes in this browser, and whether the last save failed. */
+export function historyStorage(): { bytes: number; failed: boolean } {
+  const raw = read(HISTORY_KEY_V2);
+  return { bytes: raw === null ? 0 : raw.length * 2, failed: historyWriteFailed };
 }
 
 export function clearHistory(): void {
   try {
     localStorage.removeItem(HISTORY_KEY);
+    localStorage.removeItem(HISTORY_KEY_V2);
   } catch {
     // See note above.
   }

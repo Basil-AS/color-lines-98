@@ -1016,7 +1016,7 @@ private fun DosGameScreen(
             nowMs = 0,
             effects = effects,
             coronationStart = coronationStart,
-            russian = LocalContext.current.resources.configuration.locales[0].language == "ru"
+            russian = false // the 1992 screen is the original: English in every language
         ),
         kingName = kingName,
         pretenderName = pretenderName,

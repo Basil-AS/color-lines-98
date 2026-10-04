@@ -22,7 +22,7 @@ vi.mock('../src/audio', () => {
 import App from '../src/App';
 import { GameEngine } from '../src/engine/gameengine';
 import { soundManager } from '../src/audio';
-import { saveGame } from '../src/storage';
+import { loadHistory, saveGame } from '../src/storage';
 import { THEMES } from '../src/themes';
 
 function setLanguages(languages: string[]) {
@@ -30,6 +30,7 @@ function setLanguages(languages: string[]) {
   Object.defineProperty(window.navigator, 'language', { value: languages[0], configurable: true });
 }
 
+const storedHistory = () => loadHistory();
 const cells = () => screen.getAllByRole('button', { name: /^(Row|Ряд) \d+, (column|столбец) \d+/ });
 const ballCells = () => cells().filter((c) => /(\w+ ball|шар)(,|$)/.test(c.getAttribute('aria-label')!) && !/empty|пусто/.test(c.getAttribute('aria-label')!));
 const incomingCells = () => cells().filter((c) => /will appear|появится/.test(c.getAttribute('aria-label')!));
@@ -348,7 +349,7 @@ describe('statistics', () => {
     expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: 'Delete' }));
     expect(screen.queryByText('unfinished')).not.toBeInTheDocument();
-    expect(localStorage.getItem('colorlines_history')).toBe(null);
+    expect(localStorage.getItem('colorlines_history2')).toBe(null);
     expect(localStorage.getItem('colorlines_progress')).toBe(null);
   });
 });
@@ -365,7 +366,7 @@ describe('starting a new game', () => {
     await user.keyboard('{Enter}');
     expect(screen.queryByRole('dialog', { name: 'New game' })).not.toBeInTheDocument();
     expect(cells().map((c) => c.getAttribute('aria-label'))).toEqual(before);
-    expect(localStorage.getItem('colorlines_history')).toBe(null);
+    expect(localStorage.getItem('colorlines_history2')).toBe(null);
   });
 
   it('does not warn when no move was made yet, and Escape closes the dialog', async () => {
@@ -472,7 +473,7 @@ describe('end of a game', () => {
     const dialog = await screen.findByRole('alertdialog', { name: 'Game over' });
     expect(within(dialog).getByText('Final score')).toBeInTheDocument();
     expect(within(dialog).getByText('First steps')).toBeInTheDocument();
-    expect(JSON.parse(localStorage.getItem('colorlines_history')!)).toHaveLength(1);
+    expect(storedHistory()).toHaveLength(1);
     expect(JSON.parse(localStorage.getItem('colorlines_progress')!).totalGames).toBe(1);
 
     // The dialog demands a choice: Escape does nothing, "Play again" starts a fresh game.
@@ -482,7 +483,7 @@ describe('end of a game', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(ballCells()).toHaveLength(5);
     // A finished game is recorded once; starting the next one does not add an "abandoned" entry.
-    expect(JSON.parse(localStorage.getItem('colorlines_history')!)).toHaveLength(1);
+    expect(storedHistory()).toHaveLength(1);
   });
 });
 
@@ -491,17 +492,19 @@ describe('long-term statistics and data files', () => {
     await user.click(screen.getByRole('button', { name: 'Statistics' }));
   }
 
-  it('offers five tabs, reachable by keyboard, each with its own content', async () => {
+  it('offers six tabs, reachable by keyboard, each with its own content', async () => {
     const user = userEvent.setup();
     render(<App />);
     await openStats(user);
     const tabs = screen.getAllByRole('tab');
-    expect(tabs.map((x) => x.textContent)).toEqual(['Overview', 'Career', 'Seasons', 'Records', 'Data']);
+    expect(tabs.map((x) => x.textContent)).toEqual(['Overview', 'Career', 'Mind', 'Seasons', 'Records', 'Data']);
     expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
     tabs[0].focus();
     await user.keyboard('{ArrowRight}');
     expect(screen.getByRole('tab', { name: 'Career' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('Next milestones')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Mind' }));
+    expect(screen.getByText(/more games are needed/)).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Seasons' }));
     expect(screen.getByText(/Your typical month/)).toBeInTheDocument();
     await user.click(screen.getByRole('tab', { name: 'Records' }));
@@ -542,10 +545,10 @@ describe('long-term statistics and data files', () => {
     await user.click(screen.getByRole('button', { name: 'Replace my data' }));
     const confirm = screen.getByRole('button', { name: 'Yes, replace' });
     expect(confirm).toBeDisabled();
-    expect(JSON.parse(localStorage.getItem('colorlines_history')!)).toHaveLength(1);
+    expect(storedHistory()).toHaveLength(1);
     await user.click(screen.getByRole('checkbox', { name: 'I understand, replace my data' }));
     await user.click(confirm);
-    expect(JSON.parse(localStorage.getItem('colorlines_history')!)[0].score).toBe(900);
+    expect(storedHistory()[0].score).toBe(900);
     expect(localStorage.getItem('colorlines_theme')).toBe('neon');
   });
 
@@ -560,7 +563,7 @@ describe('long-term statistics and data files', () => {
     const backup = { format: 'color-lines-backup', version: 1, exportedAt: 1, app: {}, history: [theirs, mine] };
     await user.upload(screen.getByTestId('backup-file'), new File([JSON.stringify(backup)], 'b.json'));
     await user.click(await screen.findByRole('button', { name: 'Add to my data' }));
-    const after = JSON.parse(localStorage.getItem('colorlines_history')!) as { score: number }[];
+    const after = storedHistory() as { score: number }[];
     expect(after.map((g) => g.score)).toEqual([700, 50]);
     expect(screen.getAllByRole('status').map((e) => e.textContent).join(' ')).toContain('data added');
   });

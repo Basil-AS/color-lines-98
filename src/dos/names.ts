@@ -16,6 +16,9 @@ export function dosNames(opts: {
   pretenderLabel: string;
   defaultPlayerName: string;
 }): DosNames {
-  const player = opts.playerName.trim() || opts.defaultPlayerName;
-  return { king: opts.kingName, pretender: opts.crowned ? player : opts.pretenderLabel };
+  // Older versions saved a localised default name; the 1992 screen shows only the English one.
+  const typed = opts.playerName.trim();
+  const player = typed === '' || typed === 'Игрок' ? opts.defaultPlayerName : typed;
+  const king = opts.kingName === 'Игрок' ? opts.defaultPlayerName : opts.kingName;
+  return { king, pretender: opts.crowned ? player : opts.pretenderLabel };
 }

@@ -267,3 +267,65 @@ export function records(history: readonly GameRecord[], ledger: Ledger): Records
     bestDayGames,
   };
 }
+
+// ---- years and memories ------------------------------------------------------------------
+
+export interface YearStat {
+  year: number;
+  games: number;
+  score: number;
+  best: number;
+  activeDays: number;
+  playMs: number;
+  /** The month with the most points. */
+  bestMonth: string | null;
+}
+
+/** Every year with games, oldest first. */
+export function yearly(ledger: Ledger): YearStat[] {
+  const years = new Map<number, YearStat>();
+  for (const [day, d] of Object.entries(ledger)) {
+    const year = Number(day.slice(0, 4));
+    const y = years.get(year) ?? { year, games: 0, score: 0, best: 0, activeDays: 0, playMs: 0, bestMonth: null };
+    y.games += d.games;
+    y.score += d.score;
+    y.best = Math.max(y.best, d.best);
+    y.activeDays++;
+    y.playMs += d.playMs;
+    years.set(year, y);
+  }
+  const topScore = new Map<number, number>();
+  for (const m of monthly(ledger)) {
+    const year = Number(m.month.slice(0, 4));
+    if (m.score > (topScore.get(year) ?? -1)) {
+      topScore.set(year, m.score);
+      years.get(year)!.bestMonth = m.month;
+    }
+  }
+  return [...years.values()].sort((a, b) => a.year - b.year);
+}
+
+export interface Memory {
+  /** "YYYY-MM-DD" of the remembered day. */
+  day: string;
+  /** Whole years back, or 0 for "a month ago". */
+  yearsAgo: number;
+  games: number;
+  best: number;
+}
+
+/** The same date in earlier years, and the same date one month ago: what you were playing then. */
+export function memories(ledger: Ledger, today: string): Memory[] {
+  const [y, m, d] = today.split('-').map(Number);
+  const out: Memory[] = [];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  const look = (year: number, month: number, day: number, yearsAgo: number) => {
+    const key = `${year}-${pad(month)}-${pad(day)}`;
+    const e = ledger[key];
+    if (e && e.games > 0) out.push({ day: key, yearsAgo, games: e.games, best: e.best });
+  };
+  const lastMonth = m === 1 ? 12 : m - 1;
+  look(m === 1 ? y - 1 : y, lastMonth, d, 0);
+  for (let back = 1; back <= 30; back++) look(y - back, m, d, back);
+  return out;
+}

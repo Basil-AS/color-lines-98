@@ -231,7 +231,7 @@ export default function App() {
   // Counts active time between actions; long pauses (a forgotten tab) are capped.
   const trackTime = () => {
     const now = clock();
-    if (lastActionAt.current > 0) engine.addPlayTime(Math.min(now - lastActionAt.current, 60_000));
+    engine.noteAction(lastActionAt.current > 0 ? Math.min(now - lastActionAt.current, 60_000) : null);
     lastActionAt.current = now;
   };
 
@@ -426,6 +426,7 @@ export default function App() {
       return;
     }
     engine.select(h.from);
+    engine.noteHint();
     setHint(h);
     setHintsLeft((n) => n - 1);
     soundManager.play('select');
@@ -453,7 +454,8 @@ export default function App() {
     saveMode(mode);
     saveGame(next);
     setToday(todayKey());
-    lastActionAt.current = 0;
+    // The first decision of a game is timed from the moment the board appears.
+    lastActionAt.current = clock();
     setEffects([]);
     setCoronationStart(null);
     setBestAtGameStart(bestScore);
@@ -892,7 +894,8 @@ export default function App() {
         // The dethroned king keeps his name and record; the crowned pretender is the player.
         kingName={names.king}
         pretenderName={names.pretender}
-        lang={lang}
+        // The picture is the original: English captions, buttons and windows in every app language.
+        lang="en"
         window={dosWindow}
         hall={hall}
         labels={{ help: t('dos.help'), sound: t('dos.sound'), next: t('dos.next'), restart: t('dos.restart') }}

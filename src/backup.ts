@@ -4,7 +4,8 @@ import { ledgerFromHistory, sanitizeLedger } from './ledger';
 import type { Ledger } from './ledger';
 import { DAYS_LIMIT, emptyProgress, rebuildProgress, sanitizeProgress } from './progress';
 import type { Progress } from './progress';
-import { HISTORY_LIMIT, sanitizeHistory } from './stats';
+import { localTime } from './engine/telemetry';
+import { sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 import { isModeId } from './engine/modes';
 import type { ModeId } from './engine/modes';
@@ -13,9 +14,9 @@ import type { Theme } from './themes';
 
 /** A file with everything worth moving between devices; the same format is written by the web app and by Android. */
 export const BACKUP_FORMAT = 'color-lines-backup';
-export const BACKUP_VERSION = 1;
-/** Files bigger than this are not read: a real backup is a few hundred kilobytes at most. */
-export const BACKUP_MAX_BYTES = 8 * 1024 * 1024;
+export const BACKUP_VERSION = 2;
+/** Files bigger than this are not read: a real backup is a few megabytes even after years. */
+export const BACKUP_MAX_BYTES = 64 * 1024 * 1024;
 
 export interface BackupSettings {
   theme?: Theme;
@@ -81,8 +82,8 @@ export function parseBackup(text: string): ParsedBackup {
   const r = raw as Record<string, unknown>;
   if (r.format !== BACKUP_FORMAT || typeof r.version !== 'number') return { ok: false, error: 'notBackup' };
   if (r.version > BACKUP_VERSION) return { ok: false, error: 'newer' };
-  // Newest first whatever the order in the file, so the 1000-game cut keeps the latest games.
-  const history = sanitizeHistory(r.history).sort((a, b) => b.endedAt - a.endedAt).slice(0, HISTORY_LIMIT);
+  // Newest first whatever the order in the file.
+  const history = sanitizeHistory(r.history).sort((a, b) => b.endedAt - a.endedAt);
   // The file's own ledger is trusted over one rebuilt in this device's time zone (games near midnight would double up).
   const ledger = r.ledger === undefined ? ledgerFromHistory(history) : sanitizeLedger(r.ledger);
   const app = (typeof r.app === 'object' && r.app !== null ? r.app : {}) as Record<string, unknown>;
@@ -106,15 +107,20 @@ const gameKey = (g: GameRecord) => `${g.endedAt}:${g.score}:${g.moves}:${g.mode}
 
 /** Adds the games of a backup to the current ones without duplicates; nothing already here is lost. */
 export function mergeHistories(current: readonly GameRecord[], incoming: readonly GameRecord[]): GameRecord[] {
-  const seen = new Set<string>();
+  const seen = new Map<string, number>();
   const out: GameRecord[] = [];
   for (const g of [...current, ...incoming]) {
     const key = gameKey(g);
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const at = seen.get(key);
+    if (at !== undefined) {
+      // The same game on both sides: keep the copy that carries the play data.
+      if (!out[at].cog && g.cog) out[at] = g;
+      continue;
+    }
+    seen.set(key, out.length);
     out.push(g);
   }
-  return out.sort((a, b) => b.endedAt - a.endedAt).slice(0, HISTORY_LIMIT);
+  return out.sort((a, b) => b.endedAt - a.endedAt);
 }
 
 export function mergeHalls(a: readonly HallEntry[], b: readonly HallEntry[]): HallEntry[] {
@@ -170,11 +176,21 @@ const csvCell = (v: string | number | boolean) => {
   return /[",\n]/.test(safe) ? `"${safe.replace(/"/g, '""')}"` : safe;
 };
 
-/** The games as a spreadsheet: one row per game, oldest first. */
+/** The games as a spreadsheet: one row per game, oldest first, with the play data (empty for games without it). */
 export function historyToCsv(history: readonly GameRecord[]): string {
-  const rows = [['date', 'mode', 'score', 'moves', 'lines', 'balls', 'longest_line', 'play_seconds', 'completed']];
+  const rows = [[
+    'date', 'mode', 'score', 'moves', 'lines', 'balls', 'longest_line', 'play_seconds', 'completed',
+    'local_hour', 'weekday', 'avg_decision_s', 'decision_spread_s', 'fast_moves', 'slow_moves', 'undos', 'hints', 'misses', 'clearing_moves', 'danger_moves', 'fewest_free_cells',
+  ]];
   for (const g of [...history].reverse()) {
-    rows.push([new Date(g.endedAt).toISOString(), g.mode, g.score, g.moves, g.lines, g.balls, g.maxLine, Math.round(g.durationMs / 1000), g.completed].map(csvCell));
+    const c = g.cog;
+    const mean = c && c.tm > 0 ? c.think / c.tm : 0;
+    const spread = c && c.tm > 1 ? Math.sqrt(Math.max(0, (c.thinkSq * 10_000) / c.tm - mean * mean)) : 0;
+    const when = localTime(g.endedAt, c?.tz);
+    const play: (string | number)[] = c
+      ? [when.hour, when.weekday + 1, (mean / 1000).toFixed(2), (spread / 1000).toFixed(2), c.fast, c.slow, c.undo, c.hint, c.miss, c.clears, c.danger, c.minEmpty]
+      : ['', '', '', '', '', '', '', '', '', '', '', ''];
+    rows.push([new Date(g.endedAt).toISOString(), g.mode, g.score, g.moves, g.lines, g.balls, g.maxLine, Math.round(g.durationMs / 1000), g.completed, ...play].map(csvCell));
   }
   return rows.map((r) => r.join(',')).join('\n') + '\n';
 }
