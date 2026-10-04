@@ -56,9 +56,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -114,6 +112,19 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
     }
 
+    private var stoppedAt = 0L
+
+    override fun onStop() {
+        super.onStop()
+        stoppedAt = System.currentTimeMillis()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        // The sound pool can go deaf while the app sleeps (the audio service restarts): rebuild it after a long absence.
+        if (stoppedAt > 0 && ::soundManager.isInitialized) soundManager.onForeground(System.currentTimeMillis() - stoppedAt)
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         soundManager.release()
@@ -155,7 +166,11 @@ private data class GameExtras(
     val onHint: () -> Unit = {},
     val onChangeMode: () -> Unit = {},
     val goalsLabel: String = "",
-    val onGoals: () -> Unit = {}
+    val onGoals: () -> Unit = {},
+    /** The move to play out over the board, how lively to be, and whether the board is nearly full. */
+    val fx: MoveFx? = null,
+    val level: EffectsLevel = EffectsLevel.OFF,
+    val danger: Boolean = false
 )
 
 private fun dayKey(): String {
@@ -166,7 +181,7 @@ private fun dayKey(): String {
 @Composable
 fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars: (Boolean) -> Unit = {}) {
     val context = LocalContext.current
-    val haptic = LocalHapticFeedback.current
+    val haptics = remember { Haptics(context) }
     val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
     var theme by remember { mutableStateOf(storage.theme) }
@@ -192,6 +207,13 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var hall by remember { mutableStateOf(storage.hall) }
     var playerName by remember { mutableStateOf(storage.playerName) }
     var showNext by remember { mutableStateOf(storage.showNext) }
+    var effectsLevel by remember { mutableStateOf(storage.effects) }
+    var vibration by remember { mutableStateOf(storage.vibration) }
+    haptics.enabled = vibration
+    var moveFx by remember { mutableStateOf<MoveFx?>(null) }
+    var fxCounter by remember { mutableLongStateOf(0L) }
+    var combo by remember { mutableIntStateOf(0) }
+    var dangerWarned by remember { mutableStateOf(false) }
     var dosWindow by remember { mutableStateOf(DosWindow.NONE) }
     var effects by remember { mutableStateOf<List<DosEffect>>(emptyList()) }
     var coronationStart by remember { mutableStateOf<Long?>(if (engine.score > Hall.kingOf(storage.hall).score) Long.MIN_VALUE / 2 else null) }
@@ -206,7 +228,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val defaultName = "Player"
     soundManager.voice = theme.voice
     soundManager.profile = when (theme) {
-        AppTheme.LINES_98 -> SoundManager.Profile.SAMPLED
+        AppTheme.LINES_98, AppTheme.LINES_98_PLUS -> SoundManager.Profile.SAMPLED
         AppTheme.COLORLINES_92 -> SoundManager.Profile.PC_SPEAKER
         else -> SoundManager.Profile.MODERN
     }
@@ -224,7 +246,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     fun trackTime() {
         val now = SystemClock.elapsedRealtime()
         // A timed mode has its own ticker; counting the gaps between taps would count the time twice.
-        if (lastActionAt > 0 && engine.mode.timeLimitMs == null) engine.addPlayTime(minOf(now - lastActionAt, 60_000L))
+        engine.noteAction(if (lastActionAt > 0) minOf(now - lastActionAt, 60_000L) else null, countTime = engine.mode.timeLimitMs == null)
         lastActionAt = now
     }
 
@@ -270,7 +292,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     /** The game just ended (board full or time up): sound, history, rewards. */
     fun finishGame() {
-        soundManager.play(if (GameStats.isNewRecord(engine.score, bestAtGameStart)) SoundKind.RECORD else SoundKind.LOSE)
+        val newBest = GameStats.isNewRecord(engine.score, bestAtGameStart)
+        soundManager.play(if (newBest) SoundKind.RECORD else SoundKind.LOSE)
+        haptics.play(if (newBest) HapticKind.RECORD else HapticKind.GAME_OVER)
+        if (newBest) handler.postDelayed({ moveFx = MoveFx(++fxCounter, emptyList(), BallColor.RED, emptyList(), emptyList(), 0, 0, celebrate = true) }, 300)
         record(completed = true)
         // The progress rewards follow the result after a short pause so the sounds do not blur together.
         val followUp = when {
@@ -291,7 +316,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             } else {
                 engine.selectCell(point)
                 soundManager.play(SoundKind.SELECT)
-                haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                haptics.play(HapticKind.SELECT)
             }
             commit()
             return
@@ -301,11 +326,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         val result = engine.moveBall(from, point)
         if (!result.success) {
             soundManager.play(SoundKind.BLOCKED)
+            haptics.play(HapticKind.BLOCKED)
             return
         }
         engine.unselect()
         soundManager.play(SoundKind.JUMP)
-        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
 
         // Remember what appeared and what burst, so the 1992 screen can animate it.
         val start = clockMs()
@@ -317,11 +342,39 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             if (color != null) fx += DosEffect(EffectKind.BURST, p.x, p.y, color, start)
         }
         effects = fx
+        // The look with a living board (not the 1992 picture) plays the move out; the sounds follow its timing.
+        val animated = effectsLevel != EffectsLevel.OFF && theme != AppTheme.COLORLINES_92
+        val free = engine.board.getEmptyCells().size
+        val path = result.path ?: listOf(from, point)
+        val lag = if (animated) travelMs(path.size - 1).toLong() else 0L
+        fun after(ms: Long, block: () -> Unit) { if (ms > 0) handler.postDelayed(block, ms) else block() }
+        val cleared = result.clearedPoints.isNotEmpty()
+        combo = if (cleared) combo + 1 else 0
+        val comboNow = combo
+        if (animated) {
+            moveFx = MoveFx(
+                ++fxCounter, path, movedColor ?: BallColor.RED,
+                result.spawnedBalls.map { it.point to it.color },
+                fx.filter { it.kind == EffectKind.BURST }.map { Point(it.x, it.y) to it.color },
+                result.pointsEarned, comboNow
+            )
+        }
+        haptics.play(if (cleared) (if (result.pointsEarned >= 28) HapticKind.BIG_CLEAR else HapticKind.CLEAR) else HapticKind.MOVE)
         if (engine.score > Hall.kingOf(hall).score && coronationStart == null) {
             coronationStart = start
-            if (!result.isGameOver) handler.postDelayed({ soundManager.play(SoundKind.CROWN) }, 450)
+            if (!result.isGameOver) after(450 + lag) { soundManager.play(SoundKind.CROWN) }
         }
-        if (result.clearedPoints.isNotEmpty()) soundManager.play(SoundKind.EAT, result.pointsEarned)
+        if (cleared) {
+            // Clearing a line is a free turn, so chains are natural: each link sounds higher.
+            after(lag) { soundManager.play(SoundKind.EAT, result.pointsEarned) }
+            if (comboNow >= 2) after(lag + 180) { soundManager.play(SoundKind.COMBO, comboNow); haptics.play(HapticKind.COMBO) }
+        }
+        if (result.spawnedBalls.isNotEmpty()) after(lag + 60) { soundManager.play(SoundKind.POP) }
+        // A nearly full board: one warning each time it gets that tight.
+        if (!result.isGameOver && free <= 8 && !dangerWarned) {
+            dangerWarned = true
+            after(lag + 350) { soundManager.play(SoundKind.DANGER); haptics.play(HapticKind.DANGER) }
+        } else if (free > 12) dangerWarned = false
         if (engine.score > bestScore) {
             bestScore = engine.score
             storage.bestScore = bestScore
@@ -344,8 +397,12 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         hint = null
         hintsLeft = HINTS_PER_GAME
         effects = emptyList()
+        moveFx = null
+        combo = 0
+        dangerWarned = false
         coronationStart = null
-        lastActionAt = 0L
+        // The first decision of a game is timed from the moment the board appears.
+        lastActionAt = SystemClock.elapsedRealtime()
         bestAtGameStart = bestScore
         dialog = Dialog.NONE
         soundManager.play(SoundKind.START)
@@ -356,9 +413,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         if (engine.isGameOver || hintsLeft <= 0) return
         val found = Hinter.find(engine.board) ?: return
         engine.selectCell(found.from)
+        engine.noteHint()
         hint = found
         hintsLeft -= 1
-        soundManager.play(SoundKind.SELECT)
+        soundManager.play(SoundKind.HINT)
+        haptics.play(HapticKind.HINT)
         commit()
     }
 
@@ -383,6 +442,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         trackTime()
         if (engine.undo()) {
             soundManager.play(SoundKind.CLICK)
+            haptics.play(HapticKind.UNDO)
             commit()
         }
     }
@@ -456,7 +516,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 io.github.basil_as.basillines.engine.Backup(
                     System.currentTimeMillis(), "android", version, history, ledger, progress, hall,
                     io.github.basil_as.basillines.engine.BackupSettings(
-                        theme, storage.language.name.lowercase(), playerName, soundEnabled, spawnStored, showNext, engine.mode
+                        theme, storage.language.name.lowercase(), playerName, soundEnabled, spawnStored, showNext, engine.mode,
+                        effectsLevel.id, vibration
                     )
                 )
             )
@@ -506,6 +567,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             st.soundEnabled?.let { soundEnabled = it; soundManager.isEnabled = it }
             st.spawnPreview?.let { spawnStored = it; storage.spawnPreview = it }
             st.showNext?.let { showNext = it; storage.showNext = it }
+            EffectsLevel.parse(st.effects)?.let { effectsLevel = it; storage.effects = it }
+            st.vibration?.let { vibration = it; storage.vibration = it }
             val lang = AppLanguage.entries.firstOrNull { it.name.lowercase() == st.language }
             if (lang != null && lang != storage.language) { storage.language = lang; (context as? android.app.Activity)?.recreate() }
         }
@@ -551,6 +614,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         onHint = ::onHint,
         onChangeMode = ::onNewGame,
         goalsLabel = stringResource(R.string.goals_button, goalProgress.count { it.done }.toString(), goalProgress.size.toString()),
+        fx = moveFx,
+        level = if (theme == AppTheme.COLORLINES_92) EffectsLevel.OFF else effectsLevel,
+        danger = !gameOverNow(engine) && remember(version) { engine.board.getEmptyCells().size <= 10 },
         onGoals = { dialog = Dialog.GOALS }
     )
     val score = remember(version) { engine.score }
@@ -734,6 +800,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                         playerName = it.take(Hall.NAME_LIMIT)
                         storage.playerName = playerName
                     },
+                    effects = effectsLevel,
+                    onEffects = { effectsLevel = it; storage.effects = it },
+                    vibrationSupported = haptics.supported,
+                    vibration = vibration,
+                    onVibration = { vibration = it; storage.vibration = it; haptics.enabled = it; if (it) haptics.play(HapticKind.SELECT) },
                     versionName = appVersion,
                     signature = signatureLine,
                     autoUpdate = autoUpdate,
@@ -769,19 +840,20 @@ private fun GameScreen(
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         val margin = if (maxWidth > maxHeight) 12.dp else 6.dp
         if (maxWidth > maxHeight) {
-            // Landscape: board on the left, panel on the right.
-            val boardSize = minOf(maxHeight - margin * 2, maxWidth * 0.58f)
+            // Landscape: the board takes the whole height, the score and the next balls stand on its left and the actions
+            // on its right, so neither side is a tall stack of big controls.
+            val boardSize = minOf(maxHeight - margin * 2, maxWidth * 0.6f)
             Row(
                 Modifier.fillMaxSize().padding(margin),
                 horizontalArrangement = Arrangement.spacedBy(margin),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize))
-                Column(
-                    Modifier.weight(1f).fillMaxHeight().verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras = extras)
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    InfoRail(palette, score, best, nextColors, extras)
+                }
+                BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize), fx = extras.fx, level = extras.level, danger = extras.danger)
+                Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                    ActionRail(palette, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras)
                 }
             }
         } else {
@@ -795,10 +867,116 @@ private fun GameScreen(
                 Box(Modifier.widthIn(max = boardSize).fillMaxWidth()) {
                     HeaderCard(palette, score, best, nextColors, canUndo, soundEnabled, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, compact = true, extras = extras)
                 }
-                BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize))
+                BoardView(snapshot, palette, onCellTap, Modifier.size(boardSize), fx = extras.fx, level = extras.level, danger = extras.danger)
             }
         }
     }
+}
+
+/** Landscape, left of the board: the mode, the score and the best score, the next balls. */
+@Composable
+private fun InfoRail(palette: Palette, score: Int, best: Int, nextColors: List<BallColor>, extras: GameExtras) {
+    val shape = if (palette.square) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = palette.panel),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            if (palette.windowTitleBar) {
+                Box(Modifier.fillMaxWidth().background(Brush.horizontalGradient(listOf(Color(0xFF000080), Color(0xFF1084D0)))).padding(horizontal = 8.dp, vertical = 4.dp)) {
+                    Text(stringResource(R.string.app_name), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            } else {
+                val font = if (palette.cellStyle == CellStyle.ROUNDED) FontFamily.Default else FontFamily.Monospace
+                val title = stringResource(R.string.app_name)
+                Text(if (palette.cellStyle == CellStyle.DOS) title.uppercase() else title, fontSize = 20.sp, fontWeight = FontWeight.ExtraBold, color = if (palette.cellStyle == CellStyle.WIN98) palette.accent else palette.text, fontFamily = font)
+            }
+            ModeBar(if (palette.windowTitleBar) paletteFor(AppTheme.LINES_98) else palette, extras)
+            if (palette.windowTitleBar) {
+                Column(Modifier.fillMaxWidth().background(Color.Black).padding(8.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    LedNumber(best)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        nextColors.forEach { color ->
+                            androidx.compose.foundation.Image(
+                                painter = androidx.compose.ui.res.painterResource(spriteDrawable(color)),
+                                contentDescription = null,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                    Box(Modifier.semantics { liveRegion = LiveRegionMode.Polite }) { LedNumber(score) }
+                }
+            } else {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    StatBox(stringResource(R.string.hud_score), score, palette, live = true)
+                    StatBox(stringResource(R.string.hud_best), best, palette)
+                }
+                NextPreview(palette, nextColors)
+            }
+        }
+    }
+}
+
+/** Landscape, right of the board: the actions as a compact grid of icon buttons (a text menu in the Windows look). */
+@Composable
+private fun ActionRail(
+    palette: Palette,
+    canUndo: Boolean,
+    soundEnabled: Boolean,
+    onUndo: () -> Unit,
+    onNewGame: () -> Unit,
+    onStats: () -> Unit,
+    onSettings: () -> Unit,
+    onHelp: () -> Unit,
+    onToggleSound: () -> Unit,
+    extras: GameExtras
+) {
+    val shape = if (palette.square) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp)
+    Card(
+        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
+        shape = shape,
+        colors = CardDefaults.cardColors(containerColor = palette.panel),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        if (palette.windowTitleBar) {
+            Column(Modifier.padding(6.dp)) {
+                MenuItem(stringResource(R.string.btn_newGame), onNewGame)
+                MenuItem(stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
+                MenuItem(stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
+                MenuItem(stringResource(if (soundEnabled) R.string.btn_mute else R.string.btn_unmute), onToggleSound)
+                MenuItem(stringResource(R.string.btn_stats), onStats)
+                MenuItem(stringResource(R.string.btn_settings), onSettings)
+                MenuItem(stringResource(R.string.btn_help), onHelp)
+            }
+        } else {
+            val buttons: List<@Composable () -> Unit> = listOf(
+                { ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo) },
+                { ActionButton(AppIcons.Lightbulb, stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0) },
+                { ActionButton(AppIcons.Refresh, stringResource(R.string.btn_newGame), onNewGame) },
+                { ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats) },
+                { ActionButton(if (soundEnabled) AppIcons.VolumeUp else AppIcons.VolumeOff, stringResource(if (soundEnabled) R.string.btn_mute else R.string.btn_unmute), onToggleSound) },
+                { ActionButton(AppIcons.Settings, stringResource(R.string.btn_settings), onSettings) },
+                { ActionButton(AppIcons.Help, stringResource(R.string.btn_help), onHelp) }
+            )
+            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                for (row in buttons.chunked(2)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { row.forEach { it() } }
+                }
+            }
+        }
+    }
+}
+
+private fun spriteDrawable(color: BallColor): Int = when (spriteIndex(color)) {
+    0 -> R.drawable.ball_sprite_0
+    1 -> R.drawable.ball_sprite_1
+    2 -> R.drawable.ball_sprite_2
+    3 -> R.drawable.ball_sprite_3
+    4 -> R.drawable.ball_sprite_4
+    5 -> R.drawable.ball_sprite_5
+    else -> R.drawable.ball_sprite_6
 }
 
 @Composable

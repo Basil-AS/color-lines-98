@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -45,6 +46,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -107,6 +109,7 @@ private val THEME_NAMES = listOf(
     AppTheme.TERMINAL to R.string.theme_terminal,
     AppTheme.CONTRAST to R.string.theme_contrast,
     AppTheme.LINES_98 to R.string.theme_lines98,
+    AppTheme.LINES_98_PLUS to R.string.theme_lines98plus,
     AppTheme.COLORLINES_92 to R.string.theme_colorlines92
 )
 
@@ -258,6 +261,11 @@ fun SettingsDialog(
     onLanguage: (AppLanguage) -> Unit,
     playerName: String,
     onPlayerName: (String) -> Unit,
+    effects: EffectsLevel,
+    onEffects: (EffectsLevel) -> Unit,
+    vibrationSupported: Boolean,
+    vibration: Boolean,
+    onVibration: (Boolean) -> Unit,
     versionName: String,
     signature: String,
     autoUpdate: Boolean,
@@ -286,6 +294,19 @@ fun SettingsDialog(
                 }
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
+                Text(stringResource(R.string.settings_effects), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(EffectsLevel.OFF to R.string.effects_off, EffectsLevel.CALM to R.string.effects_calm, EffectsLevel.FULL to R.string.effects_full).forEach { (level, name) ->
+                        androidx.compose.material3.FilterChip(
+                            selected = effects == level,
+                            onClick = { onEffects(level) },
+                            label = { Text(stringResource(name)) },
+                            modifier = Modifier.semantics { role = Role.RadioButton }
+                        )
+                    }
+                }
+                Text(stringResource(R.string.settings_effectsHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
+                if (vibrationSupported) SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
                 var editingName by remember { mutableStateOf(false) }
                 TextButton(onClick = { editingName = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -384,14 +405,14 @@ fun StatsDialog(
     val title = LEVEL_TITLES[Levels.titleIndex(level.level)]
     val streak = ProgressTracker.currentStreak(progress.days, ProgressTracker.dayKey(now))
     val unlockedCount = ProgressTracker.ACHIEVEMENTS.count { it.id in progress.achievements }
-    val shown = if (showAll) history else history.take(10)
+    val shown = if (showAll) history.take(200) else history.take(10)
 
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.stats_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val tabs = listOf(R.string.stats_tab_overview, R.string.stats_tab_career, R.string.stats_tab_seasons, R.string.stats_tab_records, R.string.stats_tab_data)
+                val tabs = listOf(R.string.stats_tab_overview, R.string.stats_tab_career, R.string.stats_tab_mind, R.string.stats_tab_seasons, R.string.stats_tab_records, R.string.stats_tab_data)
                 androidx.compose.material3.ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp) {
                     tabs.forEachIndexed { i, name ->
                         androidx.compose.material3.Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(name), maxLines = 1) })
@@ -399,9 +420,10 @@ fun StatsDialog(
                 }
                 when (tab) {
                     1 -> { CareerTab(ledger, today); return@Column }
-                    2 -> { SeasonsTab(ledger, today); return@Column }
-                    3 -> { RecordsTab(history, ledger); return@Column }
-                    4 -> { DataTab(dataMessage, onExportJson, onExportCsv, onImport); return@Column }
+                    2 -> { MindTab(history); return@Column }
+                    3 -> { SeasonsTab(ledger, today); return@Column }
+                    4 -> { RecordsTab(history, ledger); return@Column }
+                    5 -> { DataTab(dataMessage, history.size, onExportJson, onExportCsv, onImport); return@Column }
                 }
                 Surface(
                     shape = RoundedCornerShape(10.dp),
@@ -530,7 +552,7 @@ private fun PlayerNameDialog(name: String, onName: (String) -> Unit, onDone: () 
 }
 
 @Composable
-private fun BarChart(values: List<Int>, labels: List<String>, description: String) {
+internal fun BarChart(values: List<Int>, labels: List<String>, description: String) {
     val max = maxOf(values.maxOrNull() ?: 1, 1)
     val color = MaterialTheme.colorScheme.primary
     val a11y = description + ": " + labels.zip(values).joinToString(", ") { "${it.first} ${it.second}" }

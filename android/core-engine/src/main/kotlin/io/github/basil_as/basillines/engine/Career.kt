@@ -3,7 +3,7 @@ package io.github.basil_as.basillines.engine
 import java.time.LocalDate
 import java.time.ZoneId
 
-/** One day of play in the permanent ledger (the game history only keeps the latest 1000 games). */
+/** One day of play in the permanent ledger (kept for ever, one small entry a day). */
 data class DayEntry(
     val games: Int = 0,
     val completed: Int = 0,
@@ -92,6 +92,35 @@ object Careers {
         val score = days.sumOf { it.value.score }
         MonthStat(m, games, score, days.maxOf { it.value.best }, Math.round(score.toDouble() / games).toInt(), days.size, days.sumOf { it.value.playMs })
     }.sortedBy { it.month }
+
+    // ---- years and memories ------------------------------------------------------------------
+
+    data class YearStat(val year: Int, val games: Int, val score: Long, val best: Int, val activeDays: Int, val playMs: Long, val bestMonth: String?)
+
+    /** Every year with games, oldest first. */
+    fun yearly(l: Ledger): List<YearStat> {
+        val months = monthly(l)
+        return l.entries.groupBy { it.key.take(4).toInt() }.map { (year, days) ->
+            val top = months.filter { it.month.startsWith("$year-") }.fold(null as MonthStat?) { best, m -> if (best == null || m.score > best.score) m else best }
+            YearStat(year, days.sumOf { it.value.games }, days.sumOf { it.value.score }, days.maxOf { it.value.best }, days.size, days.sumOf { it.value.playMs }, top?.month)
+        }.sortedBy { it.year }
+    }
+
+    /** [yearsAgo] is 0 for "a month ago". */
+    data class Memory(val day: String, val yearsAgo: Int, val games: Int, val best: Int)
+
+    /** The same date in earlier years, and the same date one month ago: what you were playing then. */
+    fun memories(l: Ledger, today: String): List<Memory> {
+        val (y, m, d) = today.split("-").map { it.toInt() }
+        val out = mutableListOf<Memory>()
+        fun look(year: Int, month: Int, day: Int, yearsAgo: Int) {
+            val key = "%04d-%02d-%02d".format(year, month, day)
+            l[key]?.takeIf { it.games > 0 }?.let { out += Memory(key, yearsAgo, it.games, it.best) }
+        }
+        look(if (m == 1) y - 1 else y, if (m == 1) 12 else m - 1, d, 0)
+        for (back in 1..30) look(y - back, m, d, back)
+        return out
+    }
 
     // ---- seasons ---------------------------------------------------------------------------
 

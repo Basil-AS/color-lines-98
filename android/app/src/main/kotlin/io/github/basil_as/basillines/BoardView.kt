@@ -19,6 +19,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.drawscope.withTransform
+import androidx.compose.ui.graphics.graphicsLayer
+import kotlinx.coroutines.launch
+import kotlin.math.PI
+import kotlin.math.sin
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -91,9 +98,46 @@ fun BoardView(
     snapshot: BoardSnapshot,
     palette: Palette,
     onCellTap: (Point) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The move to play out over the board (travelling ball, sparks, points), and how lively to be. */
+    fx: MoveFx? = null,
+    level: EffectsLevel = EffectsLevel.OFF,
+    /** The board is nearly full: it glows and breathes. */
+    danger: Boolean = false
 ) {
     val context = LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val textMeasurer = androidx.compose.ui.text.rememberTextMeasurer()
+    // One clock per effect, in milliseconds; read only while drawing, so a frame never recomposes the cells.
+    val fxClock = remember(fx?.id) { androidx.compose.animation.core.Animatable(0f) }
+    androidx.compose.runtime.LaunchedEffect(fx?.id, level) {
+        if (fx != null && level != EffectsLevel.OFF) fxClock.animateTo(fx.totalMs, tween(fx.totalMs.toInt(), easing = androidx.compose.animation.core.LinearEasing))
+    }
+    val rippleClock = remember { androidx.compose.animation.core.Animatable(1f) }
+    var ripplePoint by remember { mutableStateOf<Point?>(null) }
+    val wiggleClock = remember { androidx.compose.animation.core.Animatable(1f) }
+    var wigglePoint by remember { mutableStateOf<Point?>(null) }
+    val latest = androidx.compose.runtime.rememberUpdatedState(snapshot)
+    androidx.compose.runtime.LaunchedEffect(level) {
+        // Now and then a ball wiggles on its own.
+        while (level == EffectsLevel.FULL) {
+            kotlinx.coroutines.delay(3500L + (Math.random() * 4500).toLong())
+            val balls = latest.value.cells.indices.filter { latest.value.cells[it] != null && latest.value.selected != Point(it % BOARD_SIZE, it / BOARD_SIZE) }
+            if (balls.isEmpty()) continue
+            val pick = balls.random()
+            wigglePoint = Point(pick % BOARD_SIZE, pick / BOARD_SIZE)
+            wiggleClock.snapTo(0f)
+            wiggleClock.animateTo(1f, tween(800))
+        }
+    }
+    val tap: (Point) -> Unit = { p ->
+        onCellTap(p)
+        if (level != EffectsLevel.OFF) {
+            ripplePoint = p
+            scope.launch { rippleClock.snapTo(0f); rippleClock.animateTo(1f, tween(400)) }
+        }
+    }
+    val dangerAlpha by transition0(danger && level != EffectsLevel.OFF)
     val animationsEnabled = remember {
         Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
     }
@@ -112,6 +156,11 @@ fun BoardView(
 
     Box(
         modifier = modifier
+            .graphicsLayer {
+                val shake = FxFrame(fx, fxClock.value, level).shake()
+                translationX = shake.x * size.width / BOARD_SIZE
+                translationY = shake.y * size.width / BOARD_SIZE
+            }
             .clip(shape)
             .background(palette.boardBackground)
             .padding(framePadding)
@@ -119,6 +168,7 @@ fun BoardView(
     ) {
         Canvas(Modifier.fillMaxSize()) {
             val cellSize = size.width / BOARD_SIZE
+            val frame = FxFrame(fx, fxClock.value, level)
             for (row in 0 until BOARD_SIZE) {
                 for (col in 0 until BOARD_SIZE) {
                     val point = Point(col, row)
@@ -142,11 +192,24 @@ fun BoardView(
                             drawCircle(palette.reachableDot, radius = cellSize * 0.09f, center = center)
                         }
                         snapshot.incoming[point]?.let { drawBall(palette, sprites, it, center, cellSize * 0.17f) }
-                    } else {
+                    } else if (!frame.hidden(point)) {
                         val radius = cellSize * 0.38f * if (snapshot.selected == point) pulse else 1f
-                        drawBall(palette, sprites, ball, center, radius, shadow = true)
+                        val (sx, sy) = frame.scaleOf(point)
+                        val wiggle = if (wigglePoint == point && wiggleClock.value < 1f) sin(wiggleClock.value * 5f * PI.toFloat()) * 10f * (1f - wiggleClock.value) else 0f
+                        if (sx <= 0f) Unit
+                        else if (sx == 1f && sy == 1f && wiggle == 0f) drawBall(palette, sprites, ball, center, radius, shadow = true)
+                        else withTransform({ scale(sx, sy, center); rotate(wiggle, center) }) { drawBall(palette, sprites, ball, center, radius, shadow = true) }
                     }
                 }
+            }
+            drawFx(frame, cellSize, textMeasurer) { color, at, r -> drawBall(palette, sprites, color, at, r, shadow = true) }
+            val ring = ripplePoint
+            if (ring != null && rippleClock.value < 1f) {
+                val k = rippleClock.value
+                drawCircle(Color.White.copy(alpha = 0.8f * (1f - k)), cellSize * (0.25f + 0.4f * k), Offset((ring.x + 0.5f) * cellSize, (ring.y + 0.5f) * cellSize), style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.5f))
+            }
+            if (dangerAlpha > 0f) {
+                drawRect(Color(0xFFFF5252).copy(alpha = dangerAlpha), Offset.Zero, size, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 6f))
             }
         }
 
@@ -155,7 +218,7 @@ fun BoardView(
             for (row in 0 until BOARD_SIZE) {
                 Row(Modifier.weight(1f)) {
                     for (col in 0 until BOARD_SIZE) {
-                        CellTarget(snapshot, Point(col, row), onCellTap, Modifier.weight(1f))
+                        CellTarget(snapshot, Point(col, row), tap, Modifier.weight(1f))
                     }
                 }
             }
@@ -203,7 +266,8 @@ private fun DrawScope.drawBall(
                     bitmap,
                     dstOffset = IntOffset((center.x - d / 2f).toInt(), (center.y - d / 2f).toInt()),
                     dstSize = IntSize(d, d),
-                    filterQuality = androidx.compose.ui.graphics.FilterQuality.None
+                    // The modern look scales the sprites smoothly; the original keeps its hard pixels.
+                    filterQuality = if (palette.cellStyle == CellStyle.ROUNDED) androidx.compose.ui.graphics.FilterQuality.Medium else androidx.compose.ui.graphics.FilterQuality.None
                 )
             }
         }
@@ -320,3 +384,11 @@ internal fun CellTarget(
     )
 }
 
+
+/** A slow breathing between 0.25 and 0.8 while [on], else 0. */
+@Composable
+private fun transition0(on: Boolean): androidx.compose.runtime.State<Float> {
+    if (!on) return remember { mutableStateOf(0f) }
+    val t = rememberInfiniteTransition(label = "danger")
+    return t.animateFloat(0.25f, 0.8f, infiniteRepeatable(tween(800, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "dangerAlpha")
+}

@@ -24,17 +24,26 @@ and a native Android app, sharing one rule set.
 - **Goals that adapt:** three daily goals derived from your own recent games (score, longest line, efficiency, beat your
   previous best), with bonus XP and a goal streak, so they stay a fair challenge as you improve.
 - **Hint:** marks a ball and where to put it (a clearing move if there is one), three per game.
-- **Twelve looks** (web and Android), each with its own sound voice, remembered between launches:
+- **Thirteen looks** (web and Android), each with its own sound voice, remembered between launches:
   - *Modern dark*, *Modern light*, *Material*, *Neon*, *Synthwave*, *Ocean* and *Paper*: different colours, board and
     instrument (soft sine, bell, marimba, arcade square, saw, glass, wood block);
   - *Game Boy (1989)* (four greens, chip sound) and *Amber terminal* (phosphor orange, teletype beeps), both shape-coded;
   - *High contrast*: white outlines, every colour also has its own shape;
   - *Lines 98 (Windows)*: grey window chrome, the original bevelled board, red LED digits, the original sprites and sounds;
+  - *98 Modern*: the glossy Lines 98 balls (and its sounds) on a clean, current interface;
   - *Color Lines 1992 (DOS)*: **the original screen from `lines.lib`**, drawn with the original sprites: the red king on
     his pillar, the magenta pretender who takes the crown when you beat the king, LCD scores, `F1`–`F4` buttons and
     keys, the original Help window, a Top Ten table, PC-speaker sounds. See [`docs/ORIGINALS.md`](docs/ORIGINALS.md).
-- **Progress and analysis:** levels with titles, 18 achievements, day streaks, personal records, active play time, the
-  full history (up to 1000 games) and an analysis: trend against your previous games, games per day, score
+- **A living board:** balls travel along their path and land with a squash, new balls pop in, lines burst into sparks, points float up,
+  chains of clearing moves ring higher and shake the board, a nearly full board glows and warns, a ball wiggles now and then,
+  taps ripple; sounds and phone vibration follow every event. *Effects: Off / Calm / Full* and *Vibration* in Settings.
+- **Mind (cognitive analysis):** every game also records how it was played (decision times, hesitation, undos, hints, blocked
+  taps, how tight the board got, the local hour). The *Mind* tab turns it into findings: your best hours and chronotype, fatigue
+  over a sitting, the tempo that gives your best games, steadiness, impulsiveness, danger, growth over the years.
+- **Years of statistics:** nothing is ever dropped (no game limit; the permanent day ledger keeps careers, seasons, years and
+  "on this day" memories). Export/import as JSON (v2, with the play data) or CSV for a spreadsheet.
+- **Progress and analysis:** levels with titles, 23 achievements, day streaks, personal records, active play time, the
+  full history and an analysis: trend against your previous games, games per day, score
   distribution, best weekdays, efficiency (points per move), record progression and the games left to the next level.
 - **Updates (Android):** the app checks the project's newest GitHub release once a day (switch it off in Settings), offers "Version X is available" and downloads it; releases are signed with one project key, so the update installs over the app and keeps your games. Settings show the version and whether the build carries that key.
 - **English and Russian**, picked automatically from the browser or system language (web: also switchable in Settings;
