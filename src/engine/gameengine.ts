@@ -483,8 +483,9 @@ export class GameEngine {
   }
 
   /** The UI reports every touch on the board with the time since the previous one (null when unknown). */
-  noteAction(deltaMs: number | null): void {
-    if (deltaMs !== null) this.addPlayTime(deltaMs);
+  noteAction(deltaMs: number | null, countTime = true): void {
+    // A timed game keeps its own clock; counting the time between touches as well would run it twice.
+    if (deltaMs !== null && countTime) this.addPlayTime(deltaMs);
     this.tel.action(deltaMs);
   }
 

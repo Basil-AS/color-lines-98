@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import type { KeyboardEvent } from 'react';
 import confetti from 'canvas-confetti';
 import {
@@ -51,6 +51,8 @@ import {
   loadHall,
   loadPlayerName,
   loadShowNext,
+  loadEffects,
+  loadVibration,
   loadSpawnPreview,
   loadTheme,
   saveBestScore,
@@ -63,6 +65,8 @@ import {
   saveHall,
   savePlayerName,
   saveShowNext,
+  saveEffects,
+  saveVibration,
   saveSpawnPreview,
   saveTheme,
 } from './storage';
@@ -71,7 +75,10 @@ import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { defaultSpawnPreview, soundProfile, soundVoice } from './themes';
+import { defaultSpawnPreview, soundProfile, soundVoice, usesSprites } from './themes';
+import { BoardFx, travelMs } from './effects';
+import type { EffectsLevel, MoveFx } from './effects';
+import { haptic, setHapticsEnabled } from './haptics';
 import { DosScreen } from './dos/DosScreen';
 import type { DosWindow } from './dos/DosScreen';
 import type { Effect } from './dos/scene';
@@ -97,7 +104,7 @@ const GITHUB_REPO_URL = 'https://github.com/Basil-AS/color-lines-98';
 const LATEST_APK_URL = `${GITHUB_REPO_URL}/releases/latest/download/ColorLines.apk`;
 
 function prefersReducedMotion(): boolean {
-  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  return typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
 function browserLanguages(): readonly string[] {
@@ -124,6 +131,7 @@ const THEME_COLORS: Record<Theme, string> = {
   terminal: '#120900',
   contrast: '#000000',
   lines98: '#008080',
+  lines98plus: '#dde5ef',
   colorlines92: '#000000',
 };
 
@@ -147,7 +155,7 @@ function formatClock(ms: number): string {
 }
 
 function ballThemeClass(theme: Theme): string {
-  if (theme === 'lines98') return '';
+  if (theme === 'lines98' || theme === 'lines98plus') return '';
   if (theme === 'colorlines92') return 'ball-dos';
   if (theme === 'neon') return 'ball-neon';
   if (theme === 'contrast') return 'ball-contrast';
@@ -178,7 +186,7 @@ export default function App() {
   const [hintsLeft, setHintsLeft] = useState(HINTS_PER_GAME);
   const [today, setToday] = useState(() => todayKey());
   const [newGameMode, setNewGameMode] = useState<ModeId | null>(null);
-  const [, setVersion] = useState(0); // Bumped after every engine mutation to re-render
+  const [version, setVersion] = useState(0); // Bumped after every engine mutation to re-render
   const [theme, setTheme] = useState<Theme>(loadTheme);
   const [langPref, setLangPref] = useState<LanguagePref>(loadLanguagePref);
   const [soundEnabled, setSoundEnabled] = useState(() => soundManager.isEnabled);
@@ -195,6 +203,13 @@ export default function App() {
   const [ledger, setLedger] = useState<Ledger>(loadLedger);
   const [hall, setHall] = useState(loadHall);
   const [showNext, setShowNext] = useState(loadShowNext);
+  const [effectsLevel, setEffectsLevel] = useState<EffectsLevel>(() => loadEffects(prefersReducedMotion()));
+  const [vibration, setVibration] = useState(loadVibration);
+  const boardRef = useRef<HTMLElement>(null);
+  const fxRef = useRef<BoardFx | null>(null);
+  const pendingFx = useRef<MoveFx | null>(null);
+  const comboRef = useRef(0);
+  const dangerWarned = useRef(false);
   const [dosWindow, setDosWindow] = useState<DosWindow>('none');
   const [effects, setEffects] = useState<Effect[]>([]);
   const [coronationStart, setCoronationStart] = useState<number | null>(() =>
@@ -310,6 +325,17 @@ export default function App() {
     saveSpawnPreview(next);
   };
 
+  const changeEffects = (level: EffectsLevel) => {
+    setEffectsLevel(level);
+    saveEffects(level);
+  };
+
+  const changeVibration = (on: boolean) => {
+    setVibration(on);
+    saveVibration(on);
+    if (on) haptic('select');
+  };
+
   const toggleNext = () => {
     const next = !showNext;
     setShowNext(next);
@@ -330,6 +356,8 @@ export default function App() {
       } else {
         engine.select(clickedPoint);
         soundManager.play('select');
+        haptic('select');
+        fxRef.current?.ripple(clickedPoint, 'rgba(255,255,255,0.9)');
       }
       commit();
       return;
@@ -342,6 +370,8 @@ export default function App() {
     const res = engine.moveBall(from, clickedPoint);
     if (!res.success) {
       soundManager.play('blocked');
+      haptic('blocked');
+      fxRef.current?.deny(clickedPoint);
       setAnnouncement(t('announce.noPath'));
       return;
     }
@@ -366,19 +396,62 @@ export default function App() {
       if (color) fx.push({ kind: 'burst', x: p.x, y: p.y, color, start });
     }
     setEffects(fx);
+
+    // The look with a living board (not the 1992 picture) plays the move out; the sounds follow its timing.
+    const animated = effectsLevel !== 'off' && !dos && fxRef.current !== null;
+    const free = engine.board.getEmptyCells().length;
+    const lag = animated ? travelMs(res.path ? res.path.length - 1 : 0) : 0;
+    const after = (ms: number, fn: () => void) => (ms > 0 ? void window.setTimeout(fn, ms) : fn());
+    const cleared = res.clearedPoints.length > 0;
+    comboRef.current = cleared ? comboRef.current + 1 : 0;
+    if (animated) {
+      pendingFx.current = {
+        path: res.path ?? [from, clickedPoint],
+        color: movedColor ?? 'red',
+        spawned: res.spawnedBalls.map((b) => ({ point: b.point, color: b.color })),
+        cleared: fx.filter((f) => f.kind === 'burst').map((f) => ({ point: { x: f.x, y: f.y }, color: f.color })),
+        points: res.pointsEarned,
+        combo: comboRef.current,
+        free,
+      };
+    }
+    haptic(cleared ? (res.pointsEarned >= 28 ? 'bigClear' : 'clear') : 'move');
     if (engine.score > kingOf(hall).score && coronationStart === null) {
       setCoronationStart(start);
-      if (!res.isGameOver) window.setTimeout(() => soundManager.play('crown'), 450);
+      if (!res.isGameOver) window.setTimeout(() => soundManager.play('crown'), 450 + lag);
     }
 
-    if (res.clearedPoints.length > 0) {
-      soundManager.play('eat', res.pointsEarned);
-      setAnnouncement(t('announce.lineCleared', { points: res.pointsEarned, score: engine.score }));
-      if (res.pointsEarned >= 18 && !prefersReducedMotion()) {
+    if (cleared) {
+      // Clearing a line is a free turn, so chains are natural: each link sounds higher.
+      after(lag, () => soundManager.play('eat', res.pointsEarned));
+      if (comboRef.current >= 2) {
+        after(lag + 180, () => {
+          soundManager.play('combo', comboRef.current);
+          haptic('combo');
+        });
+      }
+      setAnnouncement(
+        comboRef.current >= 2
+          ? t('announce.combo', { n: comboRef.current, points: res.pointsEarned, score: engine.score })
+          : t('announce.lineCleared', { points: res.pointsEarned, score: engine.score })
+      );
+      if (res.pointsEarned >= 18 && !prefersReducedMotion() && effectsLevel === 'full') {
         confetti({ particleCount: 50 + res.pointsEarned * 2, spread: 60, origin: { y: 0.6 } });
       }
     } else {
       setAnnouncement(t('announce.score', { score: engine.score }));
+    }
+    if (res.spawnedBalls.length > 0) after(lag + 60, () => soundManager.play('pop'));
+
+    // A nearly full board: one warning each time it gets that tight.
+    if (!res.isGameOver && free <= 8 && !dangerWarned.current) {
+      dangerWarned.current = true;
+      after(lag + 350, () => {
+        soundManager.play('danger');
+        haptic('danger');
+      });
+    } else if (free > 12) {
+      dangerWarned.current = false;
     }
 
     if (engine.score > bestScore) {
@@ -394,6 +467,8 @@ export default function App() {
   const finishGame = () => {
     const newBest = isNewRecord(engine.score, bestAtGameStart);
     soundManager.play(newBest ? 'record' : 'lose');
+    haptic(newBest ? 'record' : 'gameOver');
+    if (newBest) window.setTimeout(() => fxRef.current?.celebrate(), 300);
     setAnnouncement(t('announce.gameOver', { score: engine.score }));
     const reward = recordGame(true);
     // The progress rewards follow the result after a short pause so the sounds do not blur together.
@@ -429,7 +504,9 @@ export default function App() {
     engine.noteHint();
     setHint(h);
     setHintsLeft((n) => n - 1);
-    soundManager.play('select');
+    soundManager.play('hint');
+    haptic('hint');
+    fxRef.current?.ripple(h.to, 'rgba(255,214,0,0.95)');
     setAnnouncement(t(h.clears ? 'hint.clear' : 'hint.build', { n: h.value }));
     commit();
   };
@@ -439,6 +516,7 @@ export default function App() {
     trackTime();
     if (engine.undo()) {
       soundManager.play('click');
+      haptic('undo');
       setAnnouncement(t('announce.undone', { score: engine.score }));
       commit();
     }
@@ -457,6 +535,8 @@ export default function App() {
     // The first decision of a game is timed from the moment the board appears.
     lastActionAt.current = clock();
     setEffects([]);
+    comboRef.current = 0;
+    dangerWarned.current = false;
     setCoronationStart(null);
     setBestAtGameStart(bestScore);
     setDialog(null);
@@ -509,7 +589,7 @@ export default function App() {
       ledger,
       progress,
       hall,
-      settings: { theme, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode },
+      settings: { theme, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode, effects: effectsLevel, vibration },
     });
     downloadText(`color-lines-backup-${stamp}.json`, JSON.stringify(backup, null, 1), 'application/json');
   };
@@ -557,6 +637,8 @@ export default function App() {
         setShowNext(s.showNext);
         saveShowNext(s.showNext);
       }
+      if (s.effects !== undefined) changeEffects(s.effects);
+      if (s.vibration !== undefined) changeVibration(s.vibration);
     }
     setAnnouncement(t(how === 'merge' ? 'data.done.merge' : 'data.done.replace'));
   };
@@ -576,6 +658,46 @@ export default function App() {
   }, []);
 
   const dos = theme === 'colorlines92';
+
+  // The living board: effects are drawn over the board element of every look except the 1992 picture.
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
+  useEffect(() => {
+    const root = boardRef.current;
+    if (!root) return;
+    const fx = new BoardFx(root, (color) => {
+      const el = document.createElement('div');
+      el.setAttribute('aria-hidden', 'true');
+      el.className = `ball ${ballThemeClass(themeRef.current)} color-${color}`;
+      if (usesSprites(themeRef.current)) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.className = 'ball-classic';
+        img.src = getSpriteUrl(color);
+        el.appendChild(img);
+      }
+      return el;
+    });
+    fx.setLevel(effectsLevel);
+    fxRef.current = fx;
+    return () => {
+      fx.destroy();
+      fxRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [theme, dos]);
+  useEffect(() => {
+    fxRef.current?.setLevel(effectsLevel);
+  }, [effectsLevel, theme]);
+  useEffect(() => {
+    setHapticsEnabled(vibration);
+  }, [vibration]);
+  useLayoutEffect(() => {
+    const pending = pendingFx.current;
+    pendingFx.current = null;
+    if (pending) fxRef.current?.run(pending);
+    fxRef.current?.setDanger(!engine.isGameOver && engine.board.getEmptyCells().length <= 10);
+  }, [version, engine]);
 
   // Blitz: count the active time down while the game is visible and no window is open.
   const timed = MODES[engine.mode].timeLimitMs !== null && !engine.isGameOver;
@@ -666,7 +788,7 @@ export default function App() {
         coming ? t('cell.incoming', { color: colorName(lang, coming) }) : ''
       }`,
     });
-  const sprites = theme === 'lines98';
+  const sprites = usesSprites(theme);
 
   const cellButtons = (visual: boolean) =>
     Array.from({ length: BOARD_SIZE }).map((_, y) =>
@@ -827,6 +949,10 @@ export default function App() {
           onTogglePreview={togglePreview}
           playerName={playerName}
           onPlayerName={changePlayerName}
+          effects={effectsLevel}
+          onEffects={changeEffects}
+          vibration={vibration}
+          onVibration={changeVibration}
           onClose={closeDialog}
         />
       )}
@@ -1003,7 +1129,7 @@ export default function App() {
           </>
         )}
 
-        {sprites ? (
+        {theme === 'lines98' ? (
           <header className="hud-header l98-header">
             {/* Like the original: best score, the next balls and the score on one black LED panel. */}
             <div className="l98-panel">
@@ -1144,7 +1270,7 @@ export default function App() {
 
         {modeStrip}
 
-        <main className="board-container">
+        <main className="board-container" ref={boardRef}>
           <div className="board-grid" role="group" aria-label={t('board.label')}>
             {cellButtons(true)}
           </div>

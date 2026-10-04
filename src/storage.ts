@@ -7,6 +7,8 @@ import { sanitizeProgress } from './progress';
 import { ledgerFromHistory, sanitizeLedger } from './ledger';
 import type { Ledger } from './ledger';
 import type { Progress } from './progress';
+import { isEffectsLevel } from './effects';
+import type { EffectsLevel } from './effects';
 import { compactHistory, expandHistory, sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 
@@ -273,4 +275,25 @@ export function clearLedger(): void {
   } catch {
     // See note above.
   }
+}
+
+const EFFECTS_KEY = 'colorlines_effects';
+const VIBRATION_KEY = 'colorlines_vibration';
+
+/** How lively the board is: off, calm or full. Calm when the system asks for reduced motion, full otherwise. */
+export function loadEffects(reducedMotion: boolean): EffectsLevel {
+  const raw = read(EFFECTS_KEY);
+  return isEffectsLevel(raw) ? raw : reducedMotion ? 'calm' : 'full';
+}
+
+export function saveEffects(level: EffectsLevel): void {
+  write(EFFECTS_KEY, level);
+}
+
+export function loadVibration(): boolean {
+  return read(VIBRATION_KEY) !== 'false';
+}
+
+export function saveVibration(on: boolean): void {
+  write(VIBRATION_KEY, String(on));
 }

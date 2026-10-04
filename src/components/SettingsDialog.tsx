@@ -5,6 +5,9 @@ import type { Language } from '../i18n';
 import { THEMES } from '../themes';
 import type { Theme } from '../themes';
 import type { LanguagePref } from '../storage';
+import { EFFECT_LEVELS } from '../effects';
+import type { EffectsLevel } from '../effects';
+import { hapticsSupported } from '../haptics';
 
 interface SettingsDialogProps {
   lang: Language;
@@ -18,6 +21,10 @@ interface SettingsDialogProps {
   onTogglePreview: () => void;
   playerName: string;
   onPlayerName: (name: string) => void;
+  effects: EffectsLevel;
+  onEffects: (level: EffectsLevel) => void;
+  vibration: boolean;
+  onVibration: (on: boolean) => void;
   onClose: () => void;
 }
 
@@ -83,6 +90,31 @@ export function SettingsDialog(props: SettingsDialogProps) {
             onChange={props.onTogglePreview}
           />
         </label>
+
+        <div className="settings-row settings-effects" role="group" aria-labelledby="effects-label">
+          <span id="effects-label">{t('settings.effects')}</span>
+          <div className="segmented">
+            {EFFECT_LEVELS.map((level) => (
+              <button
+                type="button"
+                key={level}
+                className={`segment ${props.effects === level ? 'active' : ''}`}
+                aria-pressed={props.effects === level}
+                onClick={() => props.onEffects(level)}
+              >
+                {t(`effects.${level}` as MessageKey)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="settings-hint">{t('settings.effectsHint')}</p>
+
+        {hapticsSupported() && (
+          <label className="settings-row">
+            <span>{t('settings.vibration')}</span>
+            <input type="checkbox" role="switch" checked={props.vibration} onChange={(e) => props.onVibration(e.target.checked)} />
+          </label>
+        )}
 
         <label className="settings-row">
           <span>{t('settings.playerName')}</span>
