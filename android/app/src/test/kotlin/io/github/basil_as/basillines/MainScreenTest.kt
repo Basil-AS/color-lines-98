@@ -92,6 +92,38 @@ class MainScreenTest {
     }
 
     @Test
+    fun theNewGameDialogCanAlwaysBeCancelled() {
+        // Without a game in progress the dialog used to offer only "Start": there must be a way back.
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.onNode(hasText("Cancel")).assertIsDisplayed().performClick()
+        rule.waitForIdle()
+        assertEquals(0, rule.onAllNodes(hasText("Start", substring = true)).fetchSemanticsNodes().size)
+        assertEquals(5, ballCount())
+
+        // With a move made the safe button keeps the game and the other one says what it does.
+        playOneMove()
+        val before = ballCount()
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.onNode(hasText("Keep playing")).performClick()
+        rule.waitForIdle()
+        assertEquals(before, ballCount())
+    }
+
+    @Test
+    fun theMindTabExplainsWhatItNeedsAndTheEffectsCanBeSwitched() {
+        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.onNode(hasText("Mind")).performClick()
+        rule.onAllNodes(hasText("more games are needed", substring = true)).onFirst().assertExists()
+        rule.onAllNodes(hasText("Close")).onFirst().performClick()
+
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.onNode(hasText("Calm")).performScrollTo().performClick()
+        rule.waitForIdle()
+        val prefs = ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        assertEquals("calm", prefs.getString("effects", null))
+    }
+
+    @Test
     fun undoRestoresTheBoardBeforeTheMove() {
         playOneMove()
         rule.onNodeWithContentDescription("Undo move").performClick()

@@ -2,9 +2,11 @@ package io.github.basil_as.basillines.engine
 
 /**
  * Everything the game can say: SELECT/JUMP/EAT/LOSE/CLICK are the moves, BLOCKED a refused move, START a new
- * game, RECORD a new best score, CROWN the pretender taking the throne, LEVEL_UP and ACHIEVEMENT the rewards.
+ * game, RECORD a new best score, CROWN the pretender taking the throne, LEVEL_UP and ACHIEVEMENT the rewards,
+ * COMBO a chain of clearing moves (its length is `points`), DANGER a nearly full board, TICK the last seconds of a timed
+ * game, HINT a hint, POP new balls appearing.
  */
-enum class SoundKind { SELECT, JUMP, EAT, LOSE, WIN, CLICK, BLOCKED, START, RECORD, CROWN, LEVEL_UP, ACHIEVEMENT }
+enum class SoundKind { SELECT, JUMP, EAT, LOSE, WIN, CLICK, BLOCKED, START, RECORD, CROWN, LEVEL_UP, ACHIEVEMENT, COMBO, DANGER, TICK, HINT, POP }
 
 data class Beep(val freq: Int, val ms: Int)
 
@@ -33,6 +35,11 @@ object PcSpeaker {
         SoundKind.START -> listOf(C5, G5, C6).map { Beep(it, 70) }
         SoundKind.LEVEL_UP -> listOf(C5, E5, G5, C6, E6).map { Beep(it, 75) }
         SoundKind.ACHIEVEMENT -> listOf(Beep(E6, 60), Beep(G6, 110))
+        SoundKind.COMBO -> listOf(C6, E6, G6, C6 * 2).take(minOf(4, 1 + maxOf(1, points))).map { Beep(it, 40) }
+        SoundKind.DANGER -> listOf(Beep(131, 100), Beep(123, 150))
+        SoundKind.TICK -> listOf(Beep(1200, 15))
+        SoundKind.HINT -> listOf(Beep(E6, 40), Beep(G6, 60))
+        SoundKind.POP -> listOf(Beep(900, 12), Beep(1200, 12), Beep(1500, 12))
         // The trumpet fanfare of the original characters: a short triple, then the rising chord.
         SoundKind.RECORD, SoundKind.CROWN -> listOf(
             Beep(C5, 90), Beep(C5, 90), Beep(C5, 90), Beep(E5, 160), Beep(G5, 120), Beep(C6, 320)

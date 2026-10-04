@@ -14,7 +14,7 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, LINES_98, COLORLINES_92 }
+enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, LINES_98, LINES_98_PLUS, COLORLINES_92 }
 
 /** The instrument a look plays its sounds with (the two retro looks use samples and PC-speaker beeps instead). */
 val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
@@ -32,7 +32,7 @@ val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
     }
 
 /** Everything the app remembers between launches. Invalid stored data falls back to defaults. */
-class GameStorage(context: Context) {
+class GameStorage(private val context: Context) {
     private val prefs = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
 
     var theme: AppTheme
@@ -70,6 +70,19 @@ class GameStorage(context: Context) {
     fun saveGoalsDone(day: String, ids: List<String>) {
         prefs.edit().putString(KEY_GOALS, day + "|" + ids.joinToString(",")).apply()
     }
+
+    /** How lively the board is: off, calm or full (off when the system has animations switched off). */
+    var effects: EffectsLevel
+        get() = EffectsLevel.parse(prefs.getString("effects", null)) ?: if (animationsOff()) EffectsLevel.OFF else EffectsLevel.FULL
+        set(value) = prefs.edit().putString("effects", value.id).apply()
+
+    var vibration: Boolean
+        get() = prefs.getBoolean("vibration", true)
+        set(value) = prefs.edit().putBoolean("vibration", value).apply()
+
+    private fun animationsOff(): Boolean = runCatching {
+        android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+    }.getOrDefault(false)
 
     /** Ask GitHub once a day for the newest release (on by default; switch it off in Settings). */
     var autoUpdateCheck: Boolean

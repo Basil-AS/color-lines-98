@@ -26,7 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.basil_as.basillines.engine.Careers
+import io.github.basil_as.basillines.engine.Bucket
+import io.github.basil_as.basillines.engine.Chronotype
+import io.github.basil_as.basillines.engine.Finding
+import io.github.basil_as.basillines.engine.FindingId
 import io.github.basil_as.basillines.engine.GameRecord
+import io.github.basil_as.basillines.engine.Mind
 import io.github.basil_as.basillines.engine.Ledger
 import io.github.basil_as.basillines.engine.ProgressTracker
 import java.text.NumberFormat
@@ -99,6 +104,26 @@ fun CareerTab(ledger: Ledger, today: LocalDate) {
             }
         }
 
+        val memories = Careers.memories(ledger, today.toString())
+        if (memories.isNotEmpty()) {
+            Subtitle(stringResource(R.string.career_memories))
+            for (m in memories) {
+                KeyValue(
+                    m.day,
+                    if (m.yearsAgo == 0) stringResource(R.string.career_memory_monthAgo, m.day, m.games.toString(), num(m.best))
+                    else stringResource(R.string.career_memory_yearsAgo, m.day.take(4), m.games.toString(), num(m.best))
+                )
+            }
+        }
+
+        val years = Careers.yearly(ledger).reversed()
+        if (years.isNotEmpty()) {
+            Subtitle(stringResource(R.string.career_years))
+            for (y in years) {
+                KeyValue(y.year.toString(), stringResource(R.string.career_yearRow, num(y.games), y.activeDays.toString(), num(y.best), y.bestMonth?.let { monthName(it) } ?: "–"))
+            }
+        }
+
         Subtitle(stringResource(R.string.career_months))
         val months = Careers.monthly(ledger).takeLast(12).reversed()
         if (months.isEmpty()) Muted(stringResource(R.string.stats_empty))
@@ -166,13 +191,102 @@ fun RecordsTab(history: List<GameRecord>, ledger: Ledger) {
 }
 
 @Composable
-fun DataTab(message: String?, onExportJson: () -> Unit, onExportCsv: () -> Unit, onImport: () -> Unit) {
+fun DataTab(message: String?, games: Int, onExportJson: () -> Unit, onExportCsv: () -> Unit, onImport: () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Subtitle(stringResource(R.string.data_title))
         Muted(stringResource(R.string.data_intro))
+        Muted(stringResource(R.string.data_storageApp, num(games)))
         OutlinedButton(onClick = onExportJson, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.data_exportJson)) }
         OutlinedButton(onClick = onExportCsv, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.data_exportCsv)) }
         OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) { Text(stringResource(R.string.data_import)) }
         if (message != null) Text(message, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun findingText(f: Finding): String = when (f.id) {
+    FindingId.WINDOW -> stringResource(R.string.mind_f_window, f.a.toInt().toString(), f.b.toInt().toString(), "+" + f.c.toInt())
+    FindingId.CHRONOTYPE -> stringResource(
+        when (f.chronotype) {
+            Chronotype.LARK -> R.string.mind_chrono_lark
+            Chronotype.DAY -> R.string.mind_chrono_day
+            Chronotype.EVENING -> R.string.mind_chrono_evening
+            else -> R.string.mind_chrono_owl
+        }
+    )
+    FindingId.TIRED -> stringResource(R.string.mind_f_tired, f.a.toInt().toString())
+    FindingId.FRESH -> stringResource(R.string.mind_f_fresh, f.a.toInt().toString())
+    FindingId.TEMPO_FAST -> stringResource(R.string.mind_f_tempoFast, "+" + f.a.toInt())
+    FindingId.TEMPO_SLOW -> stringResource(R.string.mind_f_tempoSlow, "+" + f.a.toInt())
+    FindingId.TEMPO_MID -> stringResource(R.string.mind_f_tempoMid, "+" + f.a.toInt())
+    FindingId.SLOWDOWN -> stringResource(R.string.mind_f_slowdown, f.a.toInt().toString())
+    FindingId.STEADY -> stringResource(R.string.mind_f_steady, "%.2f".format(Locale.ROOT, f.a))
+    FindingId.ERRATIC -> stringResource(R.string.mind_f_erratic, "%.2f".format(Locale.ROOT, f.a))
+    FindingId.IMPULSIVE -> stringResource(R.string.mind_f_impulsive, f.a.toInt().toString())
+    FindingId.PLANNER -> stringResource(R.string.mind_f_planner, f.a.toInt().toString())
+    FindingId.TIGHT -> stringResource(R.string.mind_f_tight, f.a.toInt().toString())
+    FindingId.CALM -> stringResource(R.string.mind_f_calm, f.a.toString())
+    FindingId.GROWTH -> stringResource(R.string.mind_f_growth, f.a.toInt().toString(), f.b.toInt().toString(), f.c.toInt().toString())
+    FindingId.WEEKDAY -> stringResource(
+        R.string.mind_f_weekday,
+        java.time.DayOfWeek.of(f.a.toInt() + 1).getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()).replaceFirstChar { it.uppercase() },
+        "+" + f.b.toInt()
+    )
+}
+
+/** How the player thinks and when they play well, from the play data of every game. */
+@Composable
+fun MindTab(history: List<GameRecord>) {
+    val report = androidx.compose.runtime.remember(history) { Mind.report(history) }
+    val list = androidx.compose.runtime.remember(report) { Mind.findings(report) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Muted(stringResource(R.string.mind_intro))
+        if (report.games < Mind.NEEDED) {
+            Text(stringResource(R.string.mind_need, (Mind.NEEDED - report.games).toString()))
+            return@Column
+        }
+        Muted(stringResource(R.string.mind_sample, report.games.toString(), report.decisions.toString()))
+        if (list.isNotEmpty()) {
+            Subtitle(stringResource(R.string.mind_findings))
+            for (f in list) Text("• " + findingText(f), fontSize = 14.sp)
+        }
+        Subtitle(stringResource(R.string.mind_cards))
+        fun pct(v: Double) = "${Math.round(v * 100)}%"
+        KeyValue(stringResource(R.string.mind_avgDecision), stringResource(R.string.mind_seconds, "%.1f".format(Locale.ROOT, report.avgDecisionMs / 1000.0)))
+        KeyValue(stringResource(R.string.mind_fast), pct(report.fastShare))
+        KeyValue(stringResource(R.string.mind_slow), pct(report.slowShare))
+        KeyValue(stringResource(R.string.mind_planning), pct(report.planning))
+        KeyValue(stringResource(R.string.mind_variation), "%.2f".format(Locale.ROOT, report.variation))
+        KeyValue(stringResource(R.string.mind_tightest), report.tightest.toString())
+        KeyValue(stringResource(R.string.mind_danger), report.dangerPer100.toString())
+        KeyValue(stringResource(R.string.mind_undos), report.undosPer100.toString())
+        KeyValue(stringResource(R.string.mind_hints), report.hintsPer100.toString())
+        KeyValue(stringResource(R.string.mind_misses), report.missesPer100.toString())
+        KeyValue(stringResource(R.string.mind_clearing), pct(report.clearingShare))
+
+        Subtitle(stringResource(R.string.mind_hours))
+        Muted(stringResource(R.string.mind_hoursHint))
+        BarChart(report.byHour.map { it.index }, report.byHour.map { if (it.hour % 3 == 0) it.hour.toString() else "" }, stringResource(R.string.mind_hours))
+
+        Subtitle(stringResource(R.string.mind_weekdays))
+        BarChart(report.byWeekday.map { it.index }, (1..7).map { java.time.DayOfWeek.of(it).getDisplayName(TextStyle.SHORT, Locale.getDefault()) }, stringResource(R.string.mind_weekdays))
+
+        Subtitle(stringResource(R.string.mind_sittings))
+        Muted(stringResource(R.string.mind_sittingsHint))
+        BarChart(
+            report.sittings.map { it.index },
+            listOf(R.string.mind_sitting1, R.string.mind_sitting2, R.string.mind_sitting3, R.string.mind_sitting4).map { stringResource(it) },
+            stringResource(R.string.mind_sittings)
+        )
+
+        report.tempo?.let { t ->
+            Subtitle(stringResource(R.string.mind_tempo))
+            Muted(stringResource(R.string.mind_tempoHint))
+            val tb: List<Bucket> = listOf(t.fast, t.mid, t.slow)
+            BarChart(tb.map { it.index }, listOf(R.string.mind_tempoFast, R.string.mind_tempoMid, R.string.mind_tempoSlow).map { stringResource(it) }, stringResource(R.string.mind_tempo))
+        }
+
+        Subtitle(stringResource(R.string.mind_phases))
+        BarChart(listOf(report.phases.early, report.phases.mid, report.phases.late), listOf("1–20", "21–60", "61+"), stringResource(R.string.mind_phases))
     }
 }

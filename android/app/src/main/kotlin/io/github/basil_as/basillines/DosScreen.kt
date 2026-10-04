@@ -95,6 +95,12 @@ private object Regions {
     val BOARD = SpriteRect(165, 55, 318, 228)
     val BUTTONS = SpriteRect(0, 316, 640, 34)
 
+    // Pieces of the top bar and of the key bar, for the landscape arrangement where they sit beside the board.
+    val LED_KING = SpriteRect(44, 0, 96, 40)
+    val LED_PLAYER = SpriteRect(496, 0, 96, 40)
+    val NEXT_BAR = SpriteRect(200, 0, 250, 40)
+    fun key(i: Int) = SpriteRect(96 + i * 133, 316, 124, 34)
+
     // The king's sprite is 72 pixels wide and the pretender's 50. Each region is cut so that, shown at the same width,
     // both heroes appear equally large (88 / 72 = 61 / 50).
     val KING = SpriteRect(42, 66, 88, 92)
@@ -286,35 +292,49 @@ fun DosLayout(
     val scope = androidx.compose.runtime.rememberCoroutineScope()
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
 
+    /** One of the four keys: a tap lights its label for a moment, ticks and runs the action. */
+    @Composable
+    fun KeyTap(button: DosButton, m: Modifier) {
+        val i = button.ordinal
+        val description = "F${i + 1}: ${labels.getValue(button)}"
+        Box(
+            m
+                .fillMaxHeight()
+                .semantics { contentDescription = description; role = Role.Button }
+                .pointerInput(button) {
+                    detectTapGestures(
+                        onPress = {
+                            pressedKey = button
+                            tryAwaitRelease()
+                            scope.launch { delay(160); if (pressedKey == button) pressedKey = null }
+                        },
+                        onTap = {
+                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
+                            onButton(button)
+                        }
+                    )
+                }
+        )
+    }
+
     @Composable
     fun Buttons(m: Modifier) {
         val shown = state.copy(pressed = pressedKey?.let { setOf(it) } ?: emptySet())
         Box(m.fillMaxWidth().defaultMinSize(minHeight = 48.dp), contentAlignment = Alignment.Center) {
             SceneRegion(Regions.BUTTONS, shown, clock, bitmaps, Modifier.fillMaxWidth())
             Row(Modifier.matchParentSize()) {
-                DosButton.entries.forEachIndexed { i, button ->
-                    val description = "F${i + 1}: ${labels.getValue(button)}"
-                    Box(
-                        Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .semantics { contentDescription = description; role = Role.Button }
-                            .pointerInput(button) {
-                                detectTapGestures(
-                                    onPress = {
-                                        pressedKey = button
-                                        tryAwaitRelease()
-                                        scope.launch { delay(160); if (pressedKey == button) pressedKey = null }
-                                    },
-                                    onTap = {
-                                        haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
-                                        onButton(button)
-                                    }
-                                )
-                            }
-                    )
-                }
+                DosButton.entries.forEach { button -> KeyTap(button, Modifier.weight(1f)) }
             }
+        }
+    }
+
+    /** A single key drawn big enough to press with a finger (landscape: the keys stand in a column beside the board). */
+    @Composable
+    fun Key(button: DosButton, m: Modifier) {
+        val shown = state.copy(pressed = pressedKey?.let { setOf(it) } ?: emptySet())
+        Box(m.fillMaxWidth().defaultMinSize(minHeight = 48.dp), contentAlignment = Alignment.Center) {
+            SceneRegion(Regions.key(button.ordinal), shown, clock, bitmaps, Modifier.fillMaxWidth())
+            KeyTap(button, Modifier.matchParentSize())
         }
     }
 
@@ -323,56 +343,66 @@ fun DosLayout(
         val portrait = maxHeight >= maxWidth
         if (portrait) {
             val w = maxWidth
-            // Board, top bar and key bar take 1.15 widths; what is left of the height goes to the characters.
-            val used = w * (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth()) + 28.dp
-            val left = maxHeight - used - 56.dp
+            // Board, top bar and key bar take about 1.15 widths; what is left of the height goes to the characters, who stand
+            // side by side under the keys with the tool buttons beneath them.
+            val used = w * (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth()) + 48.dp + 30.dp
+            val left = maxHeight - used - 52.dp - 28.dp
             Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically)) {
-                modeBar()
+                Box(Modifier.padding(horizontal = 8.dp)) { modeBar() }
                 Top(Modifier.fillMaxWidth())
                 Board(Modifier.fillMaxWidth())
                 Buttons(Modifier.fillMaxWidth())
-                // Both heroes get exactly the same width; the row (hero, five tool buttons, hero) must fit, so neither is squeezed.
-                val headW = minOf(w * 0.27f, (w - 240.dp) / 2, left / Regions.KING.heightPerWidth() * 0.85f)
-                Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween) {
-                    if (headW >= 72.dp) {
+                // Both heroes get exactly the same width, so neither looks squeezed.
+                val headW = minOf(w * 0.34f, left / Regions.KING.heightPerWidth())
+                if (headW >= 56.dp) {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 24.dp), verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.width(headW), horizontalAlignment = Alignment.CenterHorizontally) {
                             SceneRegion(Regions.KING, state, clock, bitmaps, Modifier.width(headW))
                             Caption(kingName)
                         }
-                    }
-                    tools(true)
-                    if (headW >= 72.dp) {
                         Column(Modifier.width(headW), horizontalAlignment = Alignment.CenterHorizontally) {
                             SceneRegion(Regions.PRETENDER, state, clock, bitmaps, Modifier.width(headW))
                             Caption(pretenderName)
                         }
                     }
                 }
+                tools(true)
             }
         } else {
-            // Landscape: the centre column is as tall as the screen; the characters fill the sides.
-            val margin = 4.dp
-            val centre = minOf(
-                maxWidth * 0.62f,
-                (maxHeight - margin * 2 - 26.dp - 28.dp) / (Regions.TOP.heightPerWidth() + Regions.BOARD.heightPerWidth() + Regions.BUTTONS.heightPerWidth())
-            )
-            val side = (maxWidth - centre - 56.dp - margin * 4) / 2
-            Row(Modifier.fillMaxSize().padding(margin), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(margin, Alignment.CenterHorizontally)) {
-                Column(Modifier.width(side), horizontalAlignment = Alignment.CenterHorizontally) {
-                    SceneRegion(Regions.KING_FULL, state, clock, bitmaps, Modifier.width(minOf(side, availH * 0.78f / Regions.KING_FULL.heightPerWidth())))
+            // Landscape: the board takes the whole height. The score displays and the characters stand at the sides, the
+            // next colours under the king, the four keys as a column under the pretender.
+            val margin = 3.dp
+            val gap = 4.dp
+            val toolsW = 52.dp
+            val boardW = minOf((maxHeight - margin * 2) / Regions.BOARD.heightPerWidth(), maxWidth * 0.62f)
+            val side = ((maxWidth - boardW - toolsW - margin * 2 - gap * 3) / 2).coerceAtLeast(96.dp)
+            val ledW = minOf(side, 118.dp)
+            val ledH = ledW * Regions.LED_KING.heightPerWidth()
+            val captionH = 24.dp
+            val nextH = side * Regions.NEXT_BAR.heightPerWidth()
+            val keysH = 48.dp * 2 + 4.dp
+            val leftFixed = ledH + captionH + nextH + 30.dp + gap * 3
+            val rightFixed = ledH + captionH + keysH + gap * 3
+            val heroW = minOf(side, (maxHeight - margin * 2 - maxOf(leftFixed, rightFixed)) / Regions.KING_FULL.heightPerWidth()).coerceAtLeast(40.dp)
+            Row(Modifier.fillMaxSize().padding(margin), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally)) {
+                Column(Modifier.width(side).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)) {
+                    SceneRegion(Regions.LED_KING, state, clock, bitmaps, Modifier.width(ledW))
+                    SceneRegion(Regions.KING_FULL, state, clock, bitmaps, Modifier.width(heroW))
                     Caption(kingName)
-                }
-                Column(Modifier.width(centre), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    SceneRegion(Regions.NEXT_BAR, state, clock, bitmaps, Modifier.width(side))
                     modeBar()
-                    Top(Modifier.fillMaxWidth())
-                    Board(Modifier.fillMaxWidth())
-                    Buttons(Modifier.fillMaxWidth())
                 }
-                Column(Modifier.width(side), horizontalAlignment = Alignment.CenterHorizontally) {
-                    SceneRegion(Regions.PRETENDER_FULL, state, clock, bitmaps, Modifier.width(minOf(side, availH * 0.78f / Regions.KING_FULL.heightPerWidth())))
+                Board(Modifier.width(boardW))
+                Column(Modifier.width(side).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)) {
+                    SceneRegion(Regions.LED_PLAYER, state, clock, bitmaps, Modifier.width(ledW))
+                    SceneRegion(Regions.PRETENDER_FULL, state, clock, bitmaps, Modifier.width(heroW))
                     Caption(pretenderName)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { Key(DosButton.HELP, Modifier); Key(DosButton.NEXT, Modifier) }
+                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { Key(DosButton.SOUND, Modifier); Key(DosButton.RESTART, Modifier) }
+                    }
                 }
-                tools(false)
+                Box(Modifier.width(toolsW), contentAlignment = Alignment.Center) { tools(false) }
             }
         }
     }

@@ -14,7 +14,7 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 | 6 | A proper name for the game and the release file | done | "Color Lines" in every language; `ColorLines-<version>.apk`, `...-web.zip` |
 | 7 | Android package with my name and the `io` prefix | done | `io.github.basil_as.basillines` (checked in the built APK) |
 | 8 | History, records, progress, statistics with analysis | verified | levels, achievements, streaks, trend, charts; tests on both platforms |
-| 9 | Record every result | done | up to 1000 games plus the permanent day ledger, Top Ten |
+| 9 | Record every result | done | every game, no limit, plus the permanent day ledger, Top Ten |
 | 10 | Russian, language follows the system | verified | auto-detection; `e2e/game.spec.ts`, dictionary tests |
 | 11 | App icon, favicon | done | adaptive Android icon, PNG/SVG for the site and PWA |
 | 12 | Android: insets under system bars | verified by tests | `safeDrawing`, edge-to-edge; **not run on a device** |
@@ -51,9 +51,16 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 | 43 | Check and resolve all PRs on GitHub | done | merged #8, #10, #15 to #17; #9 and #11 to #14 closed with a reason (need AGP 9 / Gradle 9 / TypeScript 7 migration) |
 | 44 | Use GitHub's mechanisms to the maximum | done | signed release on merge, CodeQL, Dependabot with auto-merge, labels, PR title check, Lighthouse, protected `main`, templates |
 | 45 | Permanent statistics, results moved by file | done | day ledger, seasons, milestones, heatmap, records; JSON/CSV, import with confirmation; files readable by both platforms |
-| 46 | Code and quality reviewed with the workstation skills | done | `docs/SECURITY_REVIEW.md`; axe over 12 looks and dialogs (`e2e/quality.spec.ts`); independent diff review |
+| 46 | Code and quality reviewed with the workstation skills | done | `docs/SECURITY_REVIEW.md`; axe over 13 looks and dialogs (`e2e/quality.spec.ts`); independent diff review |
 | 47 | Sound in the APK must work | fixed | every synthesised sound is rendered once into a WAV file and played through a SoundPool (the old AudioTrack-per-sound leaked and went silent), loudness normalised, voices never below the original pitch; **not heard on a device** |
 | 48 | The app updates itself, and is signed | done | daily check against the project's GitHub release (switchable), "Version X is available" dialog, one-tap download that installs over the app; releases are signed with the project key and the release pipeline fails if the APK is not; Settings show the version and whether the signature is the release key |
+| 49 | Android: restart must be refusable | fixed | the new-game dialog always has a way back (*Cancel*; with a game in progress *Keep playing*); test `theNewGameDialogCanAlwaysBeCancelled` |
+| 50 | A lively game: audio, haptic and visual effects | done | travelling and landing balls, pop-in, sparks, floating points, chains with rising sound and shaking, danger glow and warning, idle wiggle, tap ripples (web: DOM + canvas; Android: Compose canvas); 5 new sounds (combo, danger, tick, hint, pop) in every voice; vibration patterns; *Effects Off/Calm/Full* and *Vibration* settings, off by default when the system has animations off |
+| 51 | No limit on stored statistics | done | the 1000-game cap is gone on both platforms (compact device format on the web, `colorlines_history2`; the day ledger was already unlimited); the browser quota is shown and a failed save is reported |
+| 52 | Deep, long-lived statistics and cognitive analysis | done | every game records decision times, hesitation, undos, hints, blocked taps, danger and the local hour (`src/engine/telemetry.ts` = `Telemetry.kt`); the *Mind* tab (`src/cognition.ts` = `Mind.kt`) finds best hours and chronotype, fatigue, tempo, steadiness, impulsiveness, growth; years table and "on this day" memories; backup v2 and CSV carry the play data |
+| 53 | Android landscape and DOS look | fixed | landscape: board the full height with the score on its left and a compact action grid on its right; DOS: score displays, keys and heroes arranged around a full-height board, heroes beside the keys in portrait; the 1992 screen is English only on the web and on Android |
+| 54 | Sound on Android must not drop out | hardened | a sound asked for before it loads plays when ready; failed loads are retried; two silent plays or a long time in the background rebuild the whole pool; the cache is rewritten if the system cleared it; **not heard on a device** |
+| 55 | A theme with the 98 balls on a new interface | done | *98 Modern* (`lines98plus`): the Lines 98 sprites and samples on a clean light interface, web and Android |
 
 ## Not verified or approximated
 

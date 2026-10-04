@@ -8,7 +8,9 @@ data class BackupSettings(
     val soundEnabled: Boolean? = null,
     val spawnPreview: Boolean? = null,
     val showNext: Boolean? = null,
-    val mode: ModeId? = null
+    val mode: ModeId? = null,
+    val effects: String? = null,
+    val vibration: Boolean? = null
 )
 
 data class Backup(
@@ -29,8 +31,8 @@ sealed interface ParsedBackup {
 
 object Backups {
     const val FORMAT = "color-lines-backup"
-    const val VERSION = 1
-    const val MAX_CHARS = 8 * 1024 * 1024
+    const val VERSION = 2
+    const val MAX_CHARS = 64 * 1024 * 1024
 
     private fun num(v: Any?): Long? = (v as? Double)?.takeIf { it >= 0 && it == Math.floor(it) && it < 9e15 }?.toLong()
 
@@ -44,7 +46,7 @@ object Backups {
                 mapOf(
                     "score" to it.score, "endedAt" to it.endedAt, "moves" to it.moves, "lines" to it.lines, "balls" to it.balls,
                     "completed" to it.completed, "maxLine" to it.maxLine, "durationMs" to it.durationMs, "mode" to it.mode.id
-                )
+                ) + (it.cog?.let { c -> mapOf("cog" to CogKey.entries.associate { k -> k.json to c[k] }) } ?: emptyMap())
             },
             "ledger" to Careers.encode(b.ledger),
             "progress" to mapOf(
@@ -66,9 +68,20 @@ object Backups {
                 put("spawnPreview", b.settings.spawnPreview)
                 b.settings.showNext?.let { put("showNext", it) }
                 b.settings.mode?.let { put("mode", it.id) }
+                b.settings.effects?.let { put("effects", it) }
+                b.settings.vibration?.let { put("vibration", it) }
             }
         )
     )
+
+    private fun cogOf(raw: Any?): Cognition? {
+        val o = raw as? Map<*, *> ?: return null
+        val values = CogKey.entries.map { k ->
+            val v = o[k.json]
+            if (v == null && k == CogKey.MIN_EMPTY) 81L else num(v) ?: return null
+        }
+        return Cognition.of(values)
+    }
 
     fun sanitizeHistory(raw: Any?): List<GameRecord> {
         val list = raw as? List<*> ?: return emptyList()
@@ -85,8 +98,8 @@ object Backups {
             val maxLine = i("maxLine", true) ?: return@mapNotNull null
             val duration = i("durationMs", true) ?: return@mapNotNull null
             if (maxOf(score, moves, lines, balls, maxLine) > Int.MAX_VALUE) return@mapNotNull null
-            GameRecord(score.toInt(), endedAt, moves.toInt(), lines.toInt(), balls.toInt(), completed, maxLine.toInt(), duration, mode)
-        }.sortedByDescending { it.endedAt }.take(GameStats.HISTORY_LIMIT)
+            GameRecord(score.toInt(), endedAt, moves.toInt(), lines.toInt(), balls.toInt(), completed, maxLine.toInt(), duration, mode, cogOf(o["cog"]))
+        }.sortedByDescending { it.endedAt }
     }
 
     private fun sanitizeHall(raw: Any?): List<HallEntry> {
@@ -134,7 +147,9 @@ object Backups {
             soundEnabled = o["soundEnabled"] as? Boolean,
             spawnPreview = o["spawnPreview"] as? Boolean,
             showNext = o["showNext"] as? Boolean,
-            mode = ModeId.fromId(o["mode"] as? String)
+            mode = ModeId.fromId(o["mode"] as? String),
+            effects = (o["effects"] as? String)?.takeIf { it == "off" || it == "calm" || it == "full" },
+            vibration = o["vibration"] as? Boolean
         )
     }
 
@@ -168,8 +183,14 @@ object Backups {
 
     /** Adds the games of a backup without duplicates; nothing already here is lost. */
     fun mergeHistories(current: List<GameRecord>, incoming: List<GameRecord>): List<GameRecord> {
-        val seen = HashSet<String>()
-        return (current + incoming).filter { seen.add(key(it)) }.sortedByDescending { it.endedAt }.take(GameStats.HISTORY_LIMIT)
+        val byKey = LinkedHashMap<String, GameRecord>()
+        for (g in current + incoming) {
+            val k = key(g)
+            val old = byKey[k]
+            // The same game on both sides: keep the copy that carries the play data.
+            if (old == null || (old.cog == null && g.cog != null)) byKey[k] = g
+        }
+        return byKey.values.sortedByDescending { it.endedAt }
     }
 
     fun mergeHalls(a: List<HallEntry>, b: List<HallEntry>): List<HallEntry> {
@@ -210,11 +231,24 @@ object Backups {
         return if (safe.any { it == ',' || it == '"' || it == '\n' }) "\"" + safe.replace("\"", "\"\"") + "\"" else safe
     }
 
-    /** One row per game, oldest first; cells that start like a formula are defused. */
+    /** One row per game, oldest first, with the play data (empty for games without it); cells that start like a formula are defused. */
     fun toCsv(history: List<GameRecord>): String = buildString {
-        append("date,mode,score,moves,lines,balls,longest_line,play_seconds,completed\n")
+        append("date,mode,score,moves,lines,balls,longest_line,play_seconds,completed,")
+        append("local_hour,weekday,avg_decision_s,decision_spread_s,fast_moves,slow_moves,undos,hints,misses,clearing_moves,danger_moves,fewest_free_cells\n")
+        val fallback = java.util.TimeZone.getDefault()
         for (g in history.asReversed()) {
-            append(listOf(java.time.Instant.ofEpochMilli(g.endedAt).toString(), g.mode.id, g.score, g.moves, g.lines, g.balls, g.maxLine, Math.round(g.durationMs / 1000.0), g.completed).joinToString(",") { csv(it) })
+            val c = g.cog
+            val play: List<Any> = if (c == null) List(12) { "" } else {
+                val tm = c[CogKey.TM]
+                val mean = if (tm > 0) c[CogKey.THINK].toDouble() / tm else 0.0
+                val spread = if (tm > 1) Math.sqrt(maxOf(0.0, c[CogKey.THINK_SQ] * 10_000.0 / tm - mean * mean)) else 0.0
+                val (hour, weekday) = Telemetry.localTime(g.endedAt, c[CogKey.TZ], fallback.getOffset(g.endedAt) / 60_000)
+                listOf(
+                    hour, weekday + 1, String.format(java.util.Locale.ROOT, "%.2f", mean / 1000), String.format(java.util.Locale.ROOT, "%.2f", spread / 1000),
+                    c[CogKey.FAST], c[CogKey.SLOW], c[CogKey.UNDO], c[CogKey.HINT], c[CogKey.MISS], c[CogKey.CLEARS], c[CogKey.DANGER], c[CogKey.MIN_EMPTY]
+                )
+            }
+            append((listOf(java.time.Instant.ofEpochMilli(g.endedAt).toString(), g.mode.id, g.score, g.moves, g.lines, g.balls, g.maxLine, Math.round(g.durationMs / 1000.0), g.completed) + play).joinToString(",") { csv(it) })
             append('\n')
         }
     }

@@ -52,6 +52,17 @@ private val Light = Palette(
     dark = false, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.GLOSSY, windowTitleBar = false
 )
 
+/** 98 Modern: the glossy Lines 98 sprites on a clean, current interface. */
+private val Lines98Plus = Palette(
+    background = Color(0xFFDDE5EF), panel = Color(0xFFFBFCFE), chip = Color(0xFFEAEFF6),
+    boardBackground = Color(0xFFAEB6C4), cell = Color(0xFFD3D8E1),
+    text = Color(0xFF1B2333), textMuted = Color(0xFF566177),
+    statBackground = Color(0xFF151A24), statLabel = Color(0xFF9FB0CC), statValue = Color(0xFFFF4D4D),
+    accent = Color(0xFF1F5FD1), onAccent = Color.White, danger = Color(0xFFC62828),
+    reachableDot = Color(0xFF1F5FD1).copy(alpha = 0.7f),
+    dark = false, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.SPRITE, windowTitleBar = false
+)
+
 /** Lines 98 for Windows: grey window, bevelled cells, black displays with red digits, original sprites. */
 private val Lines98 = Palette(
     background = Color(0xFF008080), panel = Color(0xFFC0C0C0), chip = Color(0xFFC0C0C0),
@@ -201,6 +212,7 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.TERMINAL -> Terminal
     AppTheme.CONTRAST -> Contrast
     AppTheme.LINES_98 -> Lines98
+    AppTheme.LINES_98_PLUS -> Lines98Plus
     AppTheme.COLORLINES_92 -> ColorLines92
 }
 

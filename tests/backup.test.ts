@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { emptyCognition } from '../src/engine/telemetry';
 import { BACKUP_FORMAT, buildBackup, describeBackup, historyToCsv, mergeHalls, mergeHistories, mergeProgress, parseBackup } from '../src/backup';
 import { ledgerFromHistory } from '../src/ledger';
 import { rebuildProgress, emptyProgress } from '../src/progress';
@@ -130,5 +131,25 @@ describe('backup files', () => {
     if (!p.ok) return;
     expect(p.backup.progress.gamesByMode).toMatchObject({ daily: 2, easy: 1, classic: 0 });
     expect(p.backup.progress.bestByMode.daily).toBe(300);
+  });
+});
+
+describe('play data in backups', () => {
+  // The same file is read by BackupTest.kt: the two apps must understand each other.
+  const v2 = JSON.stringify({"format": "color-lines-backup", "version": 2, "exportedAt": 1790000000000, "app": {"platform": "web", "version": "2.0.0"}, "history": [{"score": 300, "endedAt": 1788436800000, "moves": 50, "lines": 4, "balls": 20, "completed": true, "maxLine": 6, "durationMs": 90000, "mode": "classic", "cog": {"tz": 112, "tm": 40, "think": 120000, "thinkMax": 15000, "thinkSq": 5200, "fast": 5, "slow": 3, "lat": 60000, "first": 4000, "p1": 50000, "n1": 20, "p2": 70000, "n2": 20, "p3": 0, "n3": 0, "undo": 2, "hint": 1, "miss": 3, "clears": 6, "multi": 1, "danger": 4, "minEmpty": 9}}], "settings": {"effects": "calm", "vibration": false}});
+
+  it('reads games with play data and the effects settings', () => {
+    const parsed = parseBackup(v2);
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.backup.history[0].cog).toMatchObject({ tz: 112, think: 120000, minEmpty: 9 });
+    expect(parsed.backup.settings).toMatchObject({ effects: 'calm', vibration: false });
+  });
+
+  it('keeps the copy with play data when the same game is on both sides', () => {
+    const plain = { score: 5, endedAt: 9, moves: 20, lines: 1, balls: 5, completed: true, maxLine: 5, durationMs: 1000, mode: 'classic' as const };
+    const rich = { ...plain, cog: { ...emptyCognition(), tz: 100 } };
+    expect(mergeHistories([plain], [rich])[0].cog).toBeDefined();
+    expect(mergeHistories([rich], [plain])[0].cog).toBeDefined();
   });
 });

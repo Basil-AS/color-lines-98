@@ -13,7 +13,9 @@ data class GameRecord(
     val maxLine: Int = 0,
     /** Active play time in milliseconds. */
     val durationMs: Long = 0,
-    val mode: ModeId = ModeId.CLASSIC
+    val mode: ModeId = ModeId.CLASSIC,
+    /** How it was played (decision times, hesitation, danger); null for games recorded by older versions. */
+    val cog: Cognition? = null
 )
 
 data class StatsSummary(
@@ -29,9 +31,12 @@ data class StatsSummary(
 )
 
 object GameStats {
-    const val HISTORY_LIMIT = 1000
-
-    fun recordFrom(engine: GameEngine, completed: Boolean, nowMillis: Long) = GameRecord(
+    fun recordFrom(
+        engine: GameEngine,
+        completed: Boolean,
+        nowMillis: Long,
+        offsetMinutes: Int = java.util.TimeZone.getDefault().getOffset(nowMillis) / 60_000
+    ) = GameRecord(
         score = engine.score,
         endedAt = nowMillis,
         moves = engine.moves,
@@ -40,12 +45,12 @@ object GameStats {
         completed = completed,
         maxLine = engine.maxLine,
         durationMs = engine.playMs,
-        mode = engine.mode
+        mode = engine.mode,
+        cog = engine.tel.snapshot(Telemetry.zoneCode(offsetMinutes))
     )
 
-    /** Newest first, capped at [HISTORY_LIMIT]. */
-    fun addRecord(history: List<GameRecord>, record: GameRecord): List<GameRecord> =
-        (listOf(record) + history).take(HISTORY_LIMIT)
+    /** Newest first. Nothing is ever dropped: every game stays for the analysis of the years. */
+    fun addRecord(history: List<GameRecord>, record: GameRecord): List<GameRecord> = listOf(record) + history
 
     fun summarize(history: List<GameRecord>): StatsSummary {
         val best = history.maxByOrNull { it.score }
@@ -66,18 +71,19 @@ object GameStats {
     fun isNewRecord(score: Int, previousBest: Int): Boolean = score > 0 && score > previousBest
 
     fun encodeHistory(history: List<GameRecord>): String = history.joinToString(";") {
-        "${it.score},${it.endedAt},${it.moves},${it.lines},${it.balls},${if (it.completed) 1 else 0},${it.maxLine},${it.durationMs},${it.mode.id}"
+        "${it.score},${it.endedAt},${it.moves},${it.lines},${it.balls},${if (it.completed) 1 else 0},${it.maxLine},${it.durationMs},${it.mode.id}" +
+            (it.cog?.let { c -> "," + c.values.joinToString(",") } ?: "")
     }
 
     /** Malformed entries are dropped; never throws. */
     fun decodeHistory(text: String?): List<GameRecord> {
         if (text.isNullOrBlank()) return emptyList()
-        return text.split(";").mapNotNull(::decodeRecord).take(HISTORY_LIMIT)
+        return text.split(";").mapNotNull(::decodeRecord)
     }
 
     private fun decodeRecord(entry: String): GameRecord? {
         val f = entry.split(",")
-        if (f.size != 6 && f.size != 8 && f.size != 9) return null
+        if (f.size != 6 && f.size != 8 && f.size != 9 && f.size != 9 + CogKey.entries.size) return null
         val score = f[0].toIntOrNull()?.takeIf { it >= 0 } ?: return null
         val endedAt = f[1].toLongOrNull()?.takeIf { it >= 0 } ?: return null
         val moves = f[2].toIntOrNull()?.takeIf { it >= 0 } ?: return null
@@ -94,7 +100,8 @@ object GameStats {
             maxLine = f[6].toIntOrNull()?.takeIf { it >= 0 } ?: return null
             durationMs = f[7].toLongOrNull()?.takeIf { it >= 0 } ?: return null
         }
-        val mode = if (f.size == 9) ModeId.fromId(f[8]) ?: return null else ModeId.CLASSIC
-        return GameRecord(score, endedAt, moves, lines, balls, completed, maxLine, durationMs, mode)
+        val mode = if (f.size >= 9) ModeId.fromId(f[8]) ?: return null else ModeId.CLASSIC
+        val cog = if (f.size > 9) Cognition.of(f.drop(9).map { it.toLongOrNull() ?: return null }) ?: return null else null
+        return GameRecord(score, endedAt, moves, lines, balls, completed, maxLine, durationMs, mode, cog)
     }
 }

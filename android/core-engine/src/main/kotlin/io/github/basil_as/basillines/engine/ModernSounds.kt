@@ -50,6 +50,11 @@ object ModernSounds {
         SoundKind.START -> listOf(n(G5, 70), n(C6, 70), n(E6, 110))
         SoundKind.LEVEL_UP -> listOf(C5, E5, G5, C6, E6).mapIndexed { i, f -> n(f, 90, Wave.SINE, 0.2 + i * 0.01) }
         SoundKind.ACHIEVEMENT -> listOf(n(E6, 70, Wave.SINE, 0.2), n(G5 * 2, 130, Wave.SINE, 0.22))
+        SoundKind.COMBO -> listOf(G5, C6, E6, 1568, 2093).take(minOf(5, 1 + maxOf(1, points))).mapIndexed { i, f -> n(f, 60, Wave.SINE, 0.2 + i * 0.01) }
+        SoundKind.DANGER -> listOf(n(262, 130, Wave.TRIANGLE, 0.18), n(247, 190, Wave.TRIANGLE, 0.18))
+        SoundKind.TICK -> listOf(n(1200, 25, Wave.TRIANGLE, 0.14))
+        SoundKind.HINT -> listOf(n(E6, 60, Wave.SINE, 0.18), n(1568, 90, Wave.SINE, 0.18))
+        SoundKind.POP -> listOf(n(880, 25, Wave.SINE, 0.12), n(1109, 25, Wave.SINE, 0.12), n(1319, 30, Wave.SINE, 0.12))
         SoundKind.RECORD, SoundKind.CROWN ->
             listOf(C5, E5, G5, C6, G5, C6, E6).mapIndexed { i, f -> n(f, if (i == 6) 320 else 110, Wave.SINE, 0.22) }
     }

@@ -72,7 +72,7 @@ export function StatsDialog({ lang, history, progress, ledger, now, onExport, on
   const title = LEVEL_TITLES[titleIndex(level.level)];
   const streak = currentStreak(progress.days, dayKey(now));
   const unlockedCount = ACHIEVEMENTS.filter((a) => progress.achievements[a.id] !== undefined).length;
-  const shown = showAll ? history : history.slice(0, RECENT_LIMIT);
+  const shown = showAll ? history.slice(0, 200) : history.slice(0, RECENT_LIMIT);
   const bestIndex = summary.bestRecord ? history.indexOf(summary.bestRecord) : -1;
 
   const cards: [string, string | number][] = [
