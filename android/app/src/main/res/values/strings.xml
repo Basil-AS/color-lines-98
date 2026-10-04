@@ -108,6 +108,9 @@
     <string name="stats_tab_seasons">Seasons</string>
     <string name="stats_tab_records">Records</string>
     <string name="stats_tab_data">Data</string>
+    <string name="settings_themeChange">Change</string>
+    <string name="settings_themePick">Choose a theme</string>
+    <string name="settings_vibrationOff">This device cannot vibrate.</string>
     <string name="data_storageApp">Kept on this device: %1$s games. There is no limit: nothing is dropped, however long you play.</string>
     <string name="settings_effects">Effects</string>
     <string name="effects_off">Off</string>

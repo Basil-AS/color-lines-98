@@ -82,7 +82,7 @@ fun colorLabel(color: BallColor): String = stringResource(
 )
 
 @Composable
-private fun rememberSprites(palette: Palette): List<ImageBitmap>? {
+internal fun rememberSprites(palette: Palette): List<ImageBitmap>? {
     if (palette.ballStyle != BallStyle.SPRITE) return null
     val resources = LocalContext.current.resources
     return remember {
@@ -226,7 +226,7 @@ fun BoardView(
     }
 }
 
-private fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell: Float) {
+internal fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell: Float) {
     when (palette.cellStyle) {
         CellStyle.ROUNDED -> {
             val pad = 2f
@@ -249,7 +249,7 @@ private fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell: 
     }
 }
 
-private fun DrawScope.drawBall(
+internal fun DrawScope.drawBall(
     palette: Palette,
     sprites: List<ImageBitmap>?,
     ball: BallColor,

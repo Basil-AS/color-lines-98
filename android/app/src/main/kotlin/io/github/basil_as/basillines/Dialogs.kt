@@ -1,6 +1,13 @@
 package io.github.basil_as.basillines
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.draw.clip
+import io.github.basil_as.basillines.engine.BallColor
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -280,17 +287,46 @@ fun SettingsDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(stringResource(R.string.settings_theme), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                THEME_NAMES.forEach { (value, name) ->
-                    Row(
-                        Modifier
-                            .fillMaxWidth()
-                            .selectable(selected = theme == value, role = Role.RadioButton, onClick = { onTheme(value) })
-                            .height(48.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        RadioButton(selected = theme == value, onClick = null)
-                        Text(stringResource(name), Modifier.padding(start = 12.dp))
-                    }
+                var picking by remember { mutableStateOf(false) }
+                val currentName = stringResource(THEME_NAMES.first { it.first == theme }.second)
+                // The themes stay folded: one row shows the current look, a tap opens the picker with previews.
+                Row(
+                    Modifier.fillMaxWidth().clickable(role = Role.Button) { picking = true }.padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    ThemeSwatch(theme, Modifier.width(88.dp).height(56.dp))
+                    Text(currentName, Modifier.weight(1f).padding(horizontal = 12.dp), fontWeight = FontWeight.SemiBold)
+                    OutlinedButton(onClick = { picking = true }) { Text(stringResource(R.string.settings_themeChange)) }
+                }
+                if (picking) {
+                    AlertDialog(
+                        onDismissRequest = { picking = false },
+                        title = { Text(stringResource(R.string.settings_themePick)) },
+                        text = {
+                            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                THEME_NAMES.chunked(2).forEach { pair ->
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        pair.forEach { (value, name) ->
+                                            val label = stringResource(name)
+                                            Column(
+                                                Modifier
+                                                    .weight(1f)
+                                                    .border(if (theme == value) 3.dp else 1.dp, if (theme == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                                    .selectable(selected = theme == value, role = Role.RadioButton, onClick = { onTheme(value); picking = false })
+                                                    .padding(6.dp),
+                                                horizontalAlignment = Alignment.CenterHorizontally
+                                            ) {
+                                                ThemeSwatch(value, Modifier.fillMaxWidth().height(64.dp))
+                                                Text(label, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                                            }
+                                        }
+                                        if (pair.size == 1) Spacer(Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        },
+                        confirmButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.btn_close)) } }
+                    )
                 }
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
@@ -306,7 +342,9 @@ fun SettingsDialog(
                     }
                 }
                 Text(stringResource(R.string.settings_effectsHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(bottom = 4.dp))
-                if (vibrationSupported) SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
+                // Vibration is its own switch, separate from the sound.
+                SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
+                if (!vibrationSupported) Text(stringResource(R.string.settings_vibrationOff), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 var editingName by remember { mutableStateOf(false) }
                 TextButton(onClick = { editingName = true }, modifier = Modifier.fillMaxWidth()) {
                     Text(
@@ -857,4 +895,27 @@ fun UpdateDialog(version: String, current: String, onDownload: () -> Unit, onLat
         confirmButton = { Button(onClick = onDownload) { Text(stringResource(R.string.update_download)) } },
         dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) } }
     )
+}
+
+
+/** A small picture of a look: its board with three balls, drawn from the real palette and ball style. */
+@Composable
+internal fun ThemeSwatch(theme: AppTheme, modifier: Modifier = Modifier) {
+    val palette = paletteFor(theme)
+    val sprites = rememberSprites(palette)
+    val balls = listOf(BallColor.RED, BallColor.BLUE, BallColor.GREEN)
+    Canvas(modifier.clip(RoundedCornerShape(if (palette.square) 0.dp else 8.dp)).background(palette.background).border(1.dp, Color.Gray.copy(alpha = 0.5f), RoundedCornerShape(if (palette.square) 0.dp else 8.dp))) {
+        val pad = size.height * 0.1f
+        val board = size.height - pad * 2
+        val left = (size.width - board) / 2f
+        drawRect(palette.boardBackground, androidx.compose.ui.geometry.Offset(left, pad), androidx.compose.ui.geometry.Size(board, board))
+        val cell = board / 3f
+        for (r in 0 until 3) for (c in 0 until 3) drawCell(palette, left + c * cell, pad + r * cell, cell)
+        listOf(0 to 0, 1 to 1, 2 to 2).forEachIndexed { i, (c, r) ->
+            drawBall(palette, sprites, balls[i], androidx.compose.ui.geometry.Offset(left + (c + 0.5f) * cell, pad + (r + 0.5f) * cell), cell * 0.38f, shadow = true)
+        }
+        // A strip of the panel colour beside the board, as the real screen has.
+        drawRect(palette.panel, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Size(left * 0.55f, size.height))
+        drawRect(palette.accent, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Size(left * 0.55f, size.height * 0.12f))
+    }
 }

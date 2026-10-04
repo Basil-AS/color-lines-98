@@ -338,9 +338,13 @@ class MainScreenTest {
     @Test
     fun switchingTheThemeIsRemembered() {
         rule.onNodeWithContentDescription("Settings").performClick()
+        // The themes are folded behind one row until it is tapped.
+        assertEquals(0, rule.onAllNodes(hasText("Modern light")).fetchSemanticsNodes().size)
+        rule.onNode(hasText("Change")).performScrollTo().performClick()
         rule.onNode(hasText("Modern light")).performClick()
         rule.waitForIdle()
         assertEquals(AppTheme.LIGHT, GameStorage(ApplicationProvider.getApplicationContext()).theme)
+        rule.onNode(hasText("Change")).performScrollTo().performClick()
         rule.onNode(hasText("Lines 98 (Windows)")).performClick()
         rule.waitForIdle()
         assertEquals(AppTheme.LINES_98, GameStorage(ApplicationProvider.getApplicationContext()).theme)
