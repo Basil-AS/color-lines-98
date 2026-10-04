@@ -108,6 +108,9 @@
     <string name="stats_tab_seasons">Сезоны</string>
     <string name="stats_tab_records">Рекорды</string>
     <string name="stats_tab_data">Данные</string>
+    <string name="settings_themeChange">Сменить</string>
+    <string name="settings_themePick">Выберите тему</string>
+    <string name="settings_vibrationOff">Это устройство не умеет вибрировать.</string>
     <string name="data_storageApp">На этом устройстве хранится партий: %1$s. Лимита нет: ничего не отбрасывается, сколько бы вы ни играли.</string>
     <string name="settings_effects">Эффекты</string>
     <string name="effects_off">Выкл</string>
