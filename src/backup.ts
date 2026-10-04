@@ -4,6 +4,8 @@ import { ledgerFromHistory, sanitizeLedger } from './ledger';
 import type { Ledger } from './ledger';
 import { DAYS_LIMIT, emptyProgress, rebuildProgress, sanitizeProgress } from './progress';
 import type { Progress } from './progress';
+import { isEffectsLevel } from './effects';
+import type { EffectsLevel } from './effects';
 import { localTime } from './engine/telemetry';
 import { sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
@@ -26,6 +28,8 @@ export interface BackupSettings {
   spawnPreview?: boolean | null;
   showNext?: boolean;
   mode?: ModeId;
+  effects?: EffectsLevel;
+  vibration?: boolean;
 }
 
 export interface Backup {
@@ -57,6 +61,8 @@ function sanitizeSettings(raw: unknown): BackupSettings {
   if (typeof r.spawnPreview === 'boolean' || r.spawnPreview === null) out.spawnPreview = r.spawnPreview;
   if (typeof r.showNext === 'boolean') out.showNext = r.showNext;
   if (isModeId(r.mode)) out.mode = r.mode;
+  if (isEffectsLevel(r.effects)) out.effects = r.effects;
+  if (typeof r.vibration === 'boolean') out.vibration = r.vibration;
   return out;
 }
 

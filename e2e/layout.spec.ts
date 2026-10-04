@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'] as const;
+const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'lines98plus', 'colorlines92'] as const;
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'tablet', width: 820, height: 1180 },
