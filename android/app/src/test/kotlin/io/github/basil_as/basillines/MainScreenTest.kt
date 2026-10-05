@@ -54,9 +54,16 @@ class MainScreenTest {
     }
 
     private fun playOneMove() {
-        ballCells().onFirst().performClick()
-        rule.onAllNodes(reachable).onFirst().performClick()
-        rule.waitForIdle()
+        // On a random board the first ball can be boxed in: take the first ball that can move.
+        for (i in 0 until ballCount()) {
+            ballCells()[i].performClick()
+            if (rule.onAllNodes(reachable).fetchSemanticsNodes().isNotEmpty()) {
+                rule.onAllNodes(reachable).onFirst().performClick()
+                rule.waitForIdle()
+                return
+            }
+        }
+        error("no ball on the board can move")
     }
 
     @Test
