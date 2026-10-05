@@ -19,8 +19,6 @@ interface SettingsDialogProps {
   onToggleSound: () => void;
   spawnPreview: boolean;
   onTogglePreview: () => void;
-  playerName: string;
-  onPlayerName: (name: string) => void;
   effects: EffectsLevel;
   onEffects: (level: EffectsLevel) => void;
   vibration: boolean;
@@ -115,17 +113,6 @@ export function SettingsDialog(props: SettingsDialogProps) {
             <input type="checkbox" role="switch" checked={props.vibration} onChange={(e) => props.onVibration(e.target.checked)} />
           </label>
         )}
-
-        <label className="settings-row">
-          <span>{t('settings.playerName')}</span>
-          <input
-            type="text"
-            className="settings-text"
-            value={props.playerName}
-            maxLength={12}
-            onChange={(e) => props.onPlayerName(e.target.value)}
-          />
-        </label>
       </div>
 
       <div className="modal-actions">

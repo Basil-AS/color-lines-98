@@ -228,6 +228,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var goalsDone by remember { mutableStateOf(storage.loadGoalsDone(dayKey())) }
     var updateOffer by remember { mutableStateOf<io.github.basil_as.basillines.engine.UpdateInfo?>(null) }
     var updateStatus by remember { mutableStateOf<String?>(null) }
+    var updateStage by remember { mutableStateOf<UpdateStage>(UpdateStage.Offer) }
+    var updateJob by remember { mutableStateOf<kotlinx.coroutines.Job?>(null) }
     val appVersion = remember { UpdateClient.versionName(context) }
     var dataMessage by remember { mutableStateOf<String?>(null) }
     var pendingImport by remember { mutableStateOf<io.github.basil_as.basillines.engine.Backup?>(null) }
@@ -493,17 +495,6 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val updateLatest = stringResource(R.string.update_latest)
     val updateFailed = stringResource(R.string.update_failed)
     val updateChecking = stringResource(R.string.update_checking)
-    val signatureText = remember {
-        val sha = UpdateClient.signatureSha256(context)
-        sha
-    }
-    val signedOk = if (signatureText == null) null else stringResource(R.string.update_signedOk, io.github.basil_as.basillines.engine.Updates.shortFingerprint(signatureText))
-    val signedOther = if (signatureText == null) null else stringResource(R.string.update_signedOther, io.github.basil_as.basillines.engine.Updates.shortFingerprint(signatureText))
-    val signatureLine = when {
-        signatureText == null -> stringResource(R.string.update_signedUnknown)
-        io.github.basil_as.basillines.engine.Updates.isProjectKey(signatureText) -> signedOk!!
-        else -> signedOther!!
-    }
     var autoUpdate by remember { mutableStateOf(storage.autoUpdateCheck) }
     val checkScope = androidx.compose.runtime.rememberCoroutineScope()
 
@@ -748,11 +739,47 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         }
 
         updateOffer?.let { info ->
+            fun install(file: java.io.File) {
+                updateStage = if (UpdateInstaller.canInstall(context)) {
+                    if (!UpdateInstaller.install(context, file)) UpdateStage.Failed(UpdateInstaller.Failure.WRONG_APP) else UpdateStage.Ready(file)
+                } else UpdateStage.NeedPermission(file)
+            }
+            fun download() {
+                updateStage = UpdateStage.Downloading(-1f)
+                updateJob = checkScope.launch {
+                    var shown = -1
+                    when (val r = UpdateInstaller.download(context, info) { p ->
+                        val pct = (p * 100).toInt()
+                        if (pct != shown) { shown = pct; updateStage = UpdateStage.Downloading(p) }
+                    }) {
+                        is UpdateInstaller.Outcome.Ready -> install(r.file)
+                        is UpdateInstaller.Outcome.Failed -> updateStage = UpdateStage.Failed(r.why)
+                    }
+                }
+            }
+            fun close(remember: Boolean) {
+                updateJob?.cancel()
+                updateJob = null
+                if (remember) storage.dismissedUpdate = info.version
+                updateOffer = null
+                updateStage = UpdateStage.Offer
+            }
             UpdateDialog(
                 version = info.version,
                 current = appVersion,
-                onDownload = { UpdateClient.download(context, info); updateOffer = null },
-                onLater = { storage.dismissedUpdate = info.version; updateOffer = null }
+                stage = updateStage,
+                onDownload = ::download,
+                onInstall = { (updateStage as? UpdateStage.Ready)?.let { install(it.file) } },
+                onAllow = {
+                    // After the system screen the user comes back and taps the button again (now "Install").
+                    (updateStage as? UpdateStage.NeedPermission)?.let { st ->
+                        runCatching { context.startActivity(UpdateInstaller.permissionIntent(context)) }
+                        updateStage = UpdateStage.Ready(st.file)
+                    }
+                },
+                onBrowser = { UpdateClient.download(context, info); close(false) },
+                onCancel = { close(false) },
+                onLater = { close(true) }
             )
         }
 
@@ -843,18 +870,12 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                             (context as? android.app.Activity)?.recreate()
                         }
                     },
-                    playerName = playerName,
-                    onPlayerName = {
-                        playerName = it.take(Hall.NAME_LIMIT)
-                        storage.playerName = playerName
-                    },
                     effects = effectsLevel,
                     onEffects = { effectsLevel = it; storage.effects = it },
                     vibrationSupported = haptics.supported,
                     vibration = vibration,
                     onVibration = { vibration = it; storage.vibration = it; haptics.enabled = it; if (it) haptics.play(HapticKind.SELECT) },
                     versionName = appVersion,
-                    signature = signatureLine,
                     autoUpdate = autoUpdate,
                     onAutoUpdate = { autoUpdate = it; storage.autoUpdateCheck = it },
                     updateStatus = updateStatus,
