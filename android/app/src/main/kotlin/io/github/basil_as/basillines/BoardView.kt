@@ -63,7 +63,9 @@ data class BoardSnapshot(
     /** Cells where the next balls will appear (empty when the preview is switched off). */
     val incoming: Map<Point, BallColor>,
     /** Where the hint says to put the selected ball. */
-    val hintTarget: Point? = null
+    val hintTarget: Point? = null,
+    /** The tutorial also marks the ball to pick up. */
+    val hintSource: Point? = null
 ) {
     operator fun get(p: Point): BallColor? = cells[p.y * BOARD_SIZE + p.x]
 }
@@ -178,7 +180,7 @@ fun BoardView(
 
                     val center = Offset(left + cellSize / 2f, top + cellSize / 2f)
                     val ball = snapshot[point]
-                    if (snapshot.hintTarget == point) {
+                    if (snapshot.hintTarget == point || snapshot.hintSource == point) {
                         drawRect(
                             palette.accent, Offset(left + 3f, top + 3f), Size(cellSize - 6f, cellSize - 6f),
                             style = androidx.compose.ui.graphics.drawscope.Stroke(
