@@ -26,6 +26,11 @@ The web (`src/dos/`) and Android (`engine/Dos*.kt`) versions draw exactly these 
 stretched 4:3 (DOS pixels are 1.37 times taller than wide), with the same animations (balls grow, the selected ball
 bounces, cleared balls burst, the pretender takes the crown when the king's score is beaten).
 
+The pretender's pillar: in the original screen the king stands on a tall pillar and the pretender on a short pedestal. How the
+original game animated them is **not verifiable offline** (only the pictures are in the archive). This port makes the pretender's
+pillar grow with the score (`maxRise * score / king's score`, 82 pixels in the 640x350 picture) so that it reaches the king's
+pillar exactly when his record falls and he takes the crown; the pillar is built from the pedestal's own pixels.
+
 Rules stated by the original's help window: *"The purpose of the game is to score points more than the king has."*
 The default king is **Handicap with 100 points**; the best entry of the Top Ten is the reigning king.
 
