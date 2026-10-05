@@ -63,6 +63,7 @@ const en = {
   'gameover.best': 'Best score',
   'gameover.newRecord': 'New record!',
   'gameover.playAgain': 'Play again',
+  'gameover.result': 'Result',
 
   'stats.title': 'Statistics',
   'stats.gamesPlayed': 'Games played',
@@ -519,6 +520,7 @@ const ru: Dictionary = {
   'gameover.best': 'Рекорд',
   'gameover.newRecord': 'Новый рекорд!',
   'gameover.playAgain': 'Играть снова',
+  'gameover.result': 'Итоги',
 
   'stats.title': 'Статистика',
   'stats.gamesPlayed': 'Сыграно партий',

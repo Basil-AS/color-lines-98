@@ -223,6 +223,7 @@ export default function App() {
     goals: [],
     goalXp: 0,
   });
+  const [showResult, setShowResult] = useState(false);
   const lastActionAt = useRef(0);
   const [goalsDone, setGoalsDone] = useState<string[]>(() => loadGoalsDone(todayKey()));
   const [bestScore, setBestScore] = useState(() =>
@@ -508,6 +509,7 @@ export default function App() {
 
   const handleUndo = () => {
     setHint(null);
+    setShowResult(false);
     trackTime();
     if (engine.undo()) {
       soundManager.play('click');
@@ -535,19 +537,27 @@ export default function App() {
     setCoronationStart(null);
     setBestAtGameStart(bestScore);
     setDialog(null);
+    setShowResult(false);
     setNewGameMode(null);
     soundManager.play('start');
     setAnnouncement(t('announce.newGame'));
     setVersion((v) => v + 1);
   };
 
-  /** Every "new game" button opens the dialog: it names the mode and warns before a game is thrown away. */
+  /** The dialog names the mode and warns before a game in progress is thrown away. */
   const requestNewGame = () => {
     setNewGameMode(null);
     setDialog('newgame');
   };
 
-  const handleNewGame = requestNewGame;
+  /** After a finished game there is nothing to warn about: play the same mode again straight away. */
+  const handleNewGame = () => {
+    if (engine.isGameOver) {
+      startGame(engine.mode);
+    } else {
+      requestNewGame();
+    }
+  };
 
   const playDaily = () => {
     setNewGameMode('daily');
@@ -733,7 +743,7 @@ export default function App() {
   useEffect(() => {
     if (!dos) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (dialog !== null || engine.isGameOver) return;
+      if (dialog !== null) return;
       const action: Record<string, () => void> = {
         F1: () => setDosWindow((w) => (w === 'help' ? 'none' : 'help')),
         F2: toggleSound,
@@ -871,6 +881,32 @@ export default function App() {
     </div>
   );
 
+  const resultBadge =
+    engine.isGameOver &&
+    (lastResult.xp > 0 || lastResult.levelUp !== null || lastResult.unlocked.length > 0 || lastResult.goals.length > 0)
+      ? `+${lastResult.xp}`
+      : '';
+
+  const gameOverActions = (
+    <div className="gameover-actions">
+      <button
+        type="button"
+        className="gameover-btn"
+        onClick={() => startGame(engine.mode)}
+      >
+        {t('btn.newGame')}
+      </button>
+      <button
+        type="button"
+        className="gameover-btn gameover-btn-secondary"
+        onClick={() => setShowResult(true)}
+      >
+        <span>{t('gameover.result')}</span>
+        {resultBadge && <span className="result-badge">{resultBadge}</span>}
+      </button>
+    </div>
+  );
+
   const sidePanel = (
     <aside className="side-panel" aria-label={t('goals.title')}>
       <GoalsPanel lang={lang} goals={goalProgress} goalStreak={goalStreak} dailyBest={dailyBest} onPlayDaily={playDaily} />
@@ -886,6 +922,7 @@ export default function App() {
         <NewGameDialog
           lang={lang}
           current={newGameMode ?? engine.mode}
+          initialPicking={newGameMode !== null ? true : undefined}
           inProgress={!engine.isGameOver && engine.moves > 0 ? { score: engine.score, moves: engine.moves } : null}
           stats={Object.fromEntries(MODE_IDS.map((id) => [id, { games: progress.gamesByMode[id], best: progress.bestByMode[id] }])) as Record<ModeId, { games: number; best: number }>}
           onStart={startGame}
@@ -902,7 +939,7 @@ export default function App() {
           onClose={closeDialog}
         />
       )}
-      {engine.isGameOver && dialog !== 'newgame' && dialog !== 'goals' && (
+      {engine.isGameOver && showResult && dialog === null && (
         <GameOverDialog
           lang={lang}
           score={engine.score}
@@ -913,12 +950,15 @@ export default function App() {
           unlocked={lastResult.unlocked}
           goalsReached={lastResult.goals}
           goalXp={lastResult.goalXp}
-          onPlayAgain={() => startGame(engine.mode)}
-          onChangeMode={requestNewGame}
+          onPlayAgain={() => {
+            setShowResult(false);
+            startGame(engine.mode);
+          }}
+          onClose={() => setShowResult(false)}
         />
       )}
-      {!engine.isGameOver && dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
-      {!engine.isGameOver && dialog === 'stats' && (
+      {dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
+      {dialog === 'stats' && (
         <StatsDialog
           lang={lang}
           history={history}
@@ -931,7 +971,7 @@ export default function App() {
           onClose={closeDialog}
         />
       )}
-      {!engine.isGameOver && dialog === 'settings' && (
+      {dialog === 'settings' && (
         <SettingsDialog
           lang={lang}
           theme={theme}
@@ -1129,19 +1169,23 @@ export default function App() {
               <div className="l98-cell" role="group" aria-label={t('hud.best')}>
                 <LedNumber value={Math.max(engine.score, bestScore)} />
               </div>
-              <div
-                className="l98-next"
-                role="img"
-                aria-label={t('next.label', {
-                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
-                })}
-              >
-                {engine.nextColors.map((color, idx) => (
-                  <div key={idx} className={`ball ball-mini color-${color}`}>
-                    <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
-                  </div>
-                ))}
-              </div>
+              {engine.isGameOver ? (
+                gameOverActions
+              ) : (
+                <div
+                  className="l98-next"
+                  role="img"
+                  aria-label={t('next.label', {
+                    colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                  })}
+                >
+                  {engine.nextColors.map((color, idx) => (
+                    <div key={idx} className={`ball ball-mini color-${color}`}>
+                      <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="l98-cell" role="group" aria-label={t('hud.score')}>
                 <LedNumber value={engine.score} />
               </div>
@@ -1166,24 +1210,28 @@ export default function App() {
           </div>
 
           <div className="hud-action-row">
-            <div
-              className="next-balls-preview"
-              role="img"
-              aria-label={t('next.label', {
-                colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
-              })}
-            >
-              <span className="next-balls-label" aria-hidden="true">
-                {t('hud.next')}
-              </span>
-              <div className="next-balls-list" aria-hidden="true">
-                {engine.nextColors.map((color, idx) => (
-                  <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
-                    {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
-                  </div>
-                ))}
+            {engine.isGameOver ? (
+              gameOverActions
+            ) : (
+              <div
+                className="next-balls-preview"
+                role="img"
+                aria-label={t('next.label', {
+                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                })}
+              >
+                <span className="next-balls-label" aria-hidden="true">
+                  {t('hud.next')}
+                </span>
+                <div className="next-balls-list" aria-hidden="true">
+                  {engine.nextColors.map((color, idx) => (
+                    <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
+                      {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="controls-group">
               <button
