@@ -314,11 +314,6 @@ export default function App() {
     setSoundEnabled(soundManager.toggle());
   };
 
-  const changePlayerName = (name: string) => {
-    setPlayerName(name.slice(0, 12));
-    savePlayerName(name);
-  };
-
   const togglePreview = () => {
     const next = !spawnPreview;
     setSpawnStored(next);
@@ -947,8 +942,6 @@ export default function App() {
           onToggleSound={toggleSound}
           spawnPreview={spawnPreview}
           onTogglePreview={togglePreview}
-          playerName={playerName}
-          onPlayerName={changePlayerName}
           effects={effectsLevel}
           onEffects={changeEffects}
           vibration={vibration}

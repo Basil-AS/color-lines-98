@@ -285,13 +285,10 @@ class MainScreenTest {
     }
 
     @Test
-    fun settingsShowTheVersionTheSignatureAndTheUpdateControls() {
+    fun settingsShowTheVersionAndTheUpdateControls() {
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.waitForIdle()
         rule.onNode(hasText("Version", substring = true)).performScrollTo().assertExists()
-        // The test build is not signed with the release key (or Robolectric has no signature to read): never "release key".
-        rule.onNode(hasText("Signed with another key", substring = true) or hasText("The signature could not be read.")).performScrollTo().assertExists()
-        assertTrue(rule.onAllNodes(hasText("Signed with the Color Lines release key", substring = true)).fetchSemanticsNodes().isEmpty())
         rule.onNode(hasText("Check for updates automatically")).performScrollTo().assertExists()
         rule.onNode(hasText("Check for updates")).performScrollTo().performClick()
         rule.waitForIdle()
@@ -647,16 +644,6 @@ class DosThemeTest {
         rule.onNodeWithContentDescription("F3: Show next balls").performClick()
         rule.waitForIdle()
         assertEquals(false, GameStorage(context).showNext)
-    }
-
-    @Test
-    fun theSettingsListTheTopTenName() {
-        startDos()
-        rule.onNodeWithContentDescription("Settings").performClick()
-        rule.waitForIdle()
-        // (The text field behind this row has an endless blinking cursor that Robolectric never sees as idle,
-        // so the row is checked here and the stored value has its own test.)
-        rule.onAllNodes(hasText("Your name (Top Ten)", substring = true)).onFirst().assertExists()
     }
 
     @Test

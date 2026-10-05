@@ -32,7 +32,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -268,15 +267,12 @@ fun SettingsDialog(
     onTogglePreview: () -> Unit,
     language: AppLanguage,
     onLanguage: (AppLanguage) -> Unit,
-    playerName: String,
-    onPlayerName: (String) -> Unit,
     effects: EffectsLevel,
     onEffects: (EffectsLevel) -> Unit,
     vibrationSupported: Boolean,
     vibration: Boolean,
     onVibration: (Boolean) -> Unit,
     versionName: String,
-    signature: String,
     autoUpdate: Boolean,
     onAutoUpdate: (Boolean) -> Unit,
     updateStatus: String?,
@@ -347,17 +343,6 @@ fun SettingsDialog(
                 // Vibration is its own switch, separate from the sound.
                 SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
                 if (!vibrationSupported) Text(stringResource(R.string.settings_vibrationOff), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                var editingName by remember { mutableStateOf(false) }
-                TextButton(onClick = { editingName = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        stringResource(R.string.settings_playerName) + ": " + playerName.ifBlank { "—" },
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start
-                    )
-                }
-                if (editingName) {
-                    PlayerNameDialog(playerName, onPlayerName, onDone = { editingName = false })
-                }
                 Text(stringResource(R.string.lang_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 listOf(
                     AppLanguage.AUTO to R.string.lang_auto,
@@ -376,7 +361,6 @@ fun SettingsDialog(
                     }
                 }
                 Text(stringResource(R.string.update_version, versionName), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
-                Text(signature, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SwitchRow(stringResource(R.string.update_auto), autoUpdate) { onAutoUpdate(!autoUpdate) }
                 Text(stringResource(R.string.update_autoHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -572,23 +556,6 @@ private fun Badge(text: String, filled: Boolean) {
             Text(text.uppercase(), fontSize = 10.sp, fontWeight = FontWeight.Bold)
         }
     }
-}
-
-@Composable
-private fun PlayerNameDialog(name: String, onName: (String) -> Unit, onDone: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDone,
-        title = { Text(stringResource(R.string.settings_playerName)) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = onName,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = { TextButton(onClick = onDone) { Text(stringResource(R.string.btn_close)) } }
-    )
 }
 
 @Composable
@@ -898,19 +865,80 @@ fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress
     )
 }
 
+/** Where an update is: offered, being downloaded, ready to install, waiting for the install permission, or failed. */
+sealed interface UpdateStage {
+    data object Offer : UpdateStage
+    /** [progress] is 0..1, or negative while the size is not known. */
+    data class Downloading(val progress: Float) : UpdateStage
+    data class Ready(val file: java.io.File) : UpdateStage
+    data class NeedPermission(val file: java.io.File) : UpdateStage
+    data class Failed(val why: UpdateInstaller.Failure) : UpdateStage
+}
+
 @Composable
-fun UpdateDialog(version: String, current: String, onDownload: () -> Unit, onLater: () -> Unit) {
+fun UpdateDialog(
+    version: String,
+    current: String,
+    stage: UpdateStage,
+    onDownload: () -> Unit,
+    onInstall: () -> Unit,
+    onAllow: () -> Unit,
+    onBrowser: () -> Unit,
+    onCancel: () -> Unit,
+    onLater: () -> Unit
+) {
+    val busy = stage is UpdateStage.Downloading
     AlertDialog(
-        onDismissRequest = onLater,
-        title = { Text(stringResource(R.string.update_title)) },
+        // Back or a tap outside while downloading stops the download; otherwise it is "later".
+        onDismissRequest = if (busy) onCancel else onLater,
+        title = { Text(stringResource(if (stage is UpdateStage.Ready || stage is UpdateStage.NeedPermission) R.string.update_readyTitle else R.string.update_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.update_available, version, current), fontWeight = FontWeight.SemiBold)
-                Text(stringResource(R.string.update_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                when (stage) {
+                    UpdateStage.Offer -> Text(stringResource(R.string.update_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    is UpdateStage.Downloading -> {
+                        if (stage.progress >= 0f) {
+                            LinearProgressIndicator(progress = { stage.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                            Text(stringResource(R.string.update_downloading, (stage.progress * 100).toInt()), fontSize = 13.sp)
+                        } else {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            Text(stringResource(R.string.update_downloadingUnknown), fontSize = 13.sp)
+                        }
+                    }
+                    is UpdateStage.Ready -> Text(stringResource(R.string.update_ready), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    is UpdateStage.NeedPermission -> Text(stringResource(R.string.update_needPermission), fontSize = 13.sp)
+                    is UpdateStage.Failed -> Text(
+                        stringResource(
+                            when (stage.why) {
+                                UpdateInstaller.Failure.NETWORK -> R.string.update_errNetwork
+                                UpdateInstaller.Failure.CHECKSUM -> R.string.update_errChecksum
+                                UpdateInstaller.Failure.WRONG_APP -> R.string.update_errWrongApp
+                            }
+                        ),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Assertive }
+                    )
+                }
             }
         },
-        confirmButton = { Button(onClick = onDownload) { Text(stringResource(R.string.update_download)) } },
-        dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) } }
+        confirmButton = {
+            when (stage) {
+                UpdateStage.Offer -> Button(onClick = onDownload) { Text(stringResource(R.string.update_downloadInstall)) }
+                is UpdateStage.Downloading -> {}
+                is UpdateStage.Ready -> Button(onClick = onInstall) { Text(stringResource(R.string.update_install)) }
+                is UpdateStage.NeedPermission -> Button(onClick = onAllow) { Text(stringResource(R.string.update_allow)) }
+                is UpdateStage.Failed -> Button(onClick = onDownload) { Text(stringResource(R.string.update_retry)) }
+            }
+        },
+        dismissButton = {
+            when (stage) {
+                is UpdateStage.Downloading -> TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+                is UpdateStage.Failed -> TextButton(onClick = onBrowser) { Text(stringResource(R.string.update_browser)) }
+                else -> TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) }
+            }
+        }
     )
 }
 
