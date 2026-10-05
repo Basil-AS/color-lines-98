@@ -16,14 +16,15 @@ interface GameOverDialogProps {
   goalsReached: string[];
   goalXp: number;
   onPlayAgain: () => void;
-  onChangeMode: () => void;
+  onClose: () => void;
+  onChangeMode?: () => void;
 }
 
 export function GameOverDialog(props: GameOverDialogProps) {
   const { lang } = props;
   const t = (key: MessageKey, params?: Record<string, string | number>) => translate(lang, key, params);
   return (
-    <Dialog titleId="game-over-title" title={t('gameover.title')} alert>
+    <Dialog titleId="game-over-title" title={t('gameover.title')} onClose={props.onClose}>
       {props.newRecord && <p className="record-banner">★ {t('gameover.newRecord')}</p>}
       <dl className="stats-grid stats-grid-2">
         <div className="stats-card">
@@ -71,8 +72,8 @@ export function GameOverDialog(props: GameOverDialogProps) {
         <button type="button" className="modal-btn" onClick={props.onPlayAgain} data-autofocus>
           {t('gameover.playAgain')}
         </button>
-        <button type="button" className="modal-btn modal-btn-secondary" onClick={props.onChangeMode}>
-          {t('newgame.changeMode')}
+        <button type="button" className="modal-btn modal-btn-secondary" onClick={props.onClose}>
+          {t('btn.close')}
         </button>
       </div>
     </Dialog>
