@@ -30,10 +30,22 @@ class SoundManager(private val context: Context) {
     private val ready: MutableSet<Int> = java.util.concurrent.ConcurrentHashMap.newKeySet()
     private val synthIds = java.util.concurrent.ConcurrentHashMap<String, Int>()
     private val keyOfId = java.util.concurrent.ConcurrentHashMap<Int, String>()
-    private val cacheDir = java.io.File(context.cacheDir, "sounds").apply { mkdirs() }
+    /** One folder per app version: a new version may change the synthesis, so old files are never reused. */
+    private val cacheDir = java.io.File(context.cacheDir, "sounds-" + UpdateClient.versionName(context)).apply { mkdirs() }
 
     /** A sound asked for before it finished loading plays as soon as it is ready (if that is within a moment). */
     private val waiting = java.util.concurrent.ConcurrentHashMap<Int, Pair<Long, Float>>()
+
+    /** Synthesised sounds asked for before they even have a pool id: key -> (when, volume). */
+    private val wanted = java.util.concurrent.ConcurrentHashMap<String, Pair<Long, Float>>()
+    private val inflight: MutableSet<String> = java.util.concurrent.ConcurrentHashMap.newKeySet()
+
+    /** Rendering and writing sounds never happens on the thread that plays them (that froze the game on the first move). */
+    private val worker = java.util.concurrent.Executors.newFixedThreadPool(2) { r -> Thread(r, "sound-prep").apply { isDaemon = true } }
+
+    /** Bumped whenever the pool is rebuilt, so work started for the old pool is dropped. */
+    @Volatile private var generation = 0
+    @Volatile private var warmed = false
     private var failures = 0
     private var lastRebuild = 0L
 
@@ -50,10 +62,13 @@ class SoundManager(private val context: Context) {
         .build()
         .also { pool ->
             pool.setOnLoadCompleteListener { p, id, status ->
+                // Ids start at 1 in every pool: a late answer from a pool that was rebuilt must not mark a sound ready here.
+                if (p !== soundPool) return@setOnLoadCompleteListener
                 if (status == 0) {
                     ready.add(id)
                     // Something asked for it while it loaded: play it now unless that was long ago.
-                    waiting.remove(id)?.let { (at, vol) -> if (System.currentTimeMillis() - at < 600) p.play(id, vol, vol, 1, 0, 1f) }
+                    waiting.remove(id)?.let { (at, vol) -> if (System.currentTimeMillis() - at < WAIT_MS) p.play(id, vol, vol, 1, 0, 1f) }
+                    warmUp(p, id)
                 } else {
                     // A failed load must not stay a silent hole: forget it so the next request loads it again.
                     keyOfId.remove(id)?.let { synthIds.remove(it) }
@@ -101,8 +116,10 @@ class SoundManager(private val context: Context) {
         if (now - lastRebuild < 3000) return
         lastRebuild = now
         failures = 0
+        generation++
+        warmed = false
         runCatching { soundPool.release() }
-        ready.clear(); synthIds.clear(); keyOfId.clear(); waiting.clear()
+        ready.clear(); synthIds.clear(); keyOfId.clear(); waiting.clear(); wanted.clear(); inflight.clear()
         soundPool = buildPool()
         raws = loadRaws()
         prepare()
@@ -110,7 +127,14 @@ class SoundManager(private val context: Context) {
 
     /** The app came back to the front: after a long time in the background the pool is rebuilt, which is cheap. */
     fun onForeground(awayMs: Long) {
-        if (awayMs > 60_000) recover()
+        if (awayMs > 60_000) recover() else if (awayMs > 5_000) warmed = false
+    }
+
+    /** The first sound after a pause often starts late while the audio path wakes up; a silent one wakes it in advance. */
+    private fun warmUp(pool: SoundPool, id: Int) {
+        if (warmed) return
+        warmed = true
+        runCatching { pool.play(id, 0f, 0f, 0, 0, 1f) }
     }
 
     /** How many sizes of "eat" there are (more balls cleared, longer rising run of notes); a chain has one per link. */
@@ -122,44 +146,81 @@ class SoundManager(private val context: Context) {
 
     private fun pointsOf(kind: SoundKind, bucket: Int) = if (kind == SoundKind.COMBO) bucket else bucket * 12
 
+    private fun keyOf(kind: SoundKind, bucket: Int) = "${profile.name}-${voice.name}-${kind.name}-$bucket"
+
     /**
-     * The SoundPool id of a synthesised sound, created once: the notes are rendered into a small WAV file in the cache
-     * and loaded into the pool. The file is written again when the system cleared the cache meanwhile.
+     * Renders one synthesised sound into a small WAV file in the cache (reusing the file when it is already there) and
+     * loads it into the pool. Runs on a worker thread; the UI thread only ever looks the id up.
      */
-    private fun synthId(kind: SoundKind, bucket: Int): Int {
-        val key = "${profile.name}-${voice.name}-${kind.name}-$bucket"
-        synthIds[key]?.let { return it }
-        val points = pointsOf(kind, bucket)
-        // Normalised: the synthesised notes are quiet (a click peaks at 5% of full scale), the beeps flat and harsh.
-        val pcm = if (profile == Profile.PC_SPEAKER) io.github.basil_as.basillines.engine.Wav.normalize(PcSpeaker.render(PcSpeaker.notes(kind, points)), 0.5)
-        else io.github.basil_as.basillines.engine.Wav.normalize(ModernSounds.render(ModernSounds.voiced(kind, points, voice)), 0.8)
-        if (pcm.isEmpty()) return -1
-        cacheDir.mkdirs()
-        val file = java.io.File(cacheDir, "$key.wav")
-        file.writeBytes(io.github.basil_as.basillines.engine.Wav.encode(pcm))
-        val id = soundPool.load(file.absolutePath, 1)
-        val existing = synthIds.putIfAbsent(key, id)
-        if (existing == null) keyOfId[id] = key
-        return existing ?: id
+    private fun requestSynth(kind: SoundKind, bucket: Int, volume: Float?) {
+        val key = keyOf(kind, bucket)
+        if (volume != null) wanted[key] = System.currentTimeMillis() to volume
+        if (synthIds.containsKey(key) || !inflight.add(key)) return
+        val gen = generation
+        val pool = soundPool
+        val prof = profile
+        val voiceNow = voice
+        worker.execute {
+            try {
+                val file = java.io.File(cacheDir, "$key.wav")
+                if (!file.exists() || file.length() < 64) {
+                    val points = pointsOf(kind, bucket)
+                    // Normalised: the synthesised notes are quiet (a click peaks at 5% of full scale), the beeps flat and harsh.
+                    val pcm = if (prof == Profile.PC_SPEAKER) io.github.basil_as.basillines.engine.Wav.normalize(PcSpeaker.render(PcSpeaker.notes(kind, points)), 0.5)
+                    else io.github.basil_as.basillines.engine.Wav.normalize(ModernSounds.render(ModernSounds.voiced(kind, points, voiceNow)), 0.8)
+                    if (pcm.isEmpty()) return@execute
+                    cacheDir.mkdirs()
+                    val tmp = java.io.File(cacheDir, "$key.tmp")
+                    tmp.writeBytes(io.github.basil_as.basillines.engine.Wav.encode(pcm))
+                    tmp.renameTo(file)
+                }
+                if (gen != generation || pool !== soundPool) return@execute
+                val id = pool.load(file.absolutePath, 1)
+                if (id <= 0) return@execute
+                synthIds[key] = id
+                keyOfId[id] = key
+                wanted.remove(key)?.let { waiting[id] = it }
+                // The pool may have answered before the request was noted.
+                if (id in ready) waiting.remove(id)?.let { (at, vol) -> if (System.currentTimeMillis() - at < WAIT_MS) pool.play(id, vol, vol, 1, 0, 1f) }
+            } catch (_: Throwable) {
+                // A device that refuses a file stays silent for that sound; the game goes on.
+            } finally {
+                inflight.remove(key)
+            }
+        }
     }
 
-    /** Renders and loads every sound of the current look in the background, so the first play is instant. */
+    @Volatile private var primedFor = -1
+
+    /** Starts loading the current look once (changing the look or rebuilding the pool starts it again by itself). */
+    fun prime() {
+        if (primedFor == generation) return
+        primedFor = generation
+        prepare()
+    }
+
+    /** Loads every sound of the current look in the background, the ones heard most often first, so the first play is instant. */
     private fun prepare() {
         if (profile == Profile.SAMPLED) return
-        Thread {
-            runCatching {
-                for (kind in SoundKind.entries) {
-                    val buckets = when (kind) { SoundKind.EAT -> 0..5; SoundKind.COMBO -> 1..4; else -> 0..0 }
-                    for (b in buckets) synthId(kind, b)
-                }
-            }
-        }.start()
+        val order = listOf(SoundKind.SELECT, SoundKind.JUMP, SoundKind.EAT, SoundKind.BLOCKED, SoundKind.COMBO)
+        primedFor = generation
+        val kinds = order + SoundKind.entries.filter { it !in order }
+        for (kind in kinds) {
+            val buckets = when (kind) { SoundKind.EAT -> 0..5; SoundKind.COMBO -> 1..4; else -> 0..0 }
+            for (b in buckets) requestSynth(kind, b, null)
+        }
     }
 
     private fun beep(kind: SoundKind, points: Int = 0) {
         if (!isEnabled) return
-        // Some devices refuse to load a file; the game must go on silently rather than crash.
-        runCatching { play(synthId(kind, bucketOf(kind, points)), 1f) }
+        val bucket = bucketOf(kind, points)
+        val id = synthIds[keyOf(kind, bucket)]
+        if (id == null) {
+            // Not loaded yet: ask for it (it plays the moment it is ready) instead of rendering it here on the UI thread.
+            requestSynth(kind, bucket, 1f)
+            return
+        }
+        play(id, 1f)
     }
 
     /** Plays a game event in the voice of the current look: samples, PC-speaker beeps or soft tones. */
@@ -199,6 +260,13 @@ class SoundManager(private val context: Context) {
     }
 
     fun release() {
+        generation++
+        worker.shutdownNow()
         soundPool.release()
+    }
+
+    private companion object {
+        /** A sound that was asked for while loading still plays if it becomes ready within this time. */
+        const val WAIT_MS = 1500L
     }
 }

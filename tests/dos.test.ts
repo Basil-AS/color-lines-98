@@ -11,6 +11,8 @@ import {
   kingRect,
   pretenderRect,
   PRETENDER_POS,
+  TOWER,
+  towerRise,
 } from '../src/dos/sprites';
 import { buildScene } from '../src/dos/scene';
 import type { DosState } from '../src/dos/scene';
@@ -260,5 +262,26 @@ describe('windows over the board', () => {
     const hall = Array.from({ length: 15 }, (_, i) => ({ name: 'p' + i, score: 100 - i, at: i }));
     const names = buildWindow('top10', 'en', hall).filter((d) => d.kind === 'text' && d.align === 'left');
     expect(names).toHaveLength(10);
+  });
+});
+
+describe('the pretender tower', () => {
+  it('grows with the score and tops out at the king pillar', () => {
+    expect(towerRise(0, 100)).toBe(0);
+    expect(towerRise(50, 100)).toBe(TOWER.maxRise / 2);
+    expect(towerRise(100, 100)).toBe(TOWER.maxRise);
+    expect(towerRise(500, 100)).toBe(TOWER.maxRise);
+    expect(towerRise(10, 0)).toBe(TOWER.maxRise);
+  });
+
+  it('draws the lifted figure higher and keeps the foot ring in place', () => {
+    const low = buildScene(state({ score: 0 }));
+    const high = buildScene(state({ score: 60 }));
+    const pretender = (d: ReturnType<typeof buildScene>) =>
+      d.filter((x) => x.kind === 'image' && x.img === 'sheet' && x.dx === PRETENDER_POS.x).pop();
+    expect(pretender(high)!.dy).toBeLessThan(pretender(low)!.dy);
+    const foot = high.filter((x) => x.kind === 'image' && x.img === 'layout' && x.sy === TOWER.footTop);
+    expect(foot).toHaveLength(1);
+    expect(foot[0]).toMatchObject({ dy: TOWER.footTop });
   });
 });
