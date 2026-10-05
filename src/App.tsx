@@ -877,7 +877,7 @@ export default function App() {
             tabIndex={isFocusStop ? 0 : -1}
             aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
             aria-pressed={color ? isSelected : undefined}
-            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && hint.to.x === x && hint.to.y === y ? 'hint-target' : ''}`}
+            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && ((hint.to.x === x && hint.to.y === y) || (tut && hint.from.x === x && hint.from.y === y)) ? 'hint-target' : ''}`}
             onClick={() => handleCellClick(x, y)}
             onKeyDown={(e) => handleCellKeyDown(e, x, y)}
           >
