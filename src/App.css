@@ -2871,3 +2871,30 @@ input[role='switch']:focus-visible {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* The tutorial: a short coach card above the board; the board itself is the real one. */
+.tutorial-banner {
+  margin: 0 auto 10px;
+  max-width: 560px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 2px solid var(--accent);
+  background: var(--card-bg);
+  color: var(--text-main);
+}
+.tutorial-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+.tutorial-banner p {
+  margin: 6px 0 8px;
+  line-height: 1.35;
+}
+.tutorial-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
