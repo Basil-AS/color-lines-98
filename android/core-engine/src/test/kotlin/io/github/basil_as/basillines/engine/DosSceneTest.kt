@@ -161,4 +161,41 @@ class DosSceneTest {
         assertEquals(true, lines.all { it.length <= 14 })
         assertEquals("Цель игры набрать больше очков чем король", lines.joinToString(" "))
     }
+
+    @Test
+    fun towerGrowsWithTheScoreAndTopsOutAtTheKingPillar() {
+        assertEquals(0, DosSprites.towerRise(0, 100))
+        assertEquals(DosSprites.Tower.MAX_RISE / 2, DosSprites.towerRise(50, 100))
+        assertEquals(DosSprites.Tower.MAX_RISE, DosSprites.towerRise(100, 100))
+        assertEquals(DosSprites.Tower.MAX_RISE, DosSprites.towerRise(500, 100))
+        assertEquals(DosSprites.Tower.MAX_RISE, DosSprites.towerRise(10, 0))
+    }
+
+    @Test
+    fun drawsTheLiftedFigureHigherAndKeepsTheFootRingInPlace() {
+        val low = DosScene.build(state(score = 0, kingScore = 100))
+        val high = DosScene.build(state(score = 60, kingScore = 100))
+        val pretender = { draws: List<DosDraw> ->
+            draws.filterIsInstance<DosDraw.Image>()
+                .filter { it.img == DosImage.SHEET && it.dx == DosSprites.PRETENDER_POS.first }
+                .last()
+        }
+        assertTrue(pretender(high).dy < pretender(low).dy)
+        val foot = high.filterIsInstance<DosDraw.Image>()
+            .filter { it.img == DosImage.LAYOUT && it.src.y == DosSprites.Tower.FOOT_TOP }
+        assertEquals(1, foot.size)
+        assertEquals(DosSprites.Tower.FOOT_TOP, foot.first().dy)
+    }
+
+    @Test
+    fun stretchedDrawsHaveDestinationHeightAtLeastSourceHeight() {
+        val scene = DosScene.build(state(score = 60, kingScore = 100))
+        val stretched = scene.filterIsInstance<DosDraw.Image>().filter { it.dh != null }
+        assertTrue(stretched.isNotEmpty())
+        for (draw in stretched) {
+            val dh = draw.dh!!
+            assertTrue("dh ($dh) should be >= sh (${draw.src.h})", dh >= draw.src.h)
+        }
+    }
 }
+
