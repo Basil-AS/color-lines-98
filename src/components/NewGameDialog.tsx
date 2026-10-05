@@ -15,6 +15,7 @@ interface NewGameDialogProps {
   stats: Record<ModeId, { games: number; best: number }>;
   onStart: (mode: ModeId) => void;
   onClose: () => void;
+  onTutorial?: () => void;
   initialPicking?: boolean;
 }
 
@@ -22,7 +23,7 @@ interface NewGameDialogProps {
  * Starting over is the one action that throws a game away, so the dialog states plainly what happens to
  * the current game and puts the safe choice ("Keep playing") in focus whenever a game is in progress.
  */
-export function NewGameDialog({ lang, current, inProgress, stats, onStart, onClose, initialPicking }: NewGameDialogProps) {
+export function NewGameDialog({ lang, current, inProgress, stats, onStart, onClose, onTutorial, initialPicking }: NewGameDialogProps) {
   const t = (key: MessageKey, params?: Record<string, string | number>) => translate(lang, key, params);
   const [mode, setMode] = useState<ModeId>(current);
   const [picking, setPicking] = useState(() => initialPicking ?? !inProgress);
@@ -105,6 +106,11 @@ export function NewGameDialog({ lang, current, inProgress, stats, onStart, onClo
         >
           {inProgress ? t('newgame.keep') : t('btn.close')}
         </button>
+        {onTutorial && (
+          <button type="button" className="modal-btn modal-btn-secondary" onClick={onTutorial}>
+            {t('tutorial.start')}
+          </button>
+        )}
       </div>
     </Dialog>
   );
