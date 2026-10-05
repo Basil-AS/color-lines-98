@@ -23,6 +23,8 @@ import { addGame, mergeLedgersWithHistory } from './ledger';
 import type { Ledger } from './ledger';
 import type { ModeId } from './engine/modes';
 import { findHint, type Hint } from './engine/hint';
+import { STEPS, judge, stepEngine } from './tutorial';
+import type { TutorialEvent } from './tutorial';
 import { createEngine, remainingMs, todayKey } from './modes';
 import { dailyGoals, evaluateGoals, goalBonus } from './goals';
 import type { Goal } from './goals';
@@ -223,6 +225,9 @@ export default function App() {
     goals: [],
     goalXp: 0,
   });
+  const [showResult, setShowResult] = useState(false);
+  /** The tutorial in progress: the step, the game it replaced (put back untouched when it ends) and a note after a miss. */
+  const [tut, setTut] = useState<{ step: number; saved: GameEngine; retry: boolean } | null>(null);
   const lastActionAt = useRef(0);
   const [goalsDone, setGoalsDone] = useState<string[]>(() => loadGoalsDone(todayKey()));
   const [bestScore, setBestScore] = useState(() =>
@@ -240,8 +245,9 @@ export default function App() {
   // Re-render and persist the game after the engine has been mutated by a handler.
   const commit = useCallback(() => {
     setVersion((v) => v + 1);
-    saveGame(engine);
-  }, [engine]);
+    // The tutorial plays on its own board and must never overwrite the saved game.
+    if (!tut) saveGame(engine);
+  }, [engine, tut]);
 
   // Counts active time between actions; long pauses (a forgotten tab) are capped.
   const trackTime = () => {
@@ -314,11 +320,6 @@ export default function App() {
     setSoundEnabled(soundManager.toggle());
   };
 
-  const changePlayerName = (name: string) => {
-    setPlayerName(name.slice(0, 12));
-    savePlayerName(name);
-  };
-
   const togglePreview = () => {
     const next = !spawnPreview;
     setSpawnStored(next);
@@ -358,6 +359,7 @@ export default function App() {
         soundManager.play('select');
         haptic('select');
         fxRef.current?.ripple(clickedPoint, 'rgba(255,255,255,0.9)');
+        tutorialEvent({ kind: 'select', point: clickedPoint });
       }
       commit();
       return;
@@ -373,6 +375,7 @@ export default function App() {
       haptic('blocked');
       fxRef.current?.deny(clickedPoint);
       setAnnouncement(t('announce.noPath'));
+      tutorialEvent({ kind: 'move', success: false, cleared: 0 });
       return;
     }
 
@@ -416,7 +419,7 @@ export default function App() {
       };
     }
     haptic(cleared ? (res.pointsEarned >= 28 ? 'bigClear' : 'clear') : 'move');
-    if (engine.score > kingOf(hall).score && coronationStart === null) {
+    if (!tut && engine.score > kingOf(hall).score && coronationStart === null) {
       setCoronationStart(start);
       if (!res.isGameOver) window.setTimeout(() => soundManager.play('crown'), 450 + lag);
     }
@@ -454,13 +457,66 @@ export default function App() {
       dangerWarned.current = false;
     }
 
-    if (engine.score > bestScore) {
+    if (!tut && engine.score > bestScore) {
       setBestScore(engine.score);
       saveBestScore(engine.score);
     }
 
-    if (res.isGameOver) finishGame();
+    if (res.isGameOver && !tut) finishGame();
     commit();
+    tutorialEvent({ kind: 'move', success: true, cleared: res.clearedPoints.length });
+  };
+
+  // ---- tutorial -------------------------------------------------------------------------------------------
+  const showStepHint = (index: number) => {
+    const s = STEPS[index];
+    setHint(s.from ? { from: s.from, to: s.to ?? s.from, clears: false, value: 0 } : null);
+  };
+
+  /** Puts a step's own board on the screen (or keeps the board when the step has none). */
+  const enterStep = (index: number, saved: GameEngine, retry = false) => {
+    const step = STEPS[index];
+    const own = stepEngine(step);
+    if (own) {
+      setEngine(own);
+      setEffects([]);
+    }
+    setTut({ step: index, saved, retry });
+    showStepHint(index);
+    setVersion((v) => v + 1);
+  };
+
+  const startTutorial = () => {
+    setDialog(null);
+    setShowResult(false);
+    setHint(null);
+    enterStep(0, tut ? tut.saved : engine);
+  };
+
+  /** Leaves the tutorial and puts the game that was on the board back, exactly as it was. */
+  const endTutorial = () => {
+    if (!tut) return;
+    setEngine(tut.saved);
+    setTut(null);
+    setHint(null);
+    setEffects([]);
+    setVersion((v) => v + 1);
+  };
+
+  const tutorialEvent = (e: TutorialEvent) => {
+    if (!tut) return;
+    const verdict = judge(STEPS[tut.step], e);
+    const saved = tut.saved;
+    const index = tut.step;
+    if (verdict === 'done') {
+      // Let the player see what their move did before the next step arrives.
+      const delay = e.kind === 'move' ? 1100 : 0;
+      const go = () => enterStep(index + 1, saved);
+      if (delay > 0) window.setTimeout(go, delay);
+      else go();
+    } else if (verdict === 'retry') {
+      window.setTimeout(() => enterStep(index, saved, true), 1300);
+    }
   };
 
   /** The game just ended (board full or time up): sound, result, record and the follow-up rewards. */
@@ -494,7 +550,7 @@ export default function App() {
 
   /** Selects the ball worth moving and marks where to put it; three a game. */
   const handleHint = () => {
-    if (engine.isGameOver || hintsLeft <= 0) return;
+    if (tut || engine.isGameOver || hintsLeft <= 0) return;
     const h = findHint(engine.board);
     if (!h) {
       setAnnouncement(t('hint.none'));
@@ -513,6 +569,7 @@ export default function App() {
 
   const handleUndo = () => {
     setHint(null);
+    setShowResult(false);
     trackTime();
     if (engine.undo()) {
       soundManager.play('click');
@@ -524,7 +581,7 @@ export default function App() {
 
   /** Starts a game in the given mode; a game in progress is recorded as unfinished. */
   const startGame = (mode: ModeId) => {
-    if (!engine.isGameOver && engine.moves > 0) recordGame(false);
+    if (!tut && !engine.isGameOver && engine.moves > 0) recordGame(false);
     const next = createEngine(mode);
     setHint(null);
     setHintsLeft(HINTS_PER_GAME);
@@ -540,19 +597,30 @@ export default function App() {
     setCoronationStart(null);
     setBestAtGameStart(bestScore);
     setDialog(null);
+    setShowResult(false);
+    setTut(null);
     setNewGameMode(null);
     soundManager.play('start');
     setAnnouncement(t('announce.newGame'));
     setVersion((v) => v + 1);
   };
 
-  /** Every "new game" button opens the dialog: it names the mode and warns before a game is thrown away. */
+  /** The dialog names the mode and warns before a game in progress is thrown away. */
   const requestNewGame = () => {
+    // Back from the tutorial first: the dialog then speaks about the game that was on the board before it.
+    if (tut) endTutorial();
     setNewGameMode(null);
     setDialog('newgame');
   };
 
-  const handleNewGame = requestNewGame;
+  /** After a finished game there is nothing to warn about: play the same mode again straight away. */
+  const handleNewGame = () => {
+    if (!tut && engine.isGameOver) {
+      startGame(engine.mode);
+    } else {
+      requestNewGame();
+    }
+  };
 
   const playDaily = () => {
     setNewGameMode('daily');
@@ -738,7 +806,7 @@ export default function App() {
   useEffect(() => {
     if (!dos) return;
     const onKey = (e: globalThis.KeyboardEvent) => {
-      if (dialog !== null || engine.isGameOver) return;
+      if (dialog !== null) return;
       const action: Record<string, () => void> = {
         F1: () => setDosWindow((w) => (w === 'help' ? 'none' : 'help')),
         F2: toggleSound,
@@ -809,7 +877,7 @@ export default function App() {
             tabIndex={isFocusStop ? 0 : -1}
             aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
             aria-pressed={color ? isSelected : undefined}
-            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && hint.to.x === x && hint.to.y === y ? 'hint-target' : ''}`}
+            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && ((hint.to.x === x && hint.to.y === y) || (tut && hint.from.x === x && hint.from.y === y)) ? 'hint-target' : ''}`}
             onClick={() => handleCellClick(x, y)}
             onKeyDown={(e) => handleCellKeyDown(e, x, y)}
           >
@@ -876,6 +944,32 @@ export default function App() {
     </div>
   );
 
+  const resultBadge =
+    engine.isGameOver &&
+    (lastResult.xp > 0 || lastResult.levelUp !== null || lastResult.unlocked.length > 0 || lastResult.goals.length > 0)
+      ? `+${lastResult.xp}`
+      : '';
+
+  const gameOverActions = (
+    <div className="gameover-actions">
+      <button
+        type="button"
+        className="gameover-btn"
+        onClick={() => startGame(engine.mode)}
+      >
+        {t('btn.newGame')}
+      </button>
+      <button
+        type="button"
+        className="gameover-btn gameover-btn-secondary"
+        onClick={() => setShowResult(true)}
+      >
+        <span>{t('gameover.result')}</span>
+        {resultBadge && <span className="result-badge">{resultBadge}</span>}
+      </button>
+    </div>
+  );
+
   const sidePanel = (
     <aside className="side-panel" aria-label={t('goals.title')}>
       <GoalsPanel lang={lang} goals={goalProgress} goalStreak={goalStreak} dailyBest={dailyBest} onPlayDaily={playDaily} />
@@ -891,10 +985,12 @@ export default function App() {
         <NewGameDialog
           lang={lang}
           current={newGameMode ?? engine.mode}
+          initialPicking={newGameMode !== null ? true : undefined}
           inProgress={!engine.isGameOver && engine.moves > 0 ? { score: engine.score, moves: engine.moves } : null}
           stats={Object.fromEntries(MODE_IDS.map((id) => [id, { games: progress.gamesByMode[id], best: progress.bestByMode[id] }])) as Record<ModeId, { games: number; best: number }>}
           onStart={startGame}
           onClose={closeDialog}
+          onTutorial={startTutorial}
         />
       )}
       {dialog === 'goals' && (
@@ -907,7 +1003,7 @@ export default function App() {
           onClose={closeDialog}
         />
       )}
-      {engine.isGameOver && dialog !== 'newgame' && dialog !== 'goals' && (
+      {engine.isGameOver && showResult && dialog === null && (
         <GameOverDialog
           lang={lang}
           score={engine.score}
@@ -918,12 +1014,15 @@ export default function App() {
           unlocked={lastResult.unlocked}
           goalsReached={lastResult.goals}
           goalXp={lastResult.goalXp}
-          onPlayAgain={() => startGame(engine.mode)}
-          onChangeMode={requestNewGame}
+          onPlayAgain={() => {
+            setShowResult(false);
+            startGame(engine.mode);
+          }}
+          onClose={() => setShowResult(false)}
         />
       )}
-      {!engine.isGameOver && dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} />}
-      {!engine.isGameOver && dialog === 'stats' && (
+      {dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} onTutorial={startTutorial} />}
+      {dialog === 'stats' && (
         <StatsDialog
           lang={lang}
           history={history}
@@ -936,7 +1035,7 @@ export default function App() {
           onClose={closeDialog}
         />
       )}
-      {!engine.isGameOver && dialog === 'settings' && (
+      {dialog === 'settings' && (
         <SettingsDialog
           lang={lang}
           theme={theme}
@@ -947,8 +1046,6 @@ export default function App() {
           onToggleSound={toggleSound}
           spawnPreview={spawnPreview}
           onTogglePreview={togglePreview}
-          playerName={playerName}
-          onPlayerName={changePlayerName}
           effects={effectsLevel}
           onEffects={changeEffects}
           vibration={vibration}
@@ -994,7 +1091,7 @@ export default function App() {
   // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
   const names = dosNames({
     kingName: hall.length > 0 ? hall[0].name : translate('en', 'dos.defaultKing'),
-    crowned: coronationStart !== null,
+    crowned: !tut && coronationStart !== null,
     playerName,
     pretenderLabel: translate('en', 'dos.pretender'),
     defaultPlayerName: translate('en', 'dos.defaultName'),
@@ -1015,7 +1112,7 @@ export default function App() {
           kingScore: kingOf(hall).score,
           soundOn: soundEnabled,
           effects,
-          coronationStart,
+          coronationStart: tut ? null : coronationStart,
         }}
         // The dethroned king keeps his name and record; the crowned pretender is the player.
         kingName={names.king}
@@ -1059,9 +1156,35 @@ export default function App() {
     </div>
   );
 
+  const lastStep = tut !== null && tut.step === STEPS.length - 1;
+  const tutorialBanner = tut && (
+    <section className="tutorial-banner" aria-label={t('tutorial.title')}>
+      <div className="tutorial-head">
+        <strong>{t('tutorial.title')}</strong>
+        <span>{t('tutorial.progress', { n: tut.step + 1, total: STEPS.length })}</span>
+      </div>
+      <p role="status">
+        {t((tut.retry ? `tutorial.retry.${STEPS[tut.step].id}` : `tutorial.${STEPS[tut.step].id}`) as MessageKey)}
+      </p>
+      <div className="tutorial-actions">
+        {STEPS[tut.step].info && (
+          <button type="button" className="modal-btn" onClick={() => (lastStep ? endTutorial() : enterStep(tut.step + 1, tut.saved))}>
+            {lastStep ? t('tutorial.finish') : t('tutorial.continue')}
+          </button>
+        )}
+        {!lastStep && (
+          <button type="button" className="modal-btn modal-btn-secondary" onClick={endTutorial}>
+            {t('tutorial.skip')}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
   if (dos) {
     return (
       <div className={`app-container theme-${theme} has-side`}>
+        {tutorialBanner}
         {dosView}
         {sidePanel}
         {dialogs}
@@ -1075,6 +1198,7 @@ export default function App() {
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
         </div>
+        {tutorialBanner}
 
         {theme === 'lines98' && (
           <>
@@ -1136,19 +1260,23 @@ export default function App() {
               <div className="l98-cell" role="group" aria-label={t('hud.best')}>
                 <LedNumber value={Math.max(engine.score, bestScore)} />
               </div>
-              <div
-                className="l98-next"
-                role="img"
-                aria-label={t('next.label', {
-                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
-                })}
-              >
-                {engine.nextColors.map((color, idx) => (
-                  <div key={idx} className={`ball ball-mini color-${color}`}>
-                    <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
-                  </div>
-                ))}
-              </div>
+              {engine.isGameOver ? (
+                gameOverActions
+              ) : (
+                <div
+                  className="l98-next"
+                  role="img"
+                  aria-label={t('next.label', {
+                    colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                  })}
+                >
+                  {engine.nextColors.map((color, idx) => (
+                    <div key={idx} className={`ball ball-mini color-${color}`}>
+                      <img src={getSpriteUrl(color)} alt="" className="ball-classic" />
+                    </div>
+                  ))}
+                </div>
+              )}
               <div className="l98-cell" role="group" aria-label={t('hud.score')}>
                 <LedNumber value={engine.score} />
               </div>
@@ -1173,24 +1301,28 @@ export default function App() {
           </div>
 
           <div className="hud-action-row">
-            <div
-              className="next-balls-preview"
-              role="img"
-              aria-label={t('next.label', {
-                colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
-              })}
-            >
-              <span className="next-balls-label" aria-hidden="true">
-                {t('hud.next')}
-              </span>
-              <div className="next-balls-list" aria-hidden="true">
-                {engine.nextColors.map((color, idx) => (
-                  <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
-                    {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
-                  </div>
-                ))}
+            {engine.isGameOver ? (
+              gameOverActions
+            ) : (
+              <div
+                className="next-balls-preview"
+                role="img"
+                aria-label={t('next.label', {
+                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                })}
+              >
+                <span className="next-balls-label" aria-hidden="true">
+                  {t('hud.next')}
+                </span>
+                <div className="next-balls-list" aria-hidden="true">
+                  {engine.nextColors.map((color, idx) => (
+                    <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
+                      {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="controls-group">
               <button

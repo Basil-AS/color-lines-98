@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import androidx.annotation.RequiresApi
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -16,6 +17,7 @@ import io.github.basil_as.basillines.engine.BallColor
 import io.github.basil_as.basillines.engine.Point
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -202,15 +204,115 @@ fun DrawScope.drawFx(
 
 // ---- touch feedback ---------------------------------------------------------------------------
 
-enum class HapticKind(val pattern: LongArray) {
-    SELECT(longArrayOf(6)), MOVE(longArrayOf(10)), BLOCKED(longArrayOf(28, 40, 28)), CLEAR(longArrayOf(16, 30, 22)),
-    BIG_CLEAR(longArrayOf(26, 36, 26, 36, 60)), COMBO(longArrayOf(18, 24, 18, 24, 18, 24, 50)), DANGER(longArrayOf(40, 90, 40)),
-    GAME_OVER(longArrayOf(120, 70, 220)), RECORD(longArrayOf(40, 40, 40, 40, 40, 40, 220)), HINT(longArrayOf(8, 40, 8)), UNDO(longArrayOf(12))
+data class HapticStep(
+    val durationMs: Long,
+    val amplitude: Int,
+    val gapMs: Long = 0L
+) {
+    fun scaled(scale: Float): HapticStep =
+        copy(amplitude = scaleAmplitude(amplitude, scale))
+}
+
+fun scaleAmplitude(amplitude: Int, scale: Float): Int {
+    return (amplitude * scale).roundToInt().coerceIn(1, 255)
+}
+
+val HAPTIC_PATTERNS: Map<HapticKind, List<HapticStep>> = mapOf(
+    HapticKind.SELECT to listOf(
+        HapticStep(14L, 110)
+    ),
+    HapticKind.MOVE to listOf(
+        HapticStep(18L, 140)
+    ),
+    HapticKind.BLOCKED to listOf(
+        HapticStep(40L, 220, 50L),
+        HapticStep(40L, 220)
+    ),
+    HapticKind.CLEAR to listOf(
+        HapticStep(22L, 120, 12L),
+        HapticStep(22L, 180, 12L),
+        HapticStep(26L, 240)
+    ),
+    HapticKind.BIG_CLEAR to listOf(
+        HapticStep(20L, 130, 12L),
+        HapticStep(24L, 180, 12L),
+        HapticStep(28L, 220, 16L),
+        HapticStep(50L, 255)
+    ),
+    HapticKind.COMBO to listOf(
+        HapticStep(16L, 120, 40L),
+        HapticStep(16L, 150, 30L),
+        HapticStep(18L, 185, 20L),
+        HapticStep(20L, 220, 14L),
+        HapticStep(24L, 255)
+    ),
+    HapticKind.DANGER to listOf(
+        HapticStep(60L, 200, 100L),
+        HapticStep(60L, 200)
+    ),
+    HapticKind.GAME_OVER to listOf(
+        HapticStep(80L, 240, 15L),
+        HapticStep(80L, 180, 15L),
+        HapticStep(80L, 120, 15L),
+        HapticStep(70L, 60)
+    ),
+    HapticKind.RECORD to listOf(
+        HapticStep(25L, 220, 30L),
+        HapticStep(25L, 220, 30L),
+        HapticStep(25L, 240, 45L),
+        HapticStep(40L, 160, 10L),
+        HapticStep(60L, 210, 10L),
+        HapticStep(100L, 255)
+    ),
+    HapticKind.HINT to listOf(
+        HapticStep(12L, 90, 45L),
+        HapticStep(12L, 90)
+    ),
+    HapticKind.UNDO to listOf(
+        HapticStep(10L, 70, 10L),
+        HapticStep(16L, 130)
+    )
+)
+
+fun stepsToTimings(steps: List<HapticStep>): LongArray {
+    val timings = ArrayList<Long>(steps.size * 2)
+    for (i in steps.indices) {
+        val s = steps[i]
+        timings.add(s.durationMs)
+        if (s.gapMs > 0L && i < steps.size - 1) {
+            timings.add(s.gapMs)
+        }
+    }
+    return timings.toLongArray()
+}
+
+fun stepsToWaveform(steps: List<HapticStep>, intensity: Float = 1.0f): Pair<LongArray, IntArray> {
+    val timings = ArrayList<Long>(steps.size * 2)
+    val amplitudes = ArrayList<Int>(steps.size * 2)
+    for (i in steps.indices) {
+        val s = steps[i]
+        timings.add(s.durationMs)
+        amplitudes.add(scaleAmplitude(s.amplitude, intensity))
+        if (s.gapMs > 0L && i < steps.size - 1) {
+            timings.add(s.gapMs)
+            amplitudes.add(0)
+        }
+    }
+    return timings.toLongArray() to amplitudes.toIntArray()
+}
+
+enum class HapticKind {
+    SELECT, MOVE, BLOCKED, CLEAR, BIG_CLEAR, COMBO, DANGER, GAME_OVER, RECORD, HINT, UNDO;
+
+    val steps: List<HapticStep> get() = HAPTIC_PATTERNS.getValue(this)
+    val pattern: LongArray get() = stepsToTimings(steps)
+    val totalDurationMs: Long get() = steps.sumOf { it.durationMs + it.gapMs }
 }
 
 /** Vibration patterns for game events (the same table as src/haptics.ts). */
 class Haptics(context: Context) {
     var enabled: Boolean = true
+    var intensity: Float = 1.0f
 
     private val vibrator: Vibrator? = runCatching {
         if (Build.VERSION.SDK_INT >= 31) (context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
@@ -219,14 +321,79 @@ class Haptics(context: Context) {
 
     val supported: Boolean get() = vibrator?.hasVibrator() == true
 
-    fun play(kind: HapticKind) {
+    fun play(kind: HapticKind, intensity: Float = this.intensity) {
         val v = vibrator ?: return
         if (!enabled || !v.hasVibrator()) return
         // A game must never fail because the vibrator does (a battery saver, a missing permission).
         runCatching {
-            // Waveform timings are "wait, buzz, wait, buzz..." so the pattern starts with no wait.
-            val timings = longArrayOf(0) + kind.pattern
-            v.vibrate(VibrationEffect.createWaveform(timings, -1))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                if (tryPlayComposition(v, kind, intensity)) return
+            }
+
+            if (v.hasAmplitudeControl()) {
+                val (timings, amplitudes) = stepsToWaveform(kind.steps, intensity)
+                v.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+            } else {
+                // Waveform timings are "wait, buzz, wait, buzz..." so the pattern starts with no wait.
+                val timings = longArrayOf(0) + kind.pattern
+                v.vibrate(VibrationEffect.createWaveform(timings, -1))
+            }
         }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun tryPlayComposition(v: Vibrator, kind: HapticKind, scale: Float): Boolean {
+        val isCompositionKind = when (kind) {
+            HapticKind.CLEAR, HapticKind.BIG_CLEAR, HapticKind.COMBO, HapticKind.RECORD, HapticKind.GAME_OVER -> true
+            else -> false
+        }
+        if (!isCompositionKind) return false
+
+        val primitivesSupported = runCatching {
+            v.areAllPrimitivesSupported(
+                VibrationEffect.Composition.PRIMITIVE_CLICK,
+                VibrationEffect.Composition.PRIMITIVE_TICK,
+                VibrationEffect.Composition.PRIMITIVE_THUD,
+                VibrationEffect.Composition.PRIMITIVE_QUICK_RISE,
+                VibrationEffect.Composition.PRIMITIVE_SLOW_RISE,
+                VibrationEffect.Composition.PRIMITIVE_QUICK_FALL
+            )
+        }.getOrDefault(false)
+        if (!primitivesSupported) return false
+
+        return runCatching {
+            val comp = VibrationEffect.startComposition()
+            val s = scale.coerceIn(0.01f, 1.0f)
+            when (kind) {
+                HapticKind.CLEAR -> {
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_RISE, (0.8f * s).coerceIn(0.01f, 1.0f))
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, (1.0f * s).coerceIn(0.01f, 1.0f), 15)
+                }
+                HapticKind.BIG_CLEAR -> {
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, (0.9f * s).coerceIn(0.01f, 1.0f))
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, (1.0f * s).coerceIn(0.01f, 1.0f), 20)
+                }
+                HapticKind.COMBO -> {
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, (0.5f * s).coerceIn(0.01f, 1.0f))
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_TICK, (0.7f * s).coerceIn(0.01f, 1.0f), 35)
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, (0.85f * s).coerceIn(0.01f, 1.0f), 25)
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, (1.0f * s).coerceIn(0.01f, 1.0f), 15)
+                }
+                HapticKind.RECORD -> {
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, (0.9f * s).coerceIn(0.01f, 1.0f))
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, (0.9f * s).coerceIn(0.01f, 1.0f), 35)
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_CLICK, (1.0f * s).coerceIn(0.01f, 1.0f), 35)
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_SLOW_RISE, (1.0f * s).coerceIn(0.01f, 1.0f), 45)
+                }
+                HapticKind.GAME_OVER -> {
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, (1.0f * s).coerceIn(0.01f, 1.0f))
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_QUICK_FALL, (0.6f * s).coerceIn(0.01f, 1.0f), 40)
+                    comp.addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, (0.3f * s).coerceIn(0.01f, 1.0f), 40)
+                }
+                else -> return false
+            }
+            v.vibrate(comp.compose())
+            true
+        }.getOrDefault(false)
     }
 }

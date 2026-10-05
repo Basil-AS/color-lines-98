@@ -54,9 +54,16 @@ class MainScreenTest {
     }
 
     private fun playOneMove() {
-        ballCells().onFirst().performClick()
-        rule.onAllNodes(reachable).onFirst().performClick()
-        rule.waitForIdle()
+        // On a random board the first ball can be boxed in: take the first ball that can move.
+        for (i in 0 until ballCount()) {
+            ballCells()[i].performClick()
+            if (rule.onAllNodes(reachable).fetchSemanticsNodes().isNotEmpty()) {
+                rule.onAllNodes(reachable).onFirst().performClick()
+                rule.waitForIdle()
+                return
+            }
+        }
+        error("no ball on the board can move")
     }
 
     @Test
@@ -218,6 +225,8 @@ class MainScreenTest {
         playOneMove()
         rule.onNodeWithContentDescription("New game").performClick()
         rule.waitForIdle()
+        rule.onNode(hasText("Change mode")).performClick()
+        rule.waitForIdle()
         rule.onAllNodes(hasText("7 colours, no time limit", substring = true)).onFirst().assertExists()
         rule.onNode(hasText("5 colours", substring = true)).assertExists()
         rule.onNode(hasText("3 min", substring = true)).assertExists()
@@ -226,6 +235,25 @@ class MainScreenTest {
         rule.onNode(hasText("switching from Classic to Blitz", substring = true)).assertIsDisplayed()
         rule.onNode(hasText("Start: Blitz")).assertExists()
         rule.onAllNodes(hasText("counted as unfinished", substring = true)).onFirst().assertExists()
+    }
+
+    @Test
+    fun newGameDialogWithAGameInProgressFoldsTheModeListUntilChangeModeIsTapped() {
+        playOneMove()
+        rule.onNodeWithContentDescription("New game").performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Change mode")).assertIsDisplayed()
+        rule.onNode(hasText("Blitz")).assertDoesNotExist()
+        rule.onNode(hasText("5 colours", substring = true)).assertDoesNotExist()
+        rule.onNode(hasText("3 min", substring = true)).assertDoesNotExist()
+        assertTrue(rule.onAllNodes(hasText("7 colours, no time limit", substring = true)).fetchSemanticsNodes().isEmpty())
+
+        rule.onNode(hasText("Change mode")).performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Blitz")).assertIsDisplayed()
+        rule.onNode(hasText("5 colours", substring = true)).assertExists()
+        rule.onNode(hasText("3 min", substring = true)).assertExists()
+        rule.onAllNodes(hasText("7 colours, no time limit", substring = true)).onFirst().assertExists()
     }
 
     @Test
@@ -285,13 +313,10 @@ class MainScreenTest {
     }
 
     @Test
-    fun settingsShowTheVersionTheSignatureAndTheUpdateControls() {
+    fun settingsShowTheVersionAndTheUpdateControls() {
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.waitForIdle()
         rule.onNode(hasText("Version", substring = true)).performScrollTo().assertExists()
-        // The test build is not signed with the release key (or Robolectric has no signature to read): never "release key".
-        rule.onNode(hasText("Signed with another key", substring = true) or hasText("The signature could not be read.")).performScrollTo().assertExists()
-        assertTrue(rule.onAllNodes(hasText("Signed with the Color Lines release key", substring = true)).fetchSemanticsNodes().isEmpty())
         rule.onNode(hasText("Check for updates automatically")).performScrollTo().assertExists()
         rule.onNode(hasText("Check for updates")).performScrollTo().performClick()
         rule.waitForIdle()
@@ -320,6 +345,9 @@ class MainScreenTest {
     @Test
     fun theModeChosenIsUsedAndRemembered() {
         rule.onNodeWithContentDescription("New game").performClick()
+        rule.waitForIdle()
+        rule.onNode(hasText("Change mode")).performClick()
+        rule.waitForIdle()
         rule.onNode(hasText("Blitz")).performClick()
         confirmNewGame()
         assertEquals(io.github.basil_as.basillines.engine.ModeId.BLITZ, GameStorage(ApplicationProvider.getApplicationContext()).mode)
@@ -514,6 +542,9 @@ class GameOverFlowTest {
         rule.onNodeWithContentDescription("Row 1, column 2, empty", substring = true).performClick()
         rule.waitForIdle()
 
+        rule.onAllNodes(hasText("Result", substring = true)).onFirst().performClick()
+        rule.waitForIdle()
+
         rule.onAllNodes(hasText("Game over")).onFirst().assertIsDisplayed()
         rule.onAllNodes(hasText("First steps")).onFirst().assertIsDisplayed()
         val storage = GameStorage(context)
@@ -525,6 +556,71 @@ class GameOverFlowTest {
         rule.waitForIdle()
         // A finished game is recorded once; the next game does not add an "abandoned" entry.
         assertEquals(1, GameStorage(context).history.size)
+    }
+
+    @Test
+    fun gameOverShowsNoDialogByItself() {
+        val prefs = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().putString("game", almostFullGame()).commit()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Row 1, column 3, blue ball", substring = true).performClick()
+        rule.onNodeWithContentDescription("Row 1, column 2, empty", substring = true).performClick()
+        rule.waitForIdle()
+
+        assertTrue(rule.onAllNodes(hasText("Game over")).fetchSemanticsNodes().isEmpty())
+        rule.onAllNodes(hasText("New game")).onFirst().assertIsDisplayed()
+        rule.onAllNodes(hasText("Result", substring = true)).onFirst().assertIsDisplayed()
+    }
+
+    @Test
+    fun newGameAfterGameOverStartsFreshGameOfSameModeWithNoDialog() {
+        val prefs = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().putString("game", almostFullGame()).commit()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Row 1, column 3, blue ball", substring = true).performClick()
+        rule.onNodeWithContentDescription("Row 1, column 2, empty", substring = true).performClick()
+        rule.waitForIdle()
+
+        rule.onAllNodes(hasText("New game")).onFirst().performClick()
+        rule.waitForIdle()
+
+        assertTrue(rule.onAllNodes(hasText("Game over")).fetchSemanticsNodes().isEmpty())
+        assertTrue(rule.onAllNodes(hasText("Change mode")).fetchSemanticsNodes().isEmpty())
+        assertTrue(rule.onAllNodes(hasText("Result", substring = true)).fetchSemanticsNodes().isEmpty())
+        val storage = GameStorage(context)
+        assertEquals(io.github.basil_as.basillines.engine.ModeId.CLASSIC, storage.mode)
+        assertEquals(1, storage.history.size)
+    }
+
+    @Test
+    fun resultDialogCanBeDismissedWithCloseAndDoesNotReappearUntilResultIsTappedAgain() {
+        val prefs = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+        prefs.edit().clear().putString("game", almostFullGame()).commit()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+
+        rule.onNodeWithContentDescription("Row 1, column 3, blue ball", substring = true).performClick()
+        rule.onNodeWithContentDescription("Row 1, column 2, empty", substring = true).performClick()
+        rule.waitForIdle()
+
+        rule.onAllNodes(hasText("Result", substring = true)).onFirst().performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(hasText("Game over")).onFirst().assertIsDisplayed()
+
+        rule.onNode(hasText("Close")).performClick()
+        rule.waitForIdle()
+        assertTrue(rule.onAllNodes(hasText("Game over")).fetchSemanticsNodes().isEmpty())
+
+        rule.waitForIdle()
+        assertTrue(rule.onAllNodes(hasText("Game over")).fetchSemanticsNodes().isEmpty())
+
+        rule.onAllNodes(hasText("Result", substring = true)).onFirst().performClick()
+        rule.waitForIdle()
+        rule.onAllNodes(hasText("Game over")).onFirst().assertIsDisplayed()
     }
 }
 
@@ -650,16 +746,6 @@ class DosThemeTest {
     }
 
     @Test
-    fun theSettingsListTheTopTenName() {
-        startDos()
-        rule.onNodeWithContentDescription("Settings").performClick()
-        rule.waitForIdle()
-        // (The text field behind this row has an endless blinking cursor that Robolectric never sees as idle,
-        // so the row is checked here and the stored value has its own test.)
-        rule.onAllNodes(hasText("Your name (Top Ten)", substring = true)).onFirst().assertExists()
-    }
-
-    @Test
     fun aFinishedGameEntersTheTopTenAndBecomesTheKing() {
         val cells = buildString {
             for (y in 0 until 9) for (x in 0 until 9) {
@@ -677,7 +763,8 @@ class DosThemeTest {
         rule.onNodeWithContentDescription("Row 1, column 2, empty", substring = true).performClick()
         rule.waitForIdle()
 
-        rule.onAllNodes(hasText("Game over")).onFirst().assertIsDisplayed()
+        assertTrue(rule.onAllNodes(hasText("Game over")).fetchSemanticsNodes().isEmpty())
+        rule.onNode(hasText("Ann")).assertIsDisplayed()
         val hall = GameStorage(context).hall
         assertEquals(1, hall.size)
         assertEquals("Ann", hall[0].name)

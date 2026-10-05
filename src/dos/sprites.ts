@@ -54,6 +54,31 @@ export function pretenderRect(index: number): Rect {
 }
 export const PRETENDER_POS = { x: 516, y: 156 } as const;
 
+/**
+ * The pretender's pillar grows with the score: it starts as the short pedestal of the original screen and reaches the
+ * top of the king's pillar when the record is beaten. All numbers are rows/columns of the 640x350 layout picture.
+ */
+export const TOWER = {
+  /** The column that moves: the pretender, his legs and the top of the pedestal (x, width), from the first row to PEDESTAL_TOP + 4. */
+  x: 516,
+  w: 68,
+  top: 156,
+  /** First row of the pedestal body and the first row of the fixed foot ring under it. */
+  bodyTop: 219,
+  footTop: 232,
+  /** Rows of the plain pedestal body that are stretched to build the pillar. */
+  stretch: { sy: 224, sh: 4 },
+  /** How far the pretender can climb: from the pedestal top to the top of the king's pillar. */
+  maxRise: 82,
+} as const;
+
+/** Pixels the pretender has climbed for a score against the record (0 at no score, maxRise once the record falls). */
+export function towerRise(score: number, kingScore: number): number {
+  if (kingScore <= 0) return TOWER.maxRise;
+  const share = Math.max(0, Math.min(1, score / kingScore));
+  return Math.round(TOWER.maxRise * share);
+}
+
 export const LCD = {
   king: { x: 55, y: 11, w: 73, h: 11 },
   player: { x: 507, y: 11, w: 73, h: 11 },

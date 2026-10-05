@@ -20,9 +20,11 @@ and a native Android app, sharing one rule set.
 - **Spawn preview:** small balls show on the board where the next balls will appear (can be switched off).
 - **Modes** (same on the web and Android): *Classic*, *Easy* (5 colours), *Blitz* (3 minutes) and the *Daily challenge*
   (everyone gets the same start each day, on both platforms). Starting a game while another one is in progress warns
-  that it will be counted as unfinished.
+  that it will be counted as unfinished; after a finished game *New game* replays the same mode at once (the mode list is
+  folded behind *Change mode*) and the result is a button, never a window that covers the board.
 - **Goals that adapt:** three daily goals derived from your own recent games (score, longest line, efficiency, beat your
   previous best), with bonus XP and a goal streak, so they stay a fair challenge as you improve.
+- **Tutorial:** a short guided game on the real board and rules (pick a ball, move it, the next-balls panel, make a line, the free turn, a blocked path); from Help, New game or Settings. It never touches your saved game, records or statistics.
 - **Hint:** marks a ball and where to put it (a clearing move if there is one), three per game.
 - **Thirteen looks** (web and Android), each with its own sound voice, remembered between launches:
   - *Modern dark*, *Modern light*, *Material*, *Neon*, *Synthwave*, *Ocean* and *Paper*: different colours, board and
@@ -32,7 +34,7 @@ and a native Android app, sharing one rule set.
   - *Lines 98 (Windows)*: grey window chrome, the original bevelled board, red LED digits, the original sprites and sounds;
   - *98 Modern*: the glossy Lines 98 balls (and its sounds) on a clean, current interface;
   - *Color Lines 1992 (DOS)*: **the original screen from `lines.lib`**, drawn with the original sprites: the red king on
-    his pillar, the magenta pretender who takes the crown when you beat the king, LCD scores, `F1`–`F4` buttons and
+    his pillar, the magenta pretender whose pillar grows with your score until it reaches the king's and he takes the crown, LCD scores, `F1`–`F4` buttons and
     keys, the original Help window, a Top Ten table, PC-speaker sounds. See [`docs/ORIGINALS.md`](docs/ORIGINALS.md).
 - **A living board:** balls travel along their path and land with a squash, new balls pop in, lines burst into sparks, points float up,
   chains of clearing moves ring higher and shake the board, a nearly full board glows and warns, a ball wiggles now and then,
@@ -45,7 +47,7 @@ and a native Android app, sharing one rule set.
 - **Progress and analysis:** levels with titles, 23 achievements, day streaks, personal records, active play time, the
   full history and an analysis: trend against your previous games, games per day, score
   distribution, best weekdays, efficiency (points per move), record progression and the games left to the next level.
-- **Updates (Android):** the app checks the project's newest GitHub release once a day (switch it off in Settings), offers "Version X is available" and downloads it; releases are signed with one project key, so the update installs over the app and keeps your games. Settings show the version and whether the build carries that key.
+- **Updates (Android):** the app checks the project's newest GitHub release once a day (switch it off in Settings) and updates itself from inside the app: it downloads the APK, checks it against the release's `SHA256SUMS.txt`, checks that it is Color Lines signed with the project key and newer, and only then opens the system installer (Android asks once for the "install unknown apps" permission). Your games stay.
 - **English and Russian**, picked automatically from the browser or system language (web: also switchable in Settings;
   Android: Auto / English / Русский inside the game).
 - **Everywhere:** responsive layout for phones, tablets and desktops (portrait and landscape), keyboard play and screen

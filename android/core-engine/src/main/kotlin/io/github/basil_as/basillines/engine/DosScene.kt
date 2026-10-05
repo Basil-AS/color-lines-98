@@ -7,7 +7,7 @@ enum class DosFont { MONO, SERIF }
 enum class DosAlign { LEFT, CENTER, RIGHT }
 
 sealed interface DosDraw {
-    data class Image(val img: DosImage, val src: SpriteRect, val dx: Int, val dy: Int) : DosDraw
+    data class Image(val img: DosImage, val src: SpriteRect, val dx: Int, val dy: Int, val dh: Int? = null) : DosDraw
     data class Fill(val x: Int, val y: Int, val w: Int, val h: Int, val argb: Long) : DosDraw
 
     /** Text in scene pixels (the Russian overlay of the original labels); [y] is the baseline. */
@@ -152,7 +152,34 @@ object DosScene {
             pretenderFrame = minOf(4, step + 1)
         }
         draws += DosDraw.Image(DosImage.SHEET, DosSprites.kingRect(kingFrame), DosSprites.KING_POS.first, DosSprites.KING_POS.second)
-        draws += DosDraw.Image(DosImage.SHEET, DosSprites.pretenderRect(pretenderFrame), DosSprites.PRETENDER_POS.first, DosSprites.PRETENDER_POS.second)
+
+        // The pretender's pillar grows with the score: lift the figure and the top of the pedestal, fill the gap with more
+        // pedestal body and keep the foot ring where it was.
+        val rise = if (dt >= 0) DosSprites.Tower.MAX_RISE else DosSprites.towerRise(state.score, state.kingScore)
+        if (rise > 0) {
+            val chunkH = DosSprites.Tower.STRETCH.sy - DosSprites.Tower.TOP // the figure, the rim and the first rows of the pedestal body
+            draws += DosDraw.Fill(DosSprites.Tower.X, DosSprites.Tower.TOP - rise, DosSprites.Tower.W, DosSprites.Tower.FOOT_TOP - DosSprites.Tower.TOP + rise, 0xFF000000)
+            draws += DosDraw.Image(
+                DosImage.LAYOUT,
+                SpriteRect(DosSprites.Tower.X, DosSprites.Tower.STRETCH.sy, DosSprites.Tower.W, DosSprites.Tower.STRETCH.sh),
+                DosSprites.Tower.X,
+                DosSprites.Tower.TOP + chunkH - rise,
+                dh = DosSprites.Tower.FOOT_TOP - (DosSprites.Tower.TOP + chunkH - rise)
+            )
+            draws += DosDraw.Image(
+                DosImage.LAYOUT,
+                SpriteRect(DosSprites.Tower.X, DosSprites.Tower.TOP, DosSprites.Tower.W, chunkH),
+                DosSprites.Tower.X,
+                DosSprites.Tower.TOP - rise
+            )
+            draws += DosDraw.Image(
+                DosImage.LAYOUT,
+                SpriteRect(DosSprites.Tower.X, DosSprites.Tower.FOOT_TOP, DosSprites.Tower.W, 7),
+                DosSprites.Tower.X,
+                DosSprites.Tower.FOOT_TOP
+            )
+        }
+        draws += DosDraw.Image(DosImage.SHEET, DosSprites.pretenderRect(pretenderFrame), DosSprites.PRETENDER_POS.first, DosSprites.PRETENDER_POS.second - rise)
 
         val lit = mapOf(
             DosButton.HELP to (DosButton.HELP in state.pressed),

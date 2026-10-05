@@ -75,13 +75,14 @@ enum class DosWindow { NONE, HELP, TOP_TEN }
 /** Clock shared by the screen's animations and the effects started by moves. */
 fun clockMs(): Long = System.nanoTime() / 1_000_000
 
-private fun DrawScope.drawSprite(bitmap: ImageBitmap, src: SpriteRect, dx: Int, dy: Int, sx: Float, sy: Float) {
+private fun DrawScope.drawSprite(bitmap: ImageBitmap, src: SpriteRect, dx: Int, dy: Int, sx: Float, sy: Float, dh: Int? = null) {
+    val destH = dh ?: src.h
     drawImage(
         bitmap,
         srcOffset = IntOffset(src.x, src.y),
         srcSize = IntSize(src.w, src.h),
         dstOffset = IntOffset((dx * sx).roundToInt(), (dy * sy).roundToInt()),
-        dstSize = IntSize((src.w * sx).roundToInt().coerceAtLeast(1), (src.h * sy).roundToInt().coerceAtLeast(1)),
+        dstSize = IntSize((src.w * sx).roundToInt().coerceAtLeast(1), (destH * sy).roundToInt().coerceAtLeast(1)),
         filterQuality = FilterQuality.None
     )
 }
@@ -101,13 +102,13 @@ private object Regions {
     val NEXT_BAR = SpriteRect(200, 0, 250, 40)
     fun key(i: Int) = SpriteRect(96 + i * 133, 316, 124, 34)
 
-    // The king's sprite is 72 pixels wide and the pretender's 50. Each region is cut so that, shown at the same width,
-    // both heroes appear equally large (88 / 72 = 61 / 50).
-    val KING = SpriteRect(42, 66, 88, 92)
-    val PRETENDER = SpriteRect(511, 150, 61, 64)
+    // The king's pillar is shown alongside the pretender's tower (x=516..584, y=74..239). Both regions share the same
+    // dimensions (88x180) so that on phones both heroes appear equally large and their captions align.
+    val KING = SpriteRect(42, 66, 88, 180)
+    val PRETENDER = SpriteRect(506, 66, 88, 180)
     val KING_FULL = SpriteRect(30, 62, 116, 204)
-    // Same height as the king's block when shown at the same width (116 / 204 = 80 / 141), so both captions share a line.
-    val PRETENDER_FULL = SpriteRect(501, 150, 80, 141)
+    // Same height as the king's block when shown at the same width (116x204), so both captions share a line in landscape.
+    val PRETENDER_FULL = SpriteRect(492, 62, 116, 204)
 }
 
 private fun SpriteRect.heightPerWidth() = h * PIXEL_ASPECT / w
@@ -161,7 +162,7 @@ private fun SceneRegion(
                 translate(-region.x * sx, -region.y * sy) {
                     for (d in DosScene.build(state.copy(nowMs = now.value))) {
                         when (d) {
-                            is DosDraw.Image -> drawSprite(if (d.img == DosImage.LAYOUT) bitmaps.layout else bitmaps.sheet, d.src, d.dx, d.dy, sx, sy)
+                            is DosDraw.Image -> drawSprite(if (d.img == DosImage.LAYOUT) bitmaps.layout else bitmaps.sheet, d.src, d.dx, d.dy, sx, sy, d.dh)
                             is DosDraw.Fill -> drawRect(
                                 Color(d.argb),
                                 topLeft = androidx.compose.ui.geometry.Offset(d.x * sx, d.y * sy),
