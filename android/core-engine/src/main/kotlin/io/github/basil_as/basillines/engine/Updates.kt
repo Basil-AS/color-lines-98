@@ -41,6 +41,30 @@ object Updates {
         return UpdateInfo(tag.removePrefix("v"), url)
     }
 
+    /** SHA256SUMS.txt lives next to the APK in the same release. */
+    const val SUMS_NAME = "SHA256SUMS.txt"
+
+    fun sumsUrl(apkUrl: String): String = apkUrl.substringBeforeLast('/') + "/" + SUMS_NAME
+
+    /** The hex digest listed for [name] in `sha256sum` output ("<hex>  <name>" or "<hex> *<name>"), lower-cased, or null. */
+    fun checksumFor(sums: String, name: String): String? = sums.lineSequence()
+        .map { it.trim() }
+        .mapNotNull { line ->
+            val hex = line.substringBefore(' ')
+            val file = line.substringAfter(' ', "").trim().removePrefix("*")
+            if (file == name && hex.length == 64 && hex.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }) hex.lowercase() else null
+        }
+        .firstOrNull()
+
+    /** A download (also after a redirect) may only come from GitHub over HTTPS: no credentials in the address, no odd port. */
+    fun isAllowedDownloadUrl(url: String): Boolean {
+        val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+        if (uri.scheme != "https" || uri.rawUserInfo != null) return false
+        if (uri.port != -1 && uri.port != 443) return false
+        val host = uri.host?.lowercase() ?: return false
+        return host == "github.com" || host.endsWith(".githubusercontent.com")
+    }
+
     /** Hex fingerprint grouped in pairs: "5D:30:30:E9…". */
     fun fingerprint(sha256: ByteArray): String = sha256.joinToString(":") { "%02X".format(it) }
 

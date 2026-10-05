@@ -6,11 +6,12 @@ import { LineDetector } from '../engine/linedetector';
 interface HelpDialogProps {
   lang: Language;
   onClose: () => void;
+  onTutorial?: () => void;
 }
 
 const SCORED_LENGTHS = [5, 6, 7, 8, 9];
 
-export function HelpDialog({ lang, onClose }: HelpDialogProps) {
+export function HelpDialog({ lang, onClose, onTutorial }: HelpDialogProps) {
   const t = (key: Parameters<typeof translate>[1], params?: Record<string, string | number>) =>
     translate(lang, key, params);
 
@@ -43,6 +44,11 @@ export function HelpDialog({ lang, onClose }: HelpDialogProps) {
         <p>{t('help.switching')}</p>
       </div>
       <div className="modal-actions">
+        {onTutorial && (
+          <button type="button" className="modal-btn modal-btn-secondary" onClick={onTutorial}>
+            {t('tutorial.start')}
+          </button>
+        )}
         <button type="button" className="modal-btn" onClick={onClose} data-autofocus>
           {t('btn.close')}
         </button>

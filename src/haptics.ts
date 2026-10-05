@@ -5,17 +5,17 @@
 export type HapticKind = 'select' | 'move' | 'blocked' | 'clear' | 'bigClear' | 'combo' | 'danger' | 'gameOver' | 'record' | 'hint' | 'undo';
 
 export const HAPTIC_PATTERNS: Record<HapticKind, number[]> = {
-  select: [6],
-  move: [10],
-  blocked: [28, 40, 28],
-  clear: [16, 30, 22],
-  bigClear: [26, 36, 26, 36, 60],
-  combo: [18, 24, 18, 24, 18, 24, 50],
-  danger: [40, 90, 40],
-  gameOver: [120, 70, 220],
-  record: [40, 40, 40, 40, 40, 40, 220],
-  hint: [8, 40, 8],
-  undo: [12],
+  select: [14],
+  move: [18],
+  blocked: [40, 50, 40],
+  clear: [22, 12, 22, 12, 26],
+  bigClear: [20, 12, 24, 12, 28, 16, 50],
+  combo: [16, 40, 16, 30, 18, 20, 20, 14, 24],
+  danger: [60, 100, 60],
+  gameOver: [80, 15, 80, 15, 80, 15, 70],
+  record: [25, 30, 25, 30, 25, 45, 40, 10, 60, 10, 100],
+  hint: [12, 45, 12],
+  undo: [10, 10, 16],
 };
 
 let enabled = true;

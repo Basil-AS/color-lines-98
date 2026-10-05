@@ -463,27 +463,125 @@ describe('end of a game', () => {
     saveGame(engine);
   }
 
-  it('shows the result, records it and unlocks the first achievement', async () => {
+  it('records the finished game, unlocks achievements and shows result on demand', async () => {
     almostFullGame();
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: /^Row 1, column 3,/ }));
     await user.click(screen.getByRole('button', { name: /^Row 1, column 2, empty/ }));
 
-    const dialog = await screen.findByRole('alertdialog', { name: 'Game over' });
-    expect(within(dialog).getByText('Final score')).toBeInTheDocument();
-    expect(within(dialog).getByText('First steps')).toBeInTheDocument();
+    // No modal opens by itself
+    expect(screen.queryByRole('dialog', { name: 'Game over' })).not.toBeInTheDocument();
     expect(storedHistory()).toHaveLength(1);
     expect(JSON.parse(localStorage.getItem('colorlines_progress')!).totalGames).toBe(1);
 
-    // The dialog demands a choice: Escape does nothing, "Play again" starts a fresh game.
+    // The HUD shows the Result button with an XP badge
+    const resultBtn = screen.getByRole('button', { name: /^Result/ });
+    expect(resultBtn).toBeInTheDocument();
+    expect(resultBtn).toHaveTextContent(/\+\d+/);
+
+    // Opening Result on demand shows the dialog with achievements
+    await user.click(resultBtn);
+    const dialog = await screen.findByRole('dialog', { name: 'Game over' });
+    expect(within(dialog).getByText('Final score')).toBeInTheDocument();
+    expect(within(dialog).getByText('First steps')).toBeInTheDocument();
+
+    // The dialog is dismissable with Escape
     await user.keyboard('{Escape}');
-    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
-    await user.click(within(dialog).getByRole('button', { name: 'Play again' }));
-    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'Game over' })).not.toBeInTheDocument();
+
+    // It reopens on demand and "Play again" starts a fresh game in the same mode
+    await user.click(screen.getByRole('button', { name: /^Result/ }));
+    const reopened = await screen.findByRole('dialog', { name: 'Game over' });
+    await user.click(within(reopened).getByRole('button', { name: 'Play again' }));
+    expect(screen.queryByRole('dialog', { name: 'Game over' })).not.toBeInTheDocument();
     expect(ballCells()).toHaveLength(5);
     // A finished game is recorded once; starting the next one does not add an "abandoned" entry.
     expect(storedHistory()).toHaveLength(1);
+  });
+
+  it('no dialog after game over: HUD offers New game and Result with badge', async () => {
+    almostFullGame();
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 3,/ }));
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 2, empty/ }));
+
+    // No modal opens by itself
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Result/ })).toBeInTheDocument();
+    const newGameBtns = screen.getAllByRole('button', { name: 'New game' });
+    expect(newGameBtns.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('New game after game over restarts same mode immediately without dialog', async () => {
+    almostFullGame();
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 3,/ }));
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 2, empty/ }));
+
+    // Click "New game" button directly
+    const newGameBtn = screen.getAllByRole('button', { name: 'New game' })[0];
+    await user.click(newGameBtn);
+
+    // No confirmation dialog or mode picker opens
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    // Fresh board started
+    expect(ballCells()).toHaveLength(5);
+    expect(storedHistory()).toHaveLength(1);
+  });
+
+  it('Result dialog dismiss: dismissable via Escape, Close button and backdrop click', async () => {
+    almostFullGame();
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 3,/ }));
+    await user.click(screen.getByRole('button', { name: /^Row 1, column 2, empty/ }));
+
+    // Open Result dialog
+    await user.click(screen.getByRole('button', { name: /^Result/ }));
+    let dialog = await screen.findByRole('dialog', { name: 'Game over' });
+
+    // Dismiss with Close button
+    await user.click(within(dialog).getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('dialog', { name: 'Game over' })).not.toBeInTheDocument();
+
+    // Reopen and dismiss with Escape
+    await user.click(screen.getByRole('button', { name: /^Result/ }));
+    dialog = await screen.findByRole('dialog', { name: 'Game over' });
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog', { name: 'Game over' })).not.toBeInTheDocument();
+
+    // Reopen and dismiss with backdrop click
+    await user.click(screen.getByRole('button', { name: /^Result/ }));
+    await screen.findByRole('dialog', { name: 'Game over' });
+    const backdrop = document.querySelector('.modal-overlay') as HTMLElement;
+    await user.click(backdrop);
+    expect(screen.queryByRole('dialog', { name: 'Game over' })).not.toBeInTheDocument();
+  });
+
+  it('folded mode list: in-progress New game shows current mode and unfolds on Change mode', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await playOneMove(user);
+
+    await user.click(screen.getByRole('button', { name: 'New game' }));
+    expect(screen.getByRole('dialog', { name: 'New game' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(/unfinished/);
+
+    // Mode list is folded: shows current mode and Change mode button, but no radio list
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+    expect(screen.getByText('Classic')).toBeInTheDocument();
+    const changeBtn = screen.getByRole('button', { name: 'Change mode' });
+    expect(changeBtn).toBeInTheDocument();
+
+    // Clicking Change mode unfolds the radio list
+    await user.click(changeBtn);
+    expect(screen.getAllByRole('radio')).toHaveLength(4);
+    await user.click(screen.getByRole('radio', { name: /Easy/ }));
+    await user.click(screen.getByRole('button', { name: /^Start/ }));
+    expect(localStorage.getItem('colorlines_mode')).toBe('easy');
   });
 });
 
@@ -631,6 +729,7 @@ describe('modes are explained and visible', () => {
     render(<App />);
     await playOneMove(user);
     await user.click(screen.getByRole('button', { name: 'New game' }));
+    await user.click(screen.getByRole('button', { name: 'Change mode' }));
     const radios = screen.getAllByRole('radio');
     expect(radios).toHaveLength(4);
     const dots = (r: HTMLElement) => r.querySelectorAll('.color-dot').length;

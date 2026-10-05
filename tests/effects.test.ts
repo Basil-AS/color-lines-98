@@ -68,6 +68,17 @@ describe('haptics', () => {
     Object.defineProperty(navigator, 'vibrate', { value: undefined, configurable: true });
     expect(() => haptic('record')).not.toThrow();
   });
+
+  it('has positive durations and total duration <= 900ms for every pattern', () => {
+    for (const [kind, pattern] of Object.entries(HAPTIC_PATTERNS)) {
+      expect(pattern.length, `pattern for ${kind} should not be empty`).toBeGreaterThan(0);
+      for (const d of pattern) {
+        expect(d, `durations in ${kind} must be positive`).toBeGreaterThan(0);
+      }
+      const total = pattern.reduce((acc, cur) => acc + cur, 0);
+      expect(total, `total duration of ${kind} must be <= 900ms`).toBeLessThanOrEqual(900);
+    }
+  });
 });
 
 describe('98 Modern', () => {

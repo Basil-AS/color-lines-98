@@ -14,6 +14,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import io.github.basil_as.basillines.engine.StepId
+import io.github.basil_as.basillines.engine.GameEngine
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,7 +38,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -42,6 +47,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,11 +159,11 @@ fun GameOverDialog(
     levelUp: Int?,
     unlocked: List<String>,
     onPlayAgain: () -> Unit,
+    onClose: () -> Unit,
     goalXp: Int = 0
 ) {
     AlertDialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        onDismissRequest = onClose,
         title = { Text(stringResource(R.string.gameover_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -185,7 +191,8 @@ fun GameOverDialog(
                 }
             }
         },
-        confirmButton = { Button(onClick = onPlayAgain) { Text(stringResource(R.string.gameover_playAgain)) } }
+        confirmButton = { Button(onClick = onPlayAgain) { Text(stringResource(R.string.gameover_playAgain)) } },
+        dismissButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -220,7 +227,7 @@ private fun AchievementRow(id: String, unlockedAt: Long?, showDate: Boolean = tr
 }
 
 @Composable
-fun HelpDialog(onClose: () -> Unit) {
+fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.help_title)) },
@@ -252,7 +259,8 @@ fun HelpDialog(onClose: () -> Unit) {
                 Text(stringResource(R.string.help_switching))
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } },
+        dismissButton = { TextButton(onClick = onTutorial) { Text(stringResource(R.string.tutorial_start)) } }
     )
 }
 
@@ -266,15 +274,13 @@ fun SettingsDialog(
     onTogglePreview: () -> Unit,
     language: AppLanguage,
     onLanguage: (AppLanguage) -> Unit,
-    playerName: String,
-    onPlayerName: (String) -> Unit,
     effects: EffectsLevel,
     onEffects: (EffectsLevel) -> Unit,
     vibrationSupported: Boolean,
     vibration: Boolean,
     onVibration: (Boolean) -> Unit,
+    onTutorial: () -> Unit,
     versionName: String,
-    signature: String,
     autoUpdate: Boolean,
     onAutoUpdate: (Boolean) -> Unit,
     updateStatus: String?,
@@ -345,16 +351,8 @@ fun SettingsDialog(
                 // Vibration is its own switch, separate from the sound.
                 SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
                 if (!vibrationSupported) Text(stringResource(R.string.settings_vibrationOff), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                var editingName by remember { mutableStateOf(false) }
-                TextButton(onClick = { editingName = true }, modifier = Modifier.fillMaxWidth()) {
-                    Text(
-                        stringResource(R.string.settings_playerName) + ": " + playerName.ifBlank { "—" },
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Start
-                    )
-                }
-                if (editingName) {
-                    PlayerNameDialog(playerName, onPlayerName, onDone = { editingName = false })
+                TextButton(onClick = onTutorial, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.tutorial_start), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 }
                 Text(stringResource(R.string.lang_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 listOf(
@@ -374,7 +372,6 @@ fun SettingsDialog(
                     }
                 }
                 Text(stringResource(R.string.update_version, versionName), fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
-                Text(signature, fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SwitchRow(stringResource(R.string.update_auto), autoUpdate) { onAutoUpdate(!autoUpdate) }
                 Text(stringResource(R.string.update_autoHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedButton(onClick = onCheckUpdate, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -573,23 +570,6 @@ private fun Badge(text: String, filled: Boolean) {
 }
 
 @Composable
-private fun PlayerNameDialog(name: String, onName: (String) -> Unit, onDone: () -> Unit) {
-    AlertDialog(
-        onDismissRequest = onDone,
-        title = { Text(stringResource(R.string.settings_playerName)) },
-        text = {
-            OutlinedTextField(
-                value = name,
-                onValueChange = onName,
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-        },
-        confirmButton = { TextButton(onClick = onDone) { Text(stringResource(R.string.btn_close)) } }
-    )
-}
-
-@Composable
 internal fun BarChart(values: List<Int>, labels: List<String>, description: String) {
     val max = maxOf(values.maxOrNull() ?: 1, 1)
     val color = MaterialTheme.colorScheme.primary
@@ -678,7 +658,8 @@ fun NewGameDialog(
     score: Int,
     moves: Int,
     onStart: () -> Unit,
-    onKeep: () -> Unit
+    onKeep: () -> Unit,
+    onTutorial: () -> Unit
 ) {
     val modes = listOf(
         Triple(ModeId.CLASSIC, R.string.mode_classic, R.string.mode_classic_desc),
@@ -686,6 +667,8 @@ fun NewGameDialog(
         Triple(ModeId.BLITZ, R.string.mode_blitz, R.string.mode_blitz_desc),
         Triple(ModeId.DAILY, R.string.mode_daily, R.string.mode_daily_desc)
     )
+    // The mode is rarely changed: show the one that will be played and fold the list behind a button.
+    var picking by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onKeep,
         title = { Text(stringResource(R.string.newgame_title)) },
@@ -713,8 +696,21 @@ fun NewGameDialog(
                         Modifier.padding(bottom = 8.dp)
                     )
                 }
-                Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                modes.forEach { (mode, name, desc) ->
+                if (!picking) {
+                    val shown = modes.first { it.first == current }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(shown.second), fontWeight = FontWeight.SemiBold)
+                                ModeDots(current, Modifier.padding(start = 8.dp))
+                            }
+                            Text(stringResource(shown.third), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(onClick = { picking = true }) { Text(stringResource(R.string.newgame_changeMode)) }
+                    }
+                } else Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (picking) modes.forEach { (mode, name, desc) ->
                     Row(
                         Modifier
                             .fillMaxWidth()
@@ -743,6 +739,7 @@ fun NewGameDialog(
                         }
                     }
                 }
+                TextButton(onClick = onTutorial, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.tutorial_start)) }
             }
         },
         // With a game in progress the safe choice is the focused, prominent one.
@@ -881,19 +878,80 @@ fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress
     )
 }
 
+/** Where an update is: offered, being downloaded, ready to install, waiting for the install permission, or failed. */
+sealed interface UpdateStage {
+    data object Offer : UpdateStage
+    /** [progress] is 0..1, or negative while the size is not known. */
+    data class Downloading(val progress: Float) : UpdateStage
+    data class Ready(val file: java.io.File) : UpdateStage
+    data class NeedPermission(val file: java.io.File) : UpdateStage
+    data class Failed(val why: UpdateInstaller.Failure) : UpdateStage
+}
+
 @Composable
-fun UpdateDialog(version: String, current: String, onDownload: () -> Unit, onLater: () -> Unit) {
+fun UpdateDialog(
+    version: String,
+    current: String,
+    stage: UpdateStage,
+    onDownload: () -> Unit,
+    onInstall: () -> Unit,
+    onAllow: () -> Unit,
+    onBrowser: () -> Unit,
+    onCancel: () -> Unit,
+    onLater: () -> Unit
+) {
+    val busy = stage is UpdateStage.Downloading
     AlertDialog(
-        onDismissRequest = onLater,
-        title = { Text(stringResource(R.string.update_title)) },
+        // Back or a tap outside while downloading stops the download; otherwise it is "later".
+        onDismissRequest = if (busy) onCancel else onLater,
+        title = { Text(stringResource(if (stage is UpdateStage.Ready || stage is UpdateStage.NeedPermission) R.string.update_readyTitle else R.string.update_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(stringResource(R.string.update_available, version, current), fontWeight = FontWeight.SemiBold)
-                Text(stringResource(R.string.update_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                when (stage) {
+                    UpdateStage.Offer -> Text(stringResource(R.string.update_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    is UpdateStage.Downloading -> {
+                        if (stage.progress >= 0f) {
+                            LinearProgressIndicator(progress = { stage.progress.coerceIn(0f, 1f) }, modifier = Modifier.fillMaxWidth())
+                            Text(stringResource(R.string.update_downloading, (stage.progress * 100).toInt()), fontSize = 13.sp)
+                        } else {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            Text(stringResource(R.string.update_downloadingUnknown), fontSize = 13.sp)
+                        }
+                    }
+                    is UpdateStage.Ready -> Text(stringResource(R.string.update_ready), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    is UpdateStage.NeedPermission -> Text(stringResource(R.string.update_needPermission), fontSize = 13.sp)
+                    is UpdateStage.Failed -> Text(
+                        stringResource(
+                            when (stage.why) {
+                                UpdateInstaller.Failure.NETWORK -> R.string.update_errNetwork
+                                UpdateInstaller.Failure.CHECKSUM -> R.string.update_errChecksum
+                                UpdateInstaller.Failure.WRONG_APP -> R.string.update_errWrongApp
+                            }
+                        ),
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Assertive }
+                    )
+                }
             }
         },
-        confirmButton = { Button(onClick = onDownload) { Text(stringResource(R.string.update_download)) } },
-        dismissButton = { TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) } }
+        confirmButton = {
+            when (stage) {
+                UpdateStage.Offer -> Button(onClick = onDownload) { Text(stringResource(R.string.update_downloadInstall)) }
+                is UpdateStage.Downloading -> {}
+                is UpdateStage.Ready -> Button(onClick = onInstall) { Text(stringResource(R.string.update_install)) }
+                is UpdateStage.NeedPermission -> Button(onClick = onAllow) { Text(stringResource(R.string.update_allow)) }
+                is UpdateStage.Failed -> Button(onClick = onDownload) { Text(stringResource(R.string.update_retry)) }
+            }
+        },
+        dismissButton = {
+            when (stage) {
+                is UpdateStage.Downloading -> TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+                is UpdateStage.Failed -> TextButton(onClick = onBrowser) { Text(stringResource(R.string.update_browser)) }
+                else -> TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) }
+            }
+        }
     )
 }
 
@@ -917,5 +975,60 @@ internal fun ThemeSwatch(theme: AppTheme, modifier: Modifier = Modifier) {
         // A strip of the panel colour beside the board, as the real screen has.
         drawRect(palette.panel, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Size(left * 0.55f, size.height))
         drawRect(palette.accent, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Size(left * 0.55f, size.height * 0.12f))
+    }
+}
+
+/** A tutorial in progress: the step, the game it replaced, and whether the last try missed. */
+class TutorialRun(val step: Int, val saved: GameEngine, val retry: Boolean)
+
+internal fun tutorialText(id: StepId, retry: Boolean): Int = when {
+    retry && id == StepId.LINE -> R.string.tutorial_retry_line
+    retry && id == StepId.BLOCKED -> R.string.tutorial_retry_blocked
+    else -> when (id) {
+        StepId.SELECT -> R.string.tutorial_select
+        StepId.MOVE -> R.string.tutorial_move
+        StepId.NEXT -> R.string.tutorial_next
+        StepId.LINE -> R.string.tutorial_line
+        StepId.FREE -> R.string.tutorial_free
+        StepId.BLOCKED -> R.string.tutorial_blocked
+        StepId.END -> R.string.tutorial_end
+    }
+}
+
+/** The coach card over the bottom of the screen; the board and the score panel stay visible and playable. */
+@Composable
+fun TutorialBanner(
+    palette: Palette,
+    step: Int,
+    total: Int,
+    text: String,
+    showContinue: Boolean,
+    last: Boolean,
+    onContinue: () -> Unit,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .widthIn(max = 520.dp)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(2.dp, palette.accent),
+        shadowElevation = 8.dp
+    ) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.tutorial_title), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(stringResource(R.string.tutorial_progress, step, total), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(text, fontSize = 14.sp, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showContinue) Button(onClick = onContinue) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue)) }
+                if (!last) TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
+            }
+        }
     }
 }

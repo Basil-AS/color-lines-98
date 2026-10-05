@@ -42,4 +42,52 @@ class UpdatesTest {
         assertFalse(Updates.isProjectKey(ByteArray(32)))
         assertEquals("5D:30:30:E9:36:38:04:C3…", Updates.shortFingerprint(key))
     }
+
+    @Test
+    fun extractsChecksumFromSumsFile() {
+        val validHash = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        val twoSpaces = "$validHash  ColorLines.apk"
+        assertEquals(validHash, Updates.checksumFor(twoSpaces, "ColorLines.apk"))
+
+        val binaryMarker = "$validHash *ColorLines.apk"
+        assertEquals(validHash, Updates.checksumFor(binaryMarker, "ColorLines.apk"))
+        val twoSpacesBinary = "$validHash  *ColorLines.apk"
+        assertEquals(validHash, Updates.checksumFor(twoSpacesBinary, "ColorLines.apk"))
+
+        val upperCaseHash = validHash.uppercase()
+        val upperSums = "$upperCaseHash  ColorLines.apk"
+        assertEquals(validHash, Updates.checksumFor(upperSums, "ColorLines.apk"))
+
+        val missingFile = "$validHash  OtherFile.apk"
+        assertNull(Updates.checksumFor(missingFile, "ColorLines.apk"))
+
+        val shortHash = "e3b0c44298fc1c14"
+        assertNull(Updates.checksumFor("$shortHash  ColorLines.apk", "ColorLines.apk"))
+        val longHash = validHash + "0"
+        assertNull(Updates.checksumFor("$longHash  ColorLines.apk", "ColorLines.apk"))
+
+        assertNull(Updates.checksumFor("", "ColorLines.apk"))
+    }
+
+    @Test
+    fun sumsUrlReplacesLastPathSegmentWithSha256Sums() {
+        val apkUrl = "https://github.com/Basil-AS/color-lines-98/releases/download/v1.6.0/ColorLines.apk"
+        assertEquals(
+            "https://github.com/Basil-AS/color-lines-98/releases/download/v1.6.0/SHA256SUMS.txt",
+            Updates.sumsUrl(apkUrl)
+        )
+    }
+
+    @Test
+    fun validatesAllowedDownloadUrls() {
+        assertTrue(Updates.isAllowedDownloadUrl("https://github.com/Basil-AS/color-lines-98/releases/download/v1.6.0/ColorLines.apk"))
+        assertTrue(Updates.isAllowedDownloadUrl("https://objects.githubusercontent.com/github-production-release-asset-2e65be/123"))
+
+        assertFalse(Updates.isAllowedDownloadUrl("http://github.com/Basil-AS/color-lines-98/releases/download/v1.6.0/ColorLines.apk"))
+
+        assertFalse(Updates.isAllowedDownloadUrl("https://example.com/ColorLines.apk"))
+        assertFalse(Updates.isAllowedDownloadUrl("https://github.com.evil.com/ColorLines.apk"))
+        assertFalse(Updates.isAllowedDownloadUrl("https://evilgithubusercontent.com/ColorLines.apk"))
+        assertFalse(Updates.isAllowedDownloadUrl("https://github.com@evil.com/ColorLines.apk"))
+    }
 }
