@@ -54,3 +54,9 @@ context without modifying project code.
 
 Implement → targeted verification → full relevant verification → diff review →
 update task/journal/handoff → PR or documented local fallback.
+
+## 2.1.0 status
+Branch agent/feat-v2-1-0-tutorial-ux, all work committed locally, NOT pushed, no PR yet (push needs the owner's approval).
+Done: tutorial (web+Android), game over without a dialog + New game/Result buttons (web+Android, DOS Result action), folded mode picker, name entry UI removed (data kept), debug signature text removed, in-app update (download, SHA256SUMS, signature+version check, FileProvider), sound loading off the UI thread, richer haptics, landscape immersive, pretender tower (web+Android DOS) and equal-scale heroes.
+Owner to check on a phone: sound start/freeze, vibration feel, update install (permission screen), landscape, TalkBack.
+Next: push the branch, gh pr create, CI, merge publishes the release.
