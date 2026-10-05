@@ -11,6 +11,7 @@ import {
   LCD,
   NEXT_SLOT,
   PRETENDER_POS,
+  TOWER,
   HELP_WINDOW,
   TOP_TEN_WINDOW,
   WINDOW_POS,
@@ -20,11 +21,23 @@ import {
   kingRect,
   labelRect,
   pretenderRect,
+  towerRise,
 } from './sprites';
 import type { BallFrame, ButtonId, Rect } from './sprites';
 
 export type Draw =
-  | { kind: 'image'; img: 'layout' | 'sheet'; sx: number; sy: number; sw: number; sh: number; dx: number; dy: number }
+  | {
+      kind: 'image';
+      img: 'layout' | 'sheet';
+      sx: number;
+      sy: number;
+      sw: number;
+      sh: number;
+      dx: number;
+      dy: number;
+      /** Destination size when the picture is stretched (the pretender's pillar); the source size otherwise. */
+      dh?: number;
+    }
   | { kind: 'fill'; x: number; y: number; w: number; h: number; color: string }
   | {
       kind: 'text';
@@ -77,7 +90,7 @@ export const SPAWN_STEP = 70;
 export const BURST_STEP = 90;
 export const CORONATION_STEP = 260;
 
-const image = (img: 'layout' | 'sheet', r: Rect, dx: number, dy: number): Draw => ({
+const image = (img: 'layout' | 'sheet', r: Rect, dx: number, dy: number, dh?: number): Draw => ({
   kind: 'image',
   img,
   sx: r[0],
@@ -86,6 +99,7 @@ const image = (img: 'layout' | 'sheet', r: Rect, dx: number, dy: number): Draw =
   sh: r[3],
   dx,
   dy,
+  ...(dh === undefined ? {} : { dh }),
 });
 
 function lcd(value: number, box: { x: number; y: number; w: number; h: number }): Draw[] {
@@ -159,7 +173,20 @@ export function buildScene(state: DosState): Draw[] {
     pretenderFrame = Math.min(4, step + 1);
   }
   draws.push(image('sheet', kingRect(kingFrame), KING_POS.x, KING_POS.y));
-  draws.push(image('sheet', pretenderRect(pretenderFrame), PRETENDER_POS.x, PRETENDER_POS.y));
+
+  // The pretender's pillar grows with the score: lift the figure and the top of the pedestal, fill the gap with more
+  // pedestal body and keep the foot ring where it was.
+  const rise = dt >= 0 ? TOWER.maxRise : towerRise(state.score, state.kingScore);
+  if (rise > 0) {
+    const chunkH = TOWER.stretch.sy - TOWER.top; // the figure, the rim and the first rows of the pedestal body
+    draws.push({ kind: 'fill', x: TOWER.x, y: TOWER.top - rise, w: TOWER.w, h: TOWER.footTop - TOWER.top + rise, color: '#000' });
+    draws.push(
+      image('layout', [TOWER.x, TOWER.stretch.sy, TOWER.w, TOWER.stretch.sh], TOWER.x, TOWER.top + chunkH - rise, TOWER.footTop - (TOWER.top + chunkH - rise))
+    );
+    draws.push(image('layout', [TOWER.x, TOWER.top, TOWER.w, chunkH], TOWER.x, TOWER.top - rise));
+    draws.push(image('layout', [TOWER.x, TOWER.footTop, TOWER.w, 7], TOWER.x, TOWER.footTop));
+  }
+  draws.push(image('sheet', pretenderRect(pretenderFrame), PRETENDER_POS.x, PRETENDER_POS.y - rise));
 
   // Bottom buttons: SOUND and NEXT light up while on, HELP and RESTART while pressed.
   const lit: Record<ButtonId, boolean> = {

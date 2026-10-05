@@ -47,7 +47,7 @@ function paint(ctx: CanvasRenderingContext2D, draws: readonly Draw[], layout: HT
       ctx.fillStyle = d.color;
       ctx.fillRect(d.x, d.y, d.w, d.h);
     } else if (d.kind === 'image') {
-      ctx.drawImage(d.img === 'layout' ? layout : sheet, d.sx, d.sy, d.sw, d.sh, d.dx, d.dy, d.sw, d.sh);
+      ctx.drawImage(d.img === 'layout' ? layout : sheet, d.sx, d.sy, d.sw, d.sh, d.dx, d.dy, d.sw, d.dh ?? d.sh);
     } else {
       ctx.save();
       ctx.font = `${d.font === 'gothic' ? '' : 'bold '}${d.size}px ${FONTS[d.font]}`;

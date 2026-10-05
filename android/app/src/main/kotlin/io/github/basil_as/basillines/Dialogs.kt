@@ -42,6 +42,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -153,11 +154,11 @@ fun GameOverDialog(
     levelUp: Int?,
     unlocked: List<String>,
     onPlayAgain: () -> Unit,
+    onClose: () -> Unit,
     goalXp: Int = 0
 ) {
     AlertDialog(
-        onDismissRequest = {},
-        properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false),
+        onDismissRequest = onClose,
         title = { Text(stringResource(R.string.gameover_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -185,7 +186,8 @@ fun GameOverDialog(
                 }
             }
         },
-        confirmButton = { Button(onClick = onPlayAgain) { Text(stringResource(R.string.gameover_playAgain)) } }
+        confirmButton = { Button(onClick = onPlayAgain) { Text(stringResource(R.string.gameover_playAgain)) } },
+        dismissButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -686,6 +688,8 @@ fun NewGameDialog(
         Triple(ModeId.BLITZ, R.string.mode_blitz, R.string.mode_blitz_desc),
         Triple(ModeId.DAILY, R.string.mode_daily, R.string.mode_daily_desc)
     )
+    // The mode is rarely changed: show the one that will be played and fold the list behind a button.
+    var picking by rememberSaveable { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onKeep,
         title = { Text(stringResource(R.string.newgame_title)) },
@@ -713,8 +717,21 @@ fun NewGameDialog(
                         Modifier.padding(bottom = 8.dp)
                     )
                 }
-                Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                modes.forEach { (mode, name, desc) ->
+                if (!picking) {
+                    val shown = modes.first { it.first == current }
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(stringResource(shown.second), fontWeight = FontWeight.SemiBold)
+                                ModeDots(current, Modifier.padding(start = 8.dp))
+                            }
+                            Text(stringResource(shown.third), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        TextButton(onClick = { picking = true }) { Text(stringResource(R.string.newgame_changeMode)) }
+                    }
+                } else Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (picking) modes.forEach { (mode, name, desc) ->
                     Row(
                         Modifier
                             .fillMaxWidth()

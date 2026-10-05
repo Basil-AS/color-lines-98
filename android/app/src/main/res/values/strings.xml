@@ -47,6 +47,7 @@
     <string name="announce_gameOver">Game over. Final score %1$s</string>
     <string name="announce_undone">Move undone. Score %1$s</string>
     <string name="announce_newGame">New game started</string>
+    <string name="gameover_result">Result</string>
     <string name="gameover_title">Game over</string>
     <string name="gameover_final">Final score</string>
     <string name="gameover_best">Best score</string>

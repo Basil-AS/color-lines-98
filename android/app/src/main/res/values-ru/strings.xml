@@ -47,6 +47,7 @@
     <string name="announce_gameOver">Игра окончена. Итоговый счёт %1$s</string>
     <string name="announce_undone">Ход отменён. Счёт %1$s</string>
     <string name="announce_newGame">Новая игра началась</string>
+    <string name="gameover_result">Итоги</string>
     <string name="gameover_title">Игра окончена</string>
     <string name="gameover_final">Итоговый счёт</string>
     <string name="gameover_best">Рекорд</string>

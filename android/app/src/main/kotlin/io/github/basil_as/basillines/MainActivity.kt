@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -32,7 +33,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.FilledTonalIconButton
@@ -165,6 +168,10 @@ private data class GameExtras(
     val hintsLeft: Int = 0,
     val onHint: () -> Unit = {},
     val onChangeMode: () -> Unit = {},
+    /** A finished game: the score panel offers "New game" and "Result" instead of a dialog over the board. */
+    val gameOver: Boolean = false,
+    val onShowResult: () -> Unit = {},
+    val resultBadge: String = "",
     val goalsLabel: String = "",
     val onGoals: () -> Unit = {},
     /** The move to play out over the board, how lively to be, and whether the board is nearly full. */
@@ -218,6 +225,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var effects by remember { mutableStateOf<List<DosEffect>>(emptyList()) }
     var coronationStart by remember { mutableStateOf<Long?>(if (engine.score > Hall.kingOf(storage.hall).score) Long.MIN_VALUE / 2 else null) }
     var dialog by remember { mutableStateOf(Dialog.NONE) }
+    var showResult by remember { mutableStateOf(false) }
+    val isOver = engine.isGameOver
+    LaunchedEffect(isOver) { if (!isOver) showResult = false }
     var statsNow by remember { mutableLongStateOf(0L) }
     var lastResult by remember { mutableStateOf(LastResult()) }
     var lastActionAt by remember { mutableLongStateOf(0L) }
@@ -232,6 +242,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         AppTheme.COLORLINES_92 -> SoundManager.Profile.PC_SPEAKER
         else -> SoundManager.Profile.MODERN
     }
+    soundManager.prime()
     DisposableEffect(theme) {
         onSystemBars(palette.dark || palette.background == Color(0xFF008080) || palette.background == Color.Black)
         onDispose { }
@@ -383,8 +394,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         commit()
     }
 
-    /** Every "new game" button opens the dialog: it names the mode and warns before a game is thrown away. */
-    fun onNewGame() {
+    /** The dialog names the mode (and lets it change) and warns before a game in progress is thrown away. */
+    fun openNewGameDialog() {
         pickedMode = engine.mode
         dialog = Dialog.NEW_GAME
     }
@@ -405,8 +416,14 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         lastActionAt = SystemClock.elapsedRealtime()
         bestAtGameStart = bestScore
         dialog = Dialog.NONE
+        showResult = false
         soundManager.play(SoundKind.START)
         commit()
+    }
+
+    /** After a finished game there is nothing to warn about: play the same mode again straight away. */
+    fun onNewGame() {
+        if (engine.isGameOver) startGame(engine.mode) else openNewGameDialog()
     }
 
     fun onHint() {
@@ -612,7 +629,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         },
         hintsLeft = if (gameOverNow(engine)) 0 else hintsLeft,
         onHint = ::onHint,
-        onChangeMode = ::onNewGame,
+        onChangeMode = ::openNewGameDialog,
+        gameOver = gameOverNow(engine),
+        onShowResult = { showResult = true },
+        resultBadge = if (gameOverNow(engine) && (lastResult.xp > 0 || lastResult.levelUp != null || lastResult.unlocked.isNotEmpty())) "+${lastResult.xp}" else "",
         goalsLabel = stringResource(R.string.goals_button, goalProgress.count { it.done }.toString(), goalProgress.size.toString()),
         fx = moveFx,
         level = if (theme == AppTheme.COLORLINES_92) EffectsLevel.OFF else effectsLevel,
@@ -725,7 +745,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             )
         }
 
-        if (gameOver && dialog != Dialog.NEW_GAME) {
+        // Shown only when asked for (the "Result" button); the game never covers the board by itself.
+        if (gameOver && showResult && dialog == Dialog.NONE) {
             GameOverDialog(
                 score = score,
                 best = maxOf(score, bestScore),
@@ -733,10 +754,12 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 xpGained = lastResult.xp,
                 levelUp = lastResult.levelUp,
                 unlocked = lastResult.unlocked,
-                onPlayAgain = ::onNewGame,
+                onPlayAgain = { showResult = false; onNewGame() },
+                onClose = { showResult = false },
                 goalXp = lastResult.goalXp
             )
-        } else {
+        }
+        run {
             when (dialog) {
                 Dialog.NEW_GAME -> NewGameDialog(
                     current = pickedMode,
@@ -1026,8 +1049,12 @@ private fun HeaderCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    NextPreview(palette, nextColors)
-                    Spacer(Modifier.weight(1f))
+                    if (extras.gameOver) {
+                        Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { GameOverActions(onNewGame, extras) }
+                    } else {
+                        NextPreview(palette, nextColors)
+                        Spacer(Modifier.weight(1f))
+                    }
                     StatBox(stringResource(R.string.hud_score), score, palette, live = true)
                     StatBox(stringResource(R.string.hud_best), best, palette)
                 }
@@ -1057,7 +1084,9 @@ private fun HeaderCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                if (!compact) NextPreview(palette, nextColors)
+                if (!compact) {
+                    if (extras.gameOver) GameOverActions(onNewGame, extras) else NextPreview(palette, nextColors)
+                }
                 Row(
                     Modifier.then(if (compact) Modifier.fillMaxWidth() else Modifier),
                     horizontalArrangement = if (compact) Arrangement.SpaceBetween else Arrangement.spacedBy(4.dp)
@@ -1265,7 +1294,7 @@ private fun Lines98Panel(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Box(Modifier.semantics { contentDescription = "" }) { LedNumber(best) }
-            Row(
+            if (extras.gameOver) GameOverActions(onNewGame, extras) else Row(
                 Modifier.semantics(mergeDescendants = true) { contentDescription = nextDescription },
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -1298,6 +1327,22 @@ private fun Lines98Panel(
             MenuItem(stringResource(R.string.btn_stats), onStats)
             MenuItem(stringResource(R.string.btn_settings), onSettings)
             MenuItem(stringResource(R.string.btn_help), onHelp)
+        }
+    }
+}
+
+/** Where the next balls were: once the game is over, "New game" (the same mode) and the result, never a dialog. */
+@Composable
+private fun GameOverActions(onNewGame: () -> Unit, extras: GameExtras) {
+    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = onNewGame, contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)) {
+            Text(stringResource(R.string.btn_newGame), maxLines = 1)
+        }
+        OutlinedButton(onClick = extras.onShowResult, contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)) {
+            Text(
+                stringResource(R.string.gameover_result) + if (extras.resultBadge.isNotEmpty()) " ${extras.resultBadge}" else "",
+                maxLines = 1
+            )
         }
     }
 }
