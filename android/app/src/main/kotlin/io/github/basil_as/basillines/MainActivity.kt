@@ -90,6 +90,11 @@ import io.github.basil_as.basillines.engine.Levels
 import io.github.basil_as.basillines.engine.ModeId
 import io.github.basil_as.basillines.engine.Modes
 import io.github.basil_as.basillines.engine.Point
+import io.github.basil_as.basillines.engine.stepEngine
+import io.github.basil_as.basillines.engine.judge
+import io.github.basil_as.basillines.engine.Verdict
+import io.github.basil_as.basillines.engine.TutorialEvent
+import io.github.basil_as.basillines.engine.TUTORIAL_STEPS
 import io.github.basil_as.basillines.engine.SoundKind
 import io.github.basil_as.basillines.engine.Progress
 import io.github.basil_as.basillines.engine.ProgressTracker
@@ -253,6 +258,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var coronationStart by remember { mutableStateOf<Long?>(if (engine.score > Hall.kingOf(storage.hall).score) Long.MIN_VALUE / 2 else null) }
     var dialog by remember { mutableStateOf(Dialog.NONE) }
     var showResult by remember { mutableStateOf(false) }
+    /** The tutorial in progress: its step, the game it replaced (put back as it was) and whether the last try missed. */
+    var tut by remember { mutableStateOf<TutorialRun?>(null) }
     val isOver = engine.isGameOver
     LaunchedEffect(isOver) { if (!isOver) showResult = false }
     var statsNow by remember { mutableLongStateOf(0L) }
@@ -277,7 +284,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     fun commit() {
         version++
-        storage.saveGame(engine)
+        // The tutorial plays on its own board and must never overwrite the saved game.
+        if (tut == null) storage.saveGame(engine)
     }
 
     // Counts active time between actions; long pauses (a forgotten app) are capped.
@@ -344,6 +352,55 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         if (followUp != null) handler.postDelayed({ soundManager.play(followUp) }, 1100)
     }
 
+    // ---- tutorial: the real board and rules, a scripted position per step -----------------------------------
+    fun showStepHint(index: Int) {
+        val step = TUTORIAL_STEPS[index]
+        hint = step.from?.let { Hint(it, step.to ?: it, clears = false, value = 0) }
+    }
+
+    /** Puts a step's own board on the screen (or keeps the board when the step has none). */
+    fun enterStep(index: Int, saved: GameEngine, retry: Boolean = false) {
+        stepEngine(TUTORIAL_STEPS[index])?.let {
+            engine = it
+            effects = emptyList()
+            moveFx = null
+        }
+        tut = TutorialRun(index, saved, retry)
+        showStepHint(index)
+        version++
+    }
+
+    fun startTutorial() {
+        dialog = Dialog.NONE
+        showResult = false
+        dosWindow = DosWindow.NONE
+        enterStep(0, tut?.saved ?: engine)
+    }
+
+    /** Leaves the tutorial and puts the game that was on the board back, exactly as it was. */
+    fun endTutorial() {
+        val run = tut ?: return
+        engine = run.saved
+        tut = null
+        hint = null
+        effects = emptyList()
+        moveFx = null
+        version++
+    }
+
+    fun tutorialEvent(event: TutorialEvent) {
+        val run = tut ?: return
+        when (judge(TUTORIAL_STEPS[run.step], event)) {
+            Verdict.DONE -> {
+                // Let the player see what their move did before the next step arrives.
+                val go = { enterStep(run.step + 1, run.saved) }
+                if (event is TutorialEvent.Move) handler.postDelayed({ if (tut?.step == run.step) go() }, 1100) else go()
+            }
+            Verdict.RETRY -> handler.postDelayed({ if (tut?.step == run.step) enterStep(run.step, run.saved, retry = true) }, 1300)
+            Verdict.IGNORE -> Unit
+        }
+    }
+
     fun onCellTap(point: Point) {
         if (engine.isGameOver) return
         hint = null
@@ -355,6 +412,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 engine.selectCell(point)
                 soundManager.play(SoundKind.SELECT)
                 haptics.play(HapticKind.SELECT)
+                tutorialEvent(TutorialEvent.Select(point))
             }
             commit()
             return
@@ -365,6 +423,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         if (!result.success) {
             soundManager.play(SoundKind.BLOCKED)
             haptics.play(HapticKind.BLOCKED)
+            tutorialEvent(TutorialEvent.Move(success = false))
             return
         }
         engine.unselect()
@@ -398,7 +457,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             )
         }
         haptics.play(if (cleared) (if (result.pointsEarned >= 28) HapticKind.BIG_CLEAR else HapticKind.CLEAR) else HapticKind.MOVE)
-        if (engine.score > Hall.kingOf(hall).score && coronationStart == null) {
+        if (tut == null && engine.score > Hall.kingOf(hall).score && coronationStart == null) {
             coronationStart = start
             if (!result.isGameOver) after(450 + lag) { soundManager.play(SoundKind.CROWN) }
         }
@@ -413,23 +472,27 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             dangerWarned = true
             after(lag + 350) { soundManager.play(SoundKind.DANGER); haptics.play(HapticKind.DANGER) }
         } else if (free > 12) dangerWarned = false
-        if (engine.score > bestScore) {
+        if (tut == null && engine.score > bestScore) {
             bestScore = engine.score
             storage.bestScore = bestScore
         }
-        if (result.isGameOver) finishGame()
+        if (result.isGameOver && tut == null) finishGame()
         commit()
+        tutorialEvent(TutorialEvent.Move(success = true, cleared = result.clearedPoints.size))
     }
 
     /** The dialog names the mode (and lets it change) and warns before a game in progress is thrown away. */
     fun openNewGameDialog() {
+        // Back from the tutorial first: the dialog then speaks about the game that was on the board before it.
+        endTutorial()
         pickedMode = engine.mode
         dialog = Dialog.NEW_GAME
     }
 
     fun startGame(mode: ModeId) {
         // Abandoning a game in progress still counts towards the history.
-        if (!engine.isGameOver && engine.moves > 0) record(completed = false)
+        if (tut == null && !engine.isGameOver && engine.moves > 0) record(completed = false)
+        tut = null
         engine = Modes.createEngine(mode, dayKey())
         storage.mode = mode
         hint = null
@@ -450,11 +513,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     /** After a finished game there is nothing to warn about: play the same mode again straight away. */
     fun onNewGame() {
-        if (engine.isGameOver) startGame(engine.mode) else openNewGameDialog()
+        if (tut == null && engine.isGameOver) startGame(engine.mode) else openNewGameDialog()
     }
 
     fun onHint() {
-        if (engine.isGameOver || hintsLeft <= 0) return
+        if (tut != null || engine.isGameOver || hintsLeft <= 0) return
         val found = Hinter.find(engine.board) ?: return
         engine.selectCell(found.from)
         engine.noteHint()
@@ -610,7 +673,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     }
 
     // Everything below reads plain values captured for this version, never the live engine.
-    val snapshot = remember(version, spawnPreview, hint) {
+    val snapshot = remember(version, spawnPreview, hint, tut) {
         BoardSnapshot(
             cells = List(BOARD_SIZE * BOARD_SIZE) { engine.board[it % BOARD_SIZE, it / BOARD_SIZE] },
             selected = engine.selectedPoint,
@@ -620,7 +683,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             } else {
                 emptyMap()
             },
-            hintTarget = hint?.takeIf { engine.selectedPoint == it.from }?.to
+            // The tutorial points at the ball to pick up and at the cell to drop it on; a hint only after the ball is picked.
+            hintTarget = if (tut != null) hint?.to else hint?.takeIf { engine.selectedPoint == it.from }?.to,
+            hintSource = if (tut != null) hint?.from else null
         )
     }
     // Goals are fixed for the day from earlier results; progress includes the game in play.
@@ -643,7 +708,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         clock = remember(version) {
             Modes.remainingMs(engine)?.let { ms -> "%d:%02d".format(java.util.Locale.ROOT, ms / 60000, ms / 1000 % 60) }
         },
-        hintsLeft = if (gameOverNow(engine)) 0 else hintsLeft,
+        hintsLeft = if (tut != null || gameOverNow(engine)) 0 else hintsLeft,
         onHint = ::onHint,
         onChangeMode = ::openNewGameDialog,
         gameOver = gameOverNow(engine),
@@ -681,10 +746,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     showNext = showNext,
                     soundEnabled = soundEnabled,
                     effects = effects,
-                    coronationStart = coronationStart,
+                    coronationStart = if (tut != null) null else coronationStart,
                     // The dethroned king keeps his name and record; the crowned pretender is the player.
                     kingName = Hall.kingOf(hall).name,
-                    pretenderName = if (coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
+                    pretenderName = if (tut == null && coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
                     window = dosWindow,
                     hall = hall,
                     canUndo = canUndo,
@@ -736,6 +801,21 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                 },
                 extras = extras
             )
+            tut?.let { run ->
+                val step = TUTORIAL_STEPS[run.step]
+                val last = run.step == TUTORIAL_STEPS.lastIndex
+                TutorialBanner(
+                    palette = palette,
+                    step = run.step + 1,
+                    total = TUTORIAL_STEPS.size,
+                    text = stringResource(tutorialText(step.id, run.retry)),
+                    showContinue = step.info,
+                    last = last,
+                    onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
+                    onSkip = ::endTutorial,
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
         }
 
         updateOffer?.let { info ->
@@ -824,10 +904,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     score = score,
                     moves = engine.moves,
                     onStart = { startGame(pickedMode) },
-                    onKeep = { dialog = Dialog.NONE }
+                    onKeep = { dialog = Dialog.NONE },
+                    onTutorial = ::startTutorial
                 )
                 Dialog.GOALS -> GoalsDialog(goalProgress, ProgressTracker.currentStreak(progress.goalDays, today), onClose = { dialog = Dialog.NONE })
-                Dialog.HELP -> HelpDialog(onClose = { dialog = Dialog.NONE })
+                Dialog.HELP -> HelpDialog(onClose = { dialog = Dialog.NONE }, onTutorial = ::startTutorial)
                 Dialog.STATS -> StatsDialog(
                     history = history,
                     progress = progress,
@@ -875,6 +956,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     vibrationSupported = haptics.supported,
                     vibration = vibration,
                     onVibration = { vibration = it; storage.vibration = it; haptics.enabled = it; if (it) haptics.play(HapticKind.SELECT) },
+                    onTutorial = ::startTutorial,
                     versionName = appVersion,
                     autoUpdate = autoUpdate,
                     onAutoUpdate = { autoUpdate = it; storage.autoUpdateCheck = it },
@@ -1282,7 +1364,9 @@ private fun DosGameScreen(
         tools = { horizontal ->
             val buttons: @Composable () -> Unit = {
                 ActionButton(AppIcons.Undo, stringResource(R.string.btn_undo), onUndo, enabled = canUndo)
-                ActionButton(AppIcons.Lightbulb, stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
+                // After the game the hint has no use: its place offers the result instead (the DOS screen has no panel for it).
+                if (extras.gameOver) ActionButton(AppIcons.Flag, stringResource(R.string.gameover_result) + extras.resultBadge.let { if (it.isEmpty()) "" else " $it" }, extras.onShowResult)
+                else ActionButton(AppIcons.Lightbulb, stringResource(R.string.btn_hint, extras.hintsLeft.toString()), extras.onHint, enabled = extras.hintsLeft > 0)
                 ActionButton(AppIcons.Trophy, stringResource(R.string.dos_topTen), onTopTen)
                 ActionButton(AppIcons.BarChart, stringResource(R.string.btn_stats), onStats)
                 ActionButton(AppIcons.Settings, stringResource(R.string.btn_settings), onSettings)

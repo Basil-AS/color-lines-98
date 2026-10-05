@@ -14,6 +14,12 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import io.github.basil_as.basillines.engine.StepId
+import io.github.basil_as.basillines.engine.GameEngine
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -221,7 +227,7 @@ private fun AchievementRow(id: String, unlockedAt: Long?, showDate: Boolean = tr
 }
 
 @Composable
-fun HelpDialog(onClose: () -> Unit) {
+fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.help_title)) },
@@ -253,7 +259,8 @@ fun HelpDialog(onClose: () -> Unit) {
                 Text(stringResource(R.string.help_switching))
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } },
+        dismissButton = { TextButton(onClick = onTutorial) { Text(stringResource(R.string.tutorial_start)) } }
     )
 }
 
@@ -272,6 +279,7 @@ fun SettingsDialog(
     vibrationSupported: Boolean,
     vibration: Boolean,
     onVibration: (Boolean) -> Unit,
+    onTutorial: () -> Unit,
     versionName: String,
     autoUpdate: Boolean,
     onAutoUpdate: (Boolean) -> Unit,
@@ -343,6 +351,9 @@ fun SettingsDialog(
                 // Vibration is its own switch, separate from the sound.
                 SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
                 if (!vibrationSupported) Text(stringResource(R.string.settings_vibrationOff), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                TextButton(onClick = onTutorial, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.tutorial_start), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
+                }
                 Text(stringResource(R.string.lang_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 listOf(
                     AppLanguage.AUTO to R.string.lang_auto,
@@ -647,7 +658,8 @@ fun NewGameDialog(
     score: Int,
     moves: Int,
     onStart: () -> Unit,
-    onKeep: () -> Unit
+    onKeep: () -> Unit,
+    onTutorial: () -> Unit
 ) {
     val modes = listOf(
         Triple(ModeId.CLASSIC, R.string.mode_classic, R.string.mode_classic_desc),
@@ -727,6 +739,7 @@ fun NewGameDialog(
                         }
                     }
                 }
+                TextButton(onClick = onTutorial, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.tutorial_start)) }
             }
         },
         // With a game in progress the safe choice is the focused, prominent one.
@@ -962,5 +975,60 @@ internal fun ThemeSwatch(theme: AppTheme, modifier: Modifier = Modifier) {
         // A strip of the panel colour beside the board, as the real screen has.
         drawRect(palette.panel, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Size(left * 0.55f, size.height))
         drawRect(palette.accent, androidx.compose.ui.geometry.Offset(0f, 0f), androidx.compose.ui.geometry.Size(left * 0.55f, size.height * 0.12f))
+    }
+}
+
+/** A tutorial in progress: the step, the game it replaced, and whether the last try missed. */
+class TutorialRun(val step: Int, val saved: GameEngine, val retry: Boolean)
+
+internal fun tutorialText(id: StepId, retry: Boolean): Int = when {
+    retry && id == StepId.LINE -> R.string.tutorial_retry_line
+    retry && id == StepId.BLOCKED -> R.string.tutorial_retry_blocked
+    else -> when (id) {
+        StepId.SELECT -> R.string.tutorial_select
+        StepId.MOVE -> R.string.tutorial_move
+        StepId.NEXT -> R.string.tutorial_next
+        StepId.LINE -> R.string.tutorial_line
+        StepId.FREE -> R.string.tutorial_free
+        StepId.BLOCKED -> R.string.tutorial_blocked
+        StepId.END -> R.string.tutorial_end
+    }
+}
+
+/** The coach card over the bottom of the screen; the board and the score panel stay visible and playable. */
+@Composable
+fun TutorialBanner(
+    palette: Palette,
+    step: Int,
+    total: Int,
+    text: String,
+    showContinue: Boolean,
+    last: Boolean,
+    onContinue: () -> Unit,
+    onSkip: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .widthIn(max = 520.dp)
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .padding(8.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shape = MaterialTheme.shapes.medium,
+        border = BorderStroke(2.dp, palette.accent),
+        shadowElevation = 8.dp
+    ) {
+        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(stringResource(R.string.tutorial_title), fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                Text(stringResource(R.string.tutorial_progress, step, total), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Text(text, fontSize = 14.sp, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (showContinue) Button(onClick = onContinue) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue)) }
+                if (!last) TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
+            }
+        }
     }
 }

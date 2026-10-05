@@ -56,10 +56,12 @@ object Updates {
         }
         .firstOrNull()
 
-    /** A download (also after a redirect) may only come from GitHub over HTTPS. */
+    /** A download (also after a redirect) may only come from GitHub over HTTPS: no credentials in the address, no odd port. */
     fun isAllowedDownloadUrl(url: String): Boolean {
-        if (!url.startsWith("https://")) return false
-        val host = url.removePrefix("https://").substringBefore('/').substringBefore('?').substringBefore(':').lowercase()
+        val uri = runCatching { java.net.URI(url) }.getOrNull() ?: return false
+        if (uri.scheme != "https" || uri.rawUserInfo != null) return false
+        if (uri.port != -1 && uri.port != 443) return false
+        val host = uri.host?.lowercase() ?: return false
         return host == "github.com" || host.endsWith(".githubusercontent.com")
     }
 
