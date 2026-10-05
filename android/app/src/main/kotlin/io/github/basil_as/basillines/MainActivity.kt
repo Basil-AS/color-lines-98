@@ -1,5 +1,9 @@
 package io.github.basil_as.basillines
 
+import android.content.res.Configuration
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import android.graphics.Color as AndroidColor
 import android.content.Context
 import android.os.Bundle
@@ -113,6 +117,27 @@ class MainActivity : ComponentActivity() {
         val transparent = AndroidColor.TRANSPARENT
         val style = if (dark) SystemBarStyle.dark(transparent) else SystemBarStyle.light(transparent, transparent)
         enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
+        applyImmersive()
+    }
+
+    /**
+     * Held sideways the phone is short, so the status and navigation bars are hidden and the game uses the whole screen
+     * (a swipe from the edge shows them for a moment). Upright they stay, as everyone expects.
+     */
+    private fun applyImmersive() {
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            controller.hide(WindowInsetsCompat.Type.systemBars())
+        } else {
+            controller.show(WindowInsetsCompat.Type.systemBars())
+        }
+    }
+
+    /** A dialog, the keyboard or a swipe can bring the bars back: hide them again when the game has the focus. */
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) applyImmersive()
     }
 
     private var stoppedAt = 0L
