@@ -47,10 +47,15 @@
     <string name="announce_gameOver">Игра окончена. Итоговый счёт %1$s</string>
     <string name="announce_undone">Ход отменён. Счёт %1$s</string>
     <string name="announce_newGame">Новая игра началась</string>
+    <string name="gameover_title">Игра окончена</string>
+    <string name="gameover_final">Итоговый счёт</string>
+    <string name="gameover_best">Рекорд</string>
+    <string name="gameover_newRecord">Новый рекорд!</string>
+    <string name="gameover_playAgain">Играть снова</string>
     <string name="gameover_result">Итоги</string>
     <string name="tutorial_title">Обучение</string>
     <string name="tutorial_start">Пройти обучение</string>
-    <string name="tutorial_progress">Шаг %1$d из %2$d</string>
+    <string name="tutorial_progress">Шаг %1$s из %2$s</string>
     <string name="tutorial_continue">Продолжить</string>
     <string name="tutorial_finish">Начать играть</string>
     <string name="tutorial_skip">Пропустить обучение</string>
@@ -63,11 +68,6 @@
     <string name="tutorial_end">Игра заканчивается, когда поле заполнено. Чем длиннее линия, тем больше очков: 5 шаров — 10, 6 — 12, 7 — 18, 8 — 28, 9 — 42. Удачи!</string>
     <string name="tutorial_retry_line">Не совсем: поставьте красный шар на подсвеченную клетку, чтобы получить пять в ряд. Попробуйте ещё раз.</string>
     <string name="tutorial_retry_blocked">Этот шар свободен. Выберите красный в центре: он зажат со всех сторон.</string>
-    <string name="gameover_title">Игра окончена</string>
-    <string name="gameover_final">Итоговый счёт</string>
-    <string name="gameover_best">Рекорд</string>
-    <string name="gameover_newRecord">Новый рекорд!</string>
-    <string name="gameover_playAgain">Играть снова</string>
     <string name="stats_title">Статистика</string>
     <string name="stats_gamesPlayed">Сыграно партий</string>
     <string name="stats_best">Лучший счёт</string>
@@ -260,7 +260,7 @@
     <string name="update_available">Доступна версия %1$s Color Lines (у вас %2$s).</string>
     <string name="update_hint">Новая версия скачивается прямо в приложении, проверяется и ставится поверх этой. Партии, рекорды и настройки сохраняются.</string>
     <string name="update_downloadInstall">Скачать и установить</string>
-    <string name="update_downloading">Скачивание… %1$d%%</string>
+    <string name="update_downloading">Скачивание… %1$s%%</string>
     <string name="update_downloadingUnknown">Скачивание…</string>
     <string name="update_readyTitle">Обновление готово</string>
     <string name="update_ready">Файл проверен. Нажмите «Установить»; Android спросит ещё раз, прежде чем заменит приложение.</string>

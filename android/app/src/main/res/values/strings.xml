@@ -47,10 +47,15 @@
     <string name="announce_gameOver">Game over. Final score %1$s</string>
     <string name="announce_undone">Move undone. Score %1$s</string>
     <string name="announce_newGame">New game started</string>
+    <string name="gameover_title">Game over</string>
+    <string name="gameover_final">Final score</string>
+    <string name="gameover_best">Best score</string>
+    <string name="gameover_newRecord">New record!</string>
+    <string name="gameover_playAgain">Play again</string>
     <string name="gameover_result">Result</string>
     <string name="tutorial_title">Training</string>
     <string name="tutorial_start">Take the tutorial</string>
-    <string name="tutorial_progress">Step %1$d of %2$d</string>
+    <string name="tutorial_progress">Step %1$s of %2$s</string>
     <string name="tutorial_continue">Continue</string>
     <string name="tutorial_finish">Start playing</string>
     <string name="tutorial_skip">Skip the tutorial</string>
@@ -63,11 +68,6 @@
     <string name="tutorial_end">The game ends when the board is full. The longer the line, the more points: 5 balls give 10, 6 give 12, 7 give 18, 8 give 28, 9 give 42. Good luck!</string>
     <string name="tutorial_retry_line">Not quite: put the red ball on the highlighted cell to make five in a row. Try again.</string>
     <string name="tutorial_retry_blocked">That ball was free. Pick the red one in the middle: it is closed in on every side.</string>
-    <string name="gameover_title">Game over</string>
-    <string name="gameover_final">Final score</string>
-    <string name="gameover_best">Best score</string>
-    <string name="gameover_newRecord">New record!</string>
-    <string name="gameover_playAgain">Play again</string>
     <string name="stats_title">Statistics</string>
     <string name="stats_gamesPlayed">Games played</string>
     <string name="stats_best">Best score</string>
@@ -260,7 +260,7 @@
     <string name="update_available">Version %1$s of Color Lines is available (you have %2$s).</string>
     <string name="update_hint">The new version is downloaded here in the app, checked and installed over this one. Your games, records and settings stay.</string>
     <string name="update_downloadInstall">Download and install</string>
-    <string name="update_downloading">Downloading… %1$d%%</string>
+    <string name="update_downloading">Downloading… %1$s%%</string>
     <string name="update_downloadingUnknown">Downloading…</string>
     <string name="update_readyTitle">Update ready</string>
     <string name="update_ready">The file is checked. Tap Install; Android asks once more before it replaces the app.</string>
