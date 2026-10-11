@@ -103,6 +103,8 @@
     <string name="theme_material">Material</string>
     <string name="theme_neon">Неон</string>
     <string name="theme_contrast">Высокий контраст</string>
+    <string name="theme_clear">Ясная</string>
+    <string name="theme_clear_night">Ясная ночь</string>
     <string name="theme_synthwave">Синтвейв</string>
     <string name="theme_ocean">Океан</string>
     <string name="theme_paper">Бумага</string>

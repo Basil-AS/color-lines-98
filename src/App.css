@@ -2430,6 +2430,107 @@ input[role='switch']:focus-visible {
 .swatch-paper { background: radial-gradient(circle at 25% 50%, #b3402a 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #3a6ea5 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5a8a3a 0 8px, transparent 9px), #e9d3a7; }
 .swatch-gameboy { background: radial-gradient(circle at 25% 50%, #0f380f 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #306230 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #8bac0f 0 8px, transparent 9px), #9bbc0f; border: 2px solid #0f380f; }
 .swatch-terminal { background: radial-gradient(circle at 25% 50%, #ffb000 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #b37a00 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ffcc33 0 8px, transparent 9px), #120900; border: 1px solid #ffb000; }
+.swatch-clear { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f5f3ec; border: 1px solid #d4cebe; border-radius: 6px; }
+.swatch-clearNight { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #161b22; border: 1px solid #30363d; border-radius: 6px; }
+
+/* Vision-friendly Clear themes: calm surfaces, high-contrast grid, saturated balls with shape markers */
+.theme-clear {
+  color-scheme: light;
+  --page-bg: #f5f3ec;
+  --panel-bg: #ffffff;
+  --panel-border: #d4cebe;
+  --panel-shadow: 0 8px 24px rgba(40, 35, 25, 0.08);
+  --text-main: #1f2328;
+  --text-muted: #57606a;
+  --accent: #0969da;
+  --accent-glow: rgba(9, 105, 218, 0.25);
+  --on-accent: #ffffff;
+  --board-bg: #2d333b;
+  --cell-bg: #f8f6f0;
+  --cell-hover: #ebe7dc;
+  --cell-reachable-dot: #0969da;
+  --stat-bg: #eeebe2;
+  --stat-label: #57606a;
+  --stat-value: #1f2328;
+  --title-color: #1f2328;
+  --ctrl-bg: #eeebe2;
+  --ctrl-hover: #e2ded3;
+  --input-bg: #ffffff;
+  --card-bg: #faf8f2;
+  --danger: #cf222e;
+  --radius: 12px;
+  --radius-sm: 6px;
+}
+
+.theme-clear .board-grid {
+  border: 2px solid #2d333b;
+  background: #2d333b;
+  gap: 2px;
+}
+
+.theme-clear .board-cell {
+  box-shadow: inset 0 0 0 1px #d4cebe;
+}
+
+.theme-clear .board-cell:focus-visible,
+.theme-clear .ctrl-btn:focus-visible,
+.theme-clear .modal-btn:focus-visible {
+  outline: 3px solid #0969da;
+  outline-offset: 2px;
+}
+
+.theme-clear .ball-contrast {
+  border-color: #2d333b;
+}
+
+.theme-clearNight {
+  color-scheme: dark;
+  --page-bg: #0d1117;
+  --panel-bg: #161b22;
+  --panel-border: #30363d;
+  --panel-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --text-main: #f0f6fc;
+  --text-muted: #8b949e;
+  --accent: #58a6ff;
+  --accent-glow: rgba(88, 166, 255, 0.3);
+  --on-accent: #0d1117;
+  --board-bg: #6e7681;
+  --cell-bg: #161b22;
+  --cell-hover: #21262d;
+  --cell-reachable-dot: #58a6ff;
+  --stat-bg: #161b22;
+  --stat-label: #8b949e;
+  --stat-value: #f0f6fc;
+  --title-color: #f0f6fc;
+  --ctrl-bg: #21262d;
+  --ctrl-hover: #30363d;
+  --input-bg: #161b22;
+  --card-bg: #161b22;
+  --danger: #f85149;
+  --radius: 12px;
+  --radius-sm: 6px;
+}
+
+.theme-clearNight .board-grid {
+  border: 2px solid #6e7681;
+  background: #6e7681;
+  gap: 2px;
+}
+
+.theme-clearNight .board-cell {
+  box-shadow: inset 0 0 0 1px #30363d;
+}
+
+.theme-clearNight .board-cell:focus-visible,
+.theme-clearNight .ctrl-btn:focus-visible,
+.theme-clearNight .modal-btn:focus-visible {
+  outline: 3px solid #58a6ff;
+  outline-offset: 2px;
+}
+
+.theme-clearNight .ball-contrast {
+  border-color: #f0f6fc;
+}
 
 /* Seven action buttons share one row on a phone instead of wrapping onto a second one. */
 @media (max-width: 480px) {
