@@ -266,7 +266,7 @@ describe('language', () => {
 });
 
 describe('themes', () => {
-  it.each(['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'])('applies and remembers the %s theme', async (theme) => {
+  it.each(['modern', 'light', 'material', 'neon', 'contrast', 'clear', 'clearNight', 'lines98', 'colorlines92'])('applies and remembers the %s theme', async (theme) => {
     const user = userEvent.setup();
     const first = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
@@ -277,6 +277,8 @@ describe('themes', () => {
       material: /^Material/,
       neon: /Neon/,
       contrast: /High contrast/,
+      clear: /^Clear$/,
+      clearNight: /^Clear night$/,
       lines98: /Lines 98/,
       colorlines92: /Color Lines 1992/,
     };
@@ -286,6 +288,25 @@ describe('themes', () => {
     first.unmount();
     render(<App />);
     expect(document.body.className).toBe(`theme-${theme}`);
+  });
+
+  it('clear and clearNight use shape markers on balls and preserve high visibility', () => {
+    localStorage.setItem('colorlines_theme', 'clear');
+    const first = render(<App />);
+    const balls = ballCells();
+    expect(balls.length).toBeGreaterThan(0);
+    for (const b of balls) {
+      expect(b.querySelector('.ball-contrast')).toBeInTheDocument();
+    }
+    first.unmount();
+
+    localStorage.setItem('colorlines_theme', 'clearNight');
+    render(<App />);
+    expect(document.body.className).toBe('theme-clearNight');
+    const nightBalls = ballCells();
+    for (const b of nightBalls) {
+      expect(b.querySelector('.ball-contrast')).toBeInTheDocument();
+    }
   });
 
   it('gives the Windows theme its own title bar and menu', async () => {

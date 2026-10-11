@@ -19,7 +19,7 @@ import org.robolectric.annotation.GraphicsMode
 
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-@Config(sdk = [35], qualifiers = "en-rUS-w411dp-h891dp-port")
+@Config(sdk = [35], manifest = Config.NONE, qualifiers = "en-rUS-w411dp-h891dp-port")
 class ImportDialogTest {
     @get:Rule val rule = createComposeRule()
 

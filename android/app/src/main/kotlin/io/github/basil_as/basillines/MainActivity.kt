@@ -605,7 +605,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     val exportJson = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
-        val theme = theme.name.lowercase().replace("_", "")
+        val theme = if (theme == AppTheme.CLEAR_NIGHT) "clearNight" else theme.name.lowercase().replace("_", "")
         writeTo(
             uri,
             io.github.basil_as.basillines.engine.Backups.encode(
@@ -658,7 +658,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         bestScore = maxOf(bestScore, nextProgress.bestScore); storage.bestScore = bestScore
         if (replace) {
             val st = b.settings
-            AppTheme.entries.firstOrNull { it.name.lowercase().replace("_", "") == st.theme }?.let { theme = it; storage.theme = it }
+            AppTheme.entries.firstOrNull { it.name.lowercase().replace("_", "") == st.theme?.lowercase()?.replace("_", "") }?.let { theme = it; storage.theme = it }
             st.playerName?.let { playerName = it; storage.playerName = it }
             st.soundEnabled?.let { soundEnabled = it; soundManager.isEnabled = it }
             st.spawnPreview?.let { spawnStored = it; storage.spawnPreview = it }

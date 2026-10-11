@@ -1,8 +1,8 @@
 # Current agent state
 
-ACTIVE_TASK: .agents/tasks/20261005-1922-v2-1-0-tutorial-mode-android-ux-sound-haptics-up
+ACTIVE_TASK: .agents/tasks/20261006-0230-audit-web-and-android-for-bugs-and-improvements
 STATUS: wip
-BRANCH: agent/feat-v2-1-0-tutorial-ux
-LAST_VERIFIED_COMMIT: -
-UPDATED_AT: 2026-10-05T19:22:10+03:00
-NEXT_ACTION: Read TASK.md and refine scope, DoD and verification before editing.
+BRANCH: agent/fix-audit-web-android-2
+LAST_VERIFIED_COMMIT: working tree verified
+UPDATED_AT: 2026-10-12T01:00:00+03:00
+NEXT_ACTION: Commit and push completed theme/CI changes, then create the PR and release.

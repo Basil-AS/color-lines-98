@@ -121,6 +121,8 @@ private val THEME_NAMES = listOf(
     AppTheme.GAMEBOY to R.string.theme_gameboy,
     AppTheme.TERMINAL to R.string.theme_terminal,
     AppTheme.CONTRAST to R.string.theme_contrast,
+    AppTheme.CLEAR to R.string.theme_clear,
+    AppTheme.CLEAR_NIGHT to R.string.theme_clear_night,
     AppTheme.LINES_98 to R.string.theme_lines98,
     AppTheme.LINES_98_PLUS to R.string.theme_lines98plus,
     AppTheme.COLORLINES_92 to R.string.theme_colorlines92
