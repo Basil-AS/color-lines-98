@@ -237,6 +237,15 @@ internal fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell:
                 CornerRadius(cell * 0.16f)
             )
         }
+        CellStyle.GRID -> {
+            drawRect(palette.cell, Offset(left, top), Size(cell, cell))
+            drawRect(
+                palette.boardBackground,
+                Offset(left, top),
+                Size(cell, cell),
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = maxOf(1f, cell * 0.018f))
+            )
+        }
         CellStyle.WIN98, CellStyle.DOS -> {
             val light = Color.White
             val dark = if (palette.cellStyle == CellStyle.WIN98) Color(0xFF808080) else Color(0xFF555555)
@@ -301,6 +310,10 @@ internal fun DrawScope.drawBall(
             drawCircle(palette.ballBorder, radius + 2f, center)
             drawCircle(tint?.first ?: contrastColor(ball), radius - 1f, center)
             drawContrastSymbol(ball, center, radius * 0.5f, tint?.second ?: Color.Black)
+        }
+        BallStyle.SOLID -> {
+            drawCircle(palette.ballBorder, radius + 2f, center)
+            drawCircle(contrastColor(ball), radius - 1f, center)
         }
         BallStyle.GLOSSY -> {
             val base = ballColor(ball)

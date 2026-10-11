@@ -674,6 +674,8 @@ class GameStorageMigrationTest {
         assertEquals(AppTheme.RETRO98, GameStorage(context).theme)
         assertEquals(Color(0xFF866F5A), paletteFor(AppTheme.RETRO98).boardBackground)
         assertEquals(Color(0xFFF0DEC0), paletteFor(AppTheme.RETRO98).cell)
+        assertEquals(CellStyle.GRID, paletteFor(AppTheme.RETRO98).cellStyle)
+        assertEquals(BallStyle.SOLID, paletteFor(AppTheme.RETRO98).ballStyle)
     }
 
     @Test
