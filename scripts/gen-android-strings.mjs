@@ -13,9 +13,9 @@ const resDir = resolve(root, 'android/app/src/main/res');
 const TARGETS = { en: 'values/strings.xml', ru: 'values-ru/strings.xml' };
 const CATEGORIES = { en: ['one', 'other'], ru: ['one', 'few', 'many', 'other'] };
 
-// Android resource names must be lowercase snake_case; shared keys may use
-// camelCase because the web theme identifiers are also used for persistence.
-const androidName = (key) => key.replace(/[.-]/g, '_').replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
+// Keep the historical resource IDs stable; normalize the new camelCase theme
+// key because it is also persisted as the web-facing identifier.
+const androidName = (key) => key === 'theme.clearNight' ? 'theme_clear_night' : key.replace(/[.-]/g, '_');
 
 function escapeText(text) {
   return text
