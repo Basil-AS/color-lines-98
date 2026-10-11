@@ -13,7 +13,9 @@ const resDir = resolve(root, 'android/app/src/main/res');
 const TARGETS = { en: 'values/strings.xml', ru: 'values-ru/strings.xml' };
 const CATEGORIES = { en: ['one', 'other'], ru: ['one', 'few', 'many', 'other'] };
 
-const androidName = (key) => key.replace(/[.-]/g, '_');
+// Android resource names must be lowercase snake_case; shared keys may use
+// camelCase because the web theme identifiers are also used for persistence.
+const androidName = (key) => key.replace(/[.-]/g, '_').replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
 
 function escapeText(text) {
   return text
