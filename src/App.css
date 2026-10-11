@@ -2563,13 +2563,15 @@ input[role='switch']:focus-visible {
 }
 
 .theme-retro98 .board-grid {
-  border: 2px solid #866f5a;
+  border: 3px solid #866f5a;
   background: #866f5a;
-  gap: 2px;
+  border-radius: 0;
+  gap: 1px;
+  padding: 1px;
 }
 
 .theme-retro98 .board-cell {
-  box-shadow: inset 0 0 0 1px #c1a988;
+  box-shadow: none;
 }
 
 .theme-retro98 .board-cell:focus-visible,
@@ -2580,7 +2582,12 @@ input[role='switch']:focus-visible {
 }
 
 .theme-retro98 .ball-contrast {
-  border-color: #321c45;
+  border: 3px solid #321c45;
+  box-shadow: none;
+}
+
+.theme-retro98 .ball-contrast::after {
+  content: none;
 }
 
 /* Seven action buttons share one row on a phone instead of wrapping onto a second one. */
