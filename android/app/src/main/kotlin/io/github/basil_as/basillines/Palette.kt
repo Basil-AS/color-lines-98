@@ -3,8 +3,8 @@ package io.github.basil_as.basillines
 import androidx.compose.ui.graphics.Color
 import io.github.basil_as.basillines.engine.BallColor
 
-enum class CellStyle { ROUNDED, WIN98, DOS }
-enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST }
+enum class CellStyle { ROUNDED, WIN98, DOS, GRID }
+enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID }
 
 data class Palette(
     val background: Color,
@@ -232,7 +232,7 @@ private val Retro98 = Palette(
     statBackground = Color(0xFF321C45), statLabel = Color(0xFFE6CFEA), statValue = Color(0xFFFFF8E8),
     accent = Color(0xFFFFD166), onAccent = Color(0xFF321C45), danger = Color(0xFFFF8A80),
     reachableDot = Color(0xFFFFD166).copy(alpha = 0.8f),
-    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    dark = true, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID, windowTitleBar = false,
     ballBorder = Color(0xFF321C45)
 )
 
