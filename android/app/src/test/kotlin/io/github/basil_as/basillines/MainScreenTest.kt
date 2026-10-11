@@ -1,6 +1,7 @@
 package io.github.basil_as.basillines
 
 import android.content.Context
+import java.util.concurrent.RejectedExecutionException
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -391,8 +392,7 @@ class MainScreenTest {
     fun everyThemeShowsTheBoardAndCanBePlayed() {
         for (theme in AppTheme.entries) {
             GameStorage(ApplicationProvider.getApplicationContext()).theme = theme
-            rule.activityRule.scenario.recreate()
-            rule.waitForIdle()
+            recreateActivityWithRetry()
             if (theme != AppTheme.COLORLINES_92) rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
             when (theme) {
                 AppTheme.COLORLINES_92 -> rule.onNodeWithContentDescription("F4: Restart").performClick()
@@ -406,6 +406,21 @@ class MainScreenTest {
             playOneMove()
             assertTrue("$theme keeps a valid board", ballCount() in 3..8)
         }
+    }
+
+    private fun recreateActivityWithRetry() {
+        var lastFailure: RejectedExecutionException? = null
+        repeat(3) {
+            try {
+                rule.activityRule.scenario.recreate()
+                rule.waitForIdle()
+                return
+            } catch (failure: RejectedExecutionException) {
+                lastFailure = failure
+                Thread.sleep(100)
+            }
+        }
+        throw lastFailure ?: error("Activity recreation failed without an exception")
     }
 
     @Test
