@@ -46,6 +46,8 @@ export const VOICES: Record<VoiceId, Voice> = {
   chip: { wave: 'square', pitch: 2, tempo: 0.5, gain: 0.4 },
   teletype: { wave: 'square', pitch: 1.5, tempo: 0.4, gain: 0.4 },
   beep: { wave: 'square', pitch: 1.25, tempo: 1.6, gain: 0.45 },
+  clarity: { wave: 'sine', pitch: 1.25, tempo: 0.9, gain: 1.1 },
+  night: { wave: 'triangle', pitch: 1.75, tempo: 1.1, gain: 1.2 },
 };
 
 /** The melody of an event in the voice of a look. */

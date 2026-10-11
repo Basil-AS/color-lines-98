@@ -200,6 +200,30 @@ private val Terminal = Palette(
     symbolTint = AMBER_TINT, ballBorder = Color(0xFFFFB000)
 )
 
+/** Clear: warm off-white surface, charcoal board frame and visible grid cells with high-chroma balls and shapes. */
+private val Clear = Palette(
+    background = Color(0xFFF5F3EC), panel = Color(0xFFFFFFFF), chip = Color(0xFFEEEBE2),
+    boardBackground = Color(0xFF2D333B), cell = Color(0xFFF8F6F0),
+    text = Color(0xFF1F2328), textMuted = Color(0xFF57606A),
+    statBackground = Color(0xFFEEEBE2), statLabel = Color(0xFF57606A), statValue = Color(0xFF1F2328),
+    accent = Color(0xFF0969DA), onAccent = Color.White, danger = Color(0xFFCF222E),
+    reachableDot = Color(0xFF0969DA).copy(alpha = 0.7f),
+    dark = false, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    ballBorder = Color(0xFF2D333B)
+)
+
+/** Clear night: deep blue-charcoal surface, pale grid and high-chroma balls and shapes. */
+private val ClearNight = Palette(
+    background = Color(0xFF0D1117), panel = Color(0xFF161B22), chip = Color(0xFF21262D),
+    boardBackground = Color(0xFF6E7681), cell = Color(0xFF161B22),
+    text = Color(0xFFF0F6FC), textMuted = Color(0xFF8B949E),
+    statBackground = Color(0xFF161B22), statLabel = Color(0xFF8B949E), statValue = Color(0xFFF0F6FC),
+    accent = Color(0xFF58A6FF), onAccent = Color(0xFF0D1117), danger = Color(0xFFF85149),
+    reachableDot = Color(0xFF58A6FF).copy(alpha = 0.7f),
+    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    ballBorder = Color(0xFFF0F6FC)
+)
+
 fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.MODERN -> Modern
     AppTheme.LIGHT -> Light
@@ -211,6 +235,8 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.GAMEBOY -> GameBoy
     AppTheme.TERMINAL -> Terminal
     AppTheme.CONTRAST -> Contrast
+    AppTheme.CLEAR -> Clear
+    AppTheme.CLEAR_NIGHT -> ClearNight
     AppTheme.LINES_98 -> Lines98
     AppTheme.LINES_98_PLUS -> Lines98Plus
     AppTheme.COLORLINES_92 -> ColorLines92

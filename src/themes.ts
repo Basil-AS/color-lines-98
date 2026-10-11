@@ -9,6 +9,8 @@ export const THEMES = [
   'gameboy',
   'terminal',
   'contrast',
+  'clear',
+  'clearNight',
   'lines98',
   'lines98plus',
   'colorlines92',
@@ -21,6 +23,7 @@ export const DEFAULT_THEME: Theme = 'modern';
 const LEGACY_THEMES: Record<string, Theme> = {
   classic98: 'lines98',
   retro92: 'colorlines92',
+  clearnight: 'clearNight',
 };
 
 export function parseTheme(raw: string | null): Theme {
@@ -56,7 +59,7 @@ export function defaultSpawnPreview(theme: Theme): boolean {
 }
 
 /** Every look has its own voice; the two retro ones have theirs in samples and PC-speaker beeps. */
-export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep';
+export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night';
 
 const VOICES: Record<Theme, VoiceId> = {
   modern: 'soft',
@@ -69,6 +72,8 @@ const VOICES: Record<Theme, VoiceId> = {
   gameboy: 'chip',
   terminal: 'teletype',
   contrast: 'beep',
+  clear: 'clarity',
+  clearNight: 'night',
   lines98: 'soft',
   lines98plus: 'soft',
   colorlines92: 'soft',

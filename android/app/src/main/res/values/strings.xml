@@ -103,6 +103,8 @@
     <string name="theme_material">Material</string>
     <string name="theme_neon">Neon</string>
     <string name="theme_contrast">High contrast</string>
+    <string name="theme_clear">Clear</string>
+    <string name="theme_clear_night">Clear night</string>
     <string name="theme_synthwave">Synthwave</string>
     <string name="theme_ocean">Ocean</string>
     <string name="theme_paper">Paper</string>

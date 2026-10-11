@@ -132,6 +132,8 @@ const THEME_COLORS: Record<Theme, string> = {
   gameboy: '#8bac0f',
   terminal: '#120900',
   contrast: '#000000',
+  clear: '#f5f3ec',
+  clearNight: '#161b22',
   lines98: '#008080',
   lines98plus: '#dde5ef',
   colorlines92: '#000000',
@@ -160,7 +162,7 @@ function ballThemeClass(theme: Theme): string {
   if (theme === 'lines98' || theme === 'lines98plus') return '';
   if (theme === 'colorlines92') return 'ball-dos';
   if (theme === 'neon') return 'ball-neon';
-  if (theme === 'contrast') return 'ball-contrast';
+  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight') return 'ball-contrast';
   if (theme === 'gameboy' || theme === 'terminal') return 'ball-contrast ball-symbols';
   if (theme === 'synthwave') return 'ball-neon ball-synth';
   return 'ball-modern';
@@ -212,6 +214,20 @@ export default function App() {
   const pendingFx = useRef<MoveFx | null>(null);
   const comboRef = useRef(0);
   const dangerWarned = useRef(false);
+  /** Delayed sounds and tutorial steps: all of them are dropped when a game or the tutorial ends or the app closes. */
+  const timers = useRef(new Set<number>());
+  const later = (ms: number, fn: () => void) => {
+    const id = window.setTimeout(() => {
+      timers.current.delete(id);
+      fn();
+    }, ms);
+    timers.current.add(id);
+  };
+  const clearTimers = () => {
+    timers.current.forEach((id) => window.clearTimeout(id));
+    timers.current.clear();
+  };
+  useEffect(() => clearTimers, []);
   const [dosWindow, setDosWindow] = useState<DosWindow>('none');
   const [effects, setEffects] = useState<Effect[]>([]);
   const [coronationStart, setCoronationStart] = useState<number | null>(() =>
@@ -404,7 +420,7 @@ export default function App() {
     const animated = effectsLevel !== 'off' && !dos && fxRef.current !== null;
     const free = engine.board.getEmptyCells().length;
     const lag = animated ? travelMs(res.path ? res.path.length - 1 : 0) : 0;
-    const after = (ms: number, fn: () => void) => (ms > 0 ? void window.setTimeout(fn, ms) : fn());
+    const after = (ms: number, fn: () => void) => (ms > 0 ? later(ms, fn) : fn());
     const cleared = res.clearedPoints.length > 0;
     comboRef.current = cleared ? comboRef.current + 1 : 0;
     if (animated) {
@@ -421,15 +437,16 @@ export default function App() {
     haptic(cleared ? (res.pointsEarned >= 28 ? 'bigClear' : 'clear') : 'move');
     if (!tut && engine.score > kingOf(hall).score && coronationStart === null) {
       setCoronationStart(start);
-      if (!res.isGameOver) window.setTimeout(() => soundManager.play('crown'), 450 + lag);
+      if (!res.isGameOver) later(450 + lag, () => soundManager.play('crown'));
     }
 
     if (cleared) {
       // Clearing a line is a free turn, so chains are natural: each link sounds higher.
       after(lag, () => soundManager.play('eat', res.pointsEarned));
       if (comboRef.current >= 2) {
+        const comboNow = comboRef.current;
         after(lag + 180, () => {
-          soundManager.play('combo', comboRef.current);
+          soundManager.play('combo', comboNow);
           haptic('combo');
         });
       }
@@ -486,7 +503,16 @@ export default function App() {
     setVersion((v) => v + 1);
   };
 
+  /** The tutorial must not inherit a streak, a danger warning or a pause from the game, nor leave them behind. */
+  const resetPlaySession = () => {
+    clearTimers();
+    comboRef.current = 0;
+    dangerWarned.current = false;
+    lastActionAt.current = 0;
+  };
+
   const startTutorial = () => {
+    resetPlaySession();
     setDialog(null);
     setShowResult(false);
     setHint(null);
@@ -496,6 +522,7 @@ export default function App() {
   /** Leaves the tutorial and puts the game that was on the board back, exactly as it was. */
   const endTutorial = () => {
     if (!tut) return;
+    resetPlaySession();
     setEngine(tut.saved);
     setTut(null);
     setHint(null);
@@ -512,10 +539,10 @@ export default function App() {
       // Let the player see what their move did before the next step arrives.
       const delay = e.kind === 'move' ? 1100 : 0;
       const go = () => enterStep(index + 1, saved);
-      if (delay > 0) window.setTimeout(go, delay);
+      if (delay > 0) later(delay, go);
       else go();
     } else if (verdict === 'retry') {
-      window.setTimeout(() => enterStep(index, saved, true), 1300);
+      later(1300, () => enterStep(index, saved, true));
     }
   };
 
@@ -524,12 +551,12 @@ export default function App() {
     const newBest = isNewRecord(engine.score, bestAtGameStart);
     soundManager.play(newBest ? 'record' : 'lose');
     haptic(newBest ? 'record' : 'gameOver');
-    if (newBest) window.setTimeout(() => fxRef.current?.celebrate(), 300);
+    if (newBest) later(300, () => fxRef.current?.celebrate());
     setAnnouncement(t('announce.gameOver', { score: engine.score }));
     const reward = recordGame(true);
     // The progress rewards follow the result after a short pause so the sounds do not blur together.
-    if (reward.levelUp !== null) window.setTimeout(() => soundManager.play('levelUp'), 1100);
-    else if (reward.unlocked.length > 0 || reward.goals.length > 0) window.setTimeout(() => soundManager.play('achievement'), 1100);
+    if (reward.levelUp !== null) later(1100, () => soundManager.play('levelUp'));
+    else if (reward.unlocked.length > 0 || reward.goals.length > 0) later(1100, () => soundManager.play('achievement'));
   };
 
   const handleCellKeyDown = (e: KeyboardEvent<HTMLButtonElement>, x: number, y: number) => {
@@ -550,7 +577,7 @@ export default function App() {
 
   /** Selects the ball worth moving and marks where to put it; three a game. */
   const handleHint = () => {
-    if (tut || engine.isGameOver || hintsLeft <= 0) return;
+    if (tut !== null || engine.isGameOver || hintsLeft <= 0) return;
     const h = findHint(engine.board);
     if (!h) {
       setAnnouncement(t('hint.none'));
@@ -568,6 +595,8 @@ export default function App() {
   };
 
   const handleUndo = () => {
+    // The tutorial script knows nothing about undo: a taken-back move would leave the step and the board out of step.
+    if (tut) return;
     setHint(null);
     setShowResult(false);
     trackTime();
@@ -582,6 +611,7 @@ export default function App() {
   /** Starts a game in the given mode; a game in progress is recorded as unfinished. */
   const startGame = (mode: ModeId) => {
     if (!tut && !engine.isGameOver && engine.moves > 0) recordGame(false);
+    clearTimers();
     const next = createEngine(mode);
     setHint(null);
     setHintsLeft(HINTS_PER_GAME);
@@ -1136,10 +1166,10 @@ export default function App() {
       </DosScreen>
       {modeStrip}
       <div className="dos-tools">
-        <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={!engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
+        <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={tut !== null || !engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
           <Undo2 size={20} aria-hidden="true" />
         </button>
-        <button type="button" className="ctrl-btn" onClick={handleHint} disabled={engine.isGameOver || hintsLeft <= 0} title={hintTitle} aria-label={hintTitle}>
+        <button type="button" className="ctrl-btn" onClick={handleHint} disabled={tut !== null || engine.isGameOver || hintsLeft <= 0} title={hintTitle} aria-label={hintTitle}>
           <Lightbulb size={20} aria-hidden="true" />
         </button>
         <button type="button" className="ctrl-btn" onClick={() => setDosWindow((w) => (w === 'top10' ? 'none' : 'top10'))} title={t('dos.topTen')} aria-label={t('dos.topTen')} aria-pressed={dosWindow === 'top10'}>
@@ -1222,8 +1252,8 @@ export default function App() {
                   label: t('menu.game'),
                   items: [
                     { label: t('newgame.title'), onSelect: requestNewGame },
-                    { label: t('btn.undo'), onSelect: handleUndo, disabled: !engine.canUndo },
-                    { label: hintTitle, onSelect: handleHint, disabled: engine.isGameOver || hintsLeft <= 0 },
+                    { label: t('btn.undo'), onSelect: handleUndo, disabled: tut !== null || !engine.canUndo },
+                    { label: hintTitle, onSelect: handleHint, disabled: tut !== null || engine.isGameOver || hintsLeft <= 0 },
                     ...MODE_IDS.map((id, i) => ({
                       label: t(`mode.${id}` as MessageKey),
                       checked: engine.mode === id,
@@ -1329,7 +1359,7 @@ export default function App() {
                 type="button"
                 className="ctrl-btn"
                 onClick={handleUndo}
-                disabled={!engine.canUndo}
+                disabled={tut !== null || !engine.canUndo}
                 title={t('btn.undo')}
                 aria-label={t('btn.undo')}
               >
@@ -1339,7 +1369,7 @@ export default function App() {
                 type="button"
                 className="ctrl-btn"
                 onClick={handleHint}
-                disabled={engine.isGameOver || hintsLeft <= 0}
+                disabled={tut !== null || engine.isGameOver || hintsLeft <= 0}
                 title={hintTitle}
                 aria-label={hintTitle}
               >

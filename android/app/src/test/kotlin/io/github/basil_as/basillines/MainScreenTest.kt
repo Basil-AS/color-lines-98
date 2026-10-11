@@ -1,6 +1,7 @@
 package io.github.basil_as.basillines
 
 import android.content.Context
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -655,6 +656,19 @@ class GameStorageMigrationTest {
         assertEquals(AppTheme.MODERN, GameStorage.parseTheme("nope"))
         assertEquals(AppTheme.MODERN, GameStorage.parseTheme(null))
         AppTheme.entries.forEach { assertEquals(it, GameStorage.parseTheme(it.name)) }
+    }
+
+    @Test
+    fun visionFriendlyThemesRoundTripAndUseDistinctPalettes() {
+        val storage = GameStorage(context)
+        storage.theme = AppTheme.CLEAR
+        assertEquals(AppTheme.CLEAR, GameStorage(context).theme)
+        assertEquals(Color(0xFF2D333B), paletteFor(AppTheme.CLEAR).boardBackground)
+
+        storage.theme = AppTheme.CLEAR_NIGHT
+        assertEquals(AppTheme.CLEAR_NIGHT, GameStorage(context).theme)
+        assertEquals(Color(0xFF6E7681), paletteFor(AppTheme.CLEAR_NIGHT).boardBackground)
+        assertTrue(paletteFor(AppTheme.CLEAR).cell != paletteFor(AppTheme.CLEAR_NIGHT).cell)
     }
 
     @Test
