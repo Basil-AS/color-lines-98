@@ -224,6 +224,18 @@ private val ClearNight = Palette(
     ballBorder = Color(0xFFF0F6FC)
 )
 
+/** Retro 98: muted purple chrome, warm beige board and a visible mid-brown grid. */
+private val Retro98 = Palette(
+    background = Color(0xFF4B2A63), panel = Color(0xFF6A3F80), chip = Color(0xFF81539A),
+    boardBackground = Color(0xFF866F5A), cell = Color(0xFFF0DEC0),
+    text = Color(0xFFFFF8E8), textMuted = Color(0xFFE6CFEA),
+    statBackground = Color(0xFF321C45), statLabel = Color(0xFFE6CFEA), statValue = Color(0xFFFFF8E8),
+    accent = Color(0xFFFFD166), onAccent = Color(0xFF321C45), danger = Color(0xFFFF8A80),
+    reachableDot = Color(0xFFFFD166).copy(alpha = 0.8f),
+    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    ballBorder = Color(0xFF321C45)
+)
+
 fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.MODERN -> Modern
     AppTheme.LIGHT -> Light
@@ -237,6 +249,7 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.CONTRAST -> Contrast
     AppTheme.CLEAR -> Clear
     AppTheme.CLEAR_NIGHT -> ClearNight
+    AppTheme.RETRO98 -> Retro98
     AppTheme.LINES_98 -> Lines98
     AppTheme.LINES_98_PLUS -> Lines98Plus
     AppTheme.COLORLINES_92 -> ColorLines92

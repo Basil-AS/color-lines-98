@@ -19,7 +19,8 @@ enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val ga
     TELETYPE(Wave.SQUARE, 1.5, 0.4, 0.4),
     BEEP(Wave.SQUARE, 1.25, 1.6, 0.45),
     CLARITY(Wave.SINE, 1.25, 0.9, 1.1),
-    NIGHT(Wave.TRIANGLE, 1.75, 1.1, 1.2)
+    NIGHT(Wave.TRIANGLE, 1.75, 1.1, 1.2),
+    RETRO(Wave.SINE, 1.15, 1.3, 1.1)
 }
 
 data class ModernNote(val freq: Int, val ms: Int, val wave: Wave, val gain: Double)
