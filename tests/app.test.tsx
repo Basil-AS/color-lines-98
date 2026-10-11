@@ -186,6 +186,15 @@ describe('consistency between themes', () => {
   }
 });
 
+describe('retro98 theme', () => {
+  it('uses the retro body theme and contrast balls', () => {
+    localStorage.setItem('colorlines_theme', 'retro98');
+    render(<App />);
+    expect(document.body).toHaveClass('theme-retro98');
+    expect(document.querySelector('.ball-contrast')).toBeInTheDocument();
+  });
+});
+
 describe('sound events', () => {
   it('plays select, jump and start for the basic actions', async () => {
     const user = userEvent.setup();

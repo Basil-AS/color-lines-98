@@ -123,6 +123,7 @@ private val THEME_NAMES = listOf(
     AppTheme.CONTRAST to R.string.theme_contrast,
     AppTheme.CLEAR to R.string.theme_clear,
     AppTheme.CLEAR_NIGHT to R.string.theme_clear_night,
+    AppTheme.RETRO98 to R.string.theme_retro98,
     AppTheme.LINES_98 to R.string.theme_lines98,
     AppTheme.LINES_98_PLUS to R.string.theme_lines98plus,
     AppTheme.COLORLINES_92 to R.string.theme_colorlines92

@@ -48,6 +48,7 @@ export const VOICES: Record<VoiceId, Voice> = {
   beep: { wave: 'square', pitch: 1.25, tempo: 1.6, gain: 0.45 },
   clarity: { wave: 'sine', pitch: 1.25, tempo: 0.9, gain: 1.1 },
   night: { wave: 'triangle', pitch: 1.75, tempo: 1.1, gain: 1.2 },
+  retro: { wave: 'sine', pitch: 1.15, tempo: 1.3, gain: 1.1 },
 };
 
 /** The melody of an event in the voice of a look. */

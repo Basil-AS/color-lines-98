@@ -669,6 +669,11 @@ class GameStorageMigrationTest {
         assertEquals(AppTheme.CLEAR_NIGHT, GameStorage(context).theme)
         assertEquals(Color(0xFF6E7681), paletteFor(AppTheme.CLEAR_NIGHT).boardBackground)
         assertTrue(paletteFor(AppTheme.CLEAR).cell != paletteFor(AppTheme.CLEAR_NIGHT).cell)
+
+        storage.theme = AppTheme.RETRO98
+        assertEquals(AppTheme.RETRO98, GameStorage(context).theme)
+        assertEquals(Color(0xFF866F5A), paletteFor(AppTheme.RETRO98).boardBackground)
+        assertEquals(Color(0xFFF0DEC0), paletteFor(AppTheme.RETRO98).cell)
     }
 
     @Test

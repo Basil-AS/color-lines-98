@@ -2432,6 +2432,7 @@ input[role='switch']:focus-visible {
 .swatch-terminal { background: radial-gradient(circle at 25% 50%, #ffb000 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #b37a00 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ffcc33 0 8px, transparent 9px), #120900; border: 1px solid #ffb000; }
 .swatch-clear { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f5f3ec; border: 1px solid #d4cebe; border-radius: 6px; }
 .swatch-clearNight { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #161b22; border: 1px solid #30363d; border-radius: 6px; }
+.swatch-retro98 { background: radial-gradient(circle at 25% 50%, #f04438 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #2fb344 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #3b82f6 0 8px, transparent 9px), #4b2a63; border: 1px solid #ffd166; border-radius: 6px; }
 
 /* Vision-friendly Clear themes: calm surfaces, high-contrast grid, saturated balls with shape markers */
 .theme-clear {
@@ -2530,6 +2531,56 @@ input[role='switch']:focus-visible {
 
 .theme-clearNight .ball-contrast {
   border-color: #f0f6fc;
+}
+
+/* Retro 98: purple chrome and warm beige board, inspired by the requested reference. */
+.theme-retro98 {
+  color-scheme: dark;
+  --page-bg: #4b2a63;
+  --panel-bg: #6a3f80;
+  --panel-border: #a66abd;
+  --panel-shadow: 0 12px 30px rgba(34, 15, 48, 0.42);
+  --text-main: #fff8e8;
+  --text-muted: #e6cfea;
+  --accent: #ffd166;
+  --accent-glow: rgba(255, 209, 102, 0.32);
+  --on-accent: #321c45;
+  --board-bg: #866f5a;
+  --cell-bg: #f0dec0;
+  --cell-hover: #f8e9d0;
+  --cell-reachable-dot: #8b4a9f;
+  --stat-bg: #321c45;
+  --stat-label: #e6cfea;
+  --stat-value: #fff8e8;
+  --title-color: #fff8e8;
+  --ctrl-bg: #81539a;
+  --ctrl-hover: #9865b2;
+  --input-bg: #321c45;
+  --card-bg: #5a3470;
+  --danger: #ff8a80;
+  --radius: 10px;
+  --radius-sm: 5px;
+}
+
+.theme-retro98 .board-grid {
+  border: 2px solid #866f5a;
+  background: #866f5a;
+  gap: 2px;
+}
+
+.theme-retro98 .board-cell {
+  box-shadow: inset 0 0 0 1px #c1a988;
+}
+
+.theme-retro98 .board-cell:focus-visible,
+.theme-retro98 .ctrl-btn:focus-visible,
+.theme-retro98 .modal-btn:focus-visible {
+  outline: 3px solid #ffd166;
+  outline-offset: 2px;
+}
+
+.theme-retro98 .ball-contrast {
+  border-color: #321c45;
 }
 
 /* Seven action buttons share one row on a phone instead of wrapping onto a second one. */

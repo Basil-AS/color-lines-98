@@ -134,6 +134,7 @@ const THEME_COLORS: Record<Theme, string> = {
   contrast: '#000000',
   clear: '#f5f3ec',
   clearNight: '#161b22',
+  retro98: '#4b2a63',
   lines98: '#008080',
   lines98plus: '#dde5ef',
   colorlines92: '#000000',
@@ -162,7 +163,7 @@ function ballThemeClass(theme: Theme): string {
   if (theme === 'lines98' || theme === 'lines98plus') return '';
   if (theme === 'colorlines92') return 'ball-dos';
   if (theme === 'neon') return 'ball-neon';
-  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight') return 'ball-contrast';
+  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight' || theme === 'retro98') return 'ball-contrast';
   if (theme === 'gameboy' || theme === 'terminal') return 'ball-contrast ball-symbols';
   if (theme === 'synthwave') return 'ball-neon ball-synth';
   return 'ball-modern';
