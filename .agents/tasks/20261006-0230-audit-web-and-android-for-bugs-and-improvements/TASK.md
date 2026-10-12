@@ -1,18 +1,18 @@
 # Task
 
 TASK_ID: 20261006-0230-audit-web-and-android-for-bugs-and-improvements
-STATUS: wip
+STATUS: complete
 AGENT: codex
 BRANCH: agent/feat-colorful-themes-grid
 BASE_REF: refs/remotes/origin/main
 BASE_COMMIT: dc622097d37c6d9b75ad9574379fbfc883835052
-LAST_CHECKPOINT_COMMIT: -
-LAST_VERIFIED_COMMIT: -
+LAST_CHECKPOINT_COMMIT: ec346a1ae4d98860fb88044b750880b3c29e6450
+LAST_VERIFIED_COMMIT: ec346a1ae4d98860fb88044b750880b3c29e6450
 PROFILE: balanced
 ACTIVE_SKILLS: using-superpowers,cold-start-resume,brainstorming,writing-plans,better-colors,systematic-debugging,verification-before-completion
 TOOLS_USED: gortex,helper,rtk,gh,git
 CREATED_AT: 2026-10-06T02:30:24+03:00
-UPDATED_AT: 2026-10-12T21:23:00+03:00
+UPDATED_AT: 2026-10-13T00:48:00+03:00
 RELATED: -
 
 ## Request
@@ -86,10 +86,10 @@ DONE:
 - Aligned web and Android release metadata to 2.1.5 (Android versionCode 16).
 
 CURRENT:
-- Final diff review and GitHub delivery.
+- Delivered via PR #34; merged to main; release v2.1.5 published with verified successful build/test/signing/provenance workflow.
 
 NEXT:
-- Commit, push task branch, create PR, pass GitHub CI, merge and let release workflow publish v2.1.5.
+- No remaining task actions.
 
 ## Verification
 
@@ -106,6 +106,6 @@ NEXT:
 
 ## Delivery
 
-PR: pending
-MERGE_STATUS: not_started
-RELEASE: v2.1.5 pending merge/CI
+PR: #34 https://github.com/Basil-AS/color-lines-98/pull/34 (merged 2026-10-12T21:42:02Z)
+MERGE_STATUS: merged as ec346a1ae4d98860fb88044b750880b3c29e6450
+RELEASE: v2.1.5 published https://github.com/Basil-AS/color-lines-98/releases/tag/v2.1.5; web ZIP, signed APK, alias APK and SHA256SUMS uploaded; release workflow successful.
