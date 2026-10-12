@@ -208,7 +208,7 @@ private val Clear = Palette(
     statBackground = Color(0xFFEEEBE2), statLabel = Color(0xFF57606A), statValue = Color(0xFF1F2328),
     accent = Color(0xFF0969DA), onAccent = Color.White, danger = Color(0xFFCF222E),
     reachableDot = Color(0xFF0969DA).copy(alpha = 0.7f),
-    dark = false, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    dark = false, cellStyle = CellStyle.GRID, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
     ballBorder = Color(0xFF2D333B)
 )
 
@@ -220,7 +220,7 @@ private val ClearNight = Palette(
     statBackground = Color(0xFF161B22), statLabel = Color(0xFF8B949E), statValue = Color(0xFFF0F6FC),
     accent = Color(0xFF58A6FF), onAccent = Color(0xFF0D1117), danger = Color(0xFFF85149),
     reachableDot = Color(0xFF58A6FF).copy(alpha = 0.7f),
-    dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
+    dark = true, cellStyle = CellStyle.GRID, ballStyle = BallStyle.CONTRAST, windowTitleBar = false,
     ballBorder = Color(0xFFF0F6FC)
 )
 
@@ -234,6 +234,42 @@ private val Retro98 = Palette(
     reachableDot = Color(0xFFFFD166).copy(alpha = 0.8f),
     dark = true, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID, windowTitleBar = false,
     ballBorder = Color(0xFF321C45)
+)
+
+/** Spectrum: neutral warm board, charcoal grid and plain saturated balls. */
+private val Spectrum = Palette(
+    background = Color(0xFFF1EADC), panel = Color(0xFFFFFCF6), chip = Color(0xFFE8E0D2),
+    boardBackground = Color(0xFF46515C), cell = Color(0xFFF7F1E5),
+    text = Color(0xFF252B31), textMuted = Color(0xFF59636D),
+    statBackground = Color(0xFFE8E0D2), statLabel = Color(0xFF59636D), statValue = Color(0xFF252B31),
+    accent = Color(0xFF315D9B), onAccent = Color.White, danger = Color(0xFFB4232C),
+    reachableDot = Color(0xFF315D9B),
+    dark = false, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID, windowTitleBar = false,
+    ballBorder = Color(0xFF26313B)
+)
+
+/** Meadow: soft sage surfaces, deep green grid and clear solid balls. */
+private val Meadow = Palette(
+    background = Color(0xFFE5E9DF), panel = Color(0xFFF5F7F1), chip = Color(0xFFD9E0D2),
+    boardBackground = Color(0xFF405A49), cell = Color(0xFFECEFDF),
+    text = Color(0xFF202C24), textMuted = Color(0xFF526457),
+    statBackground = Color(0xFFD9E0D2), statLabel = Color(0xFF526457), statValue = Color(0xFF202C24),
+    accent = Color(0xFF39734A), onAccent = Color.White, danger = Color(0xFFB4232C),
+    reachableDot = Color(0xFF39734A),
+    dark = false, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID, windowTitleBar = false,
+    ballBorder = Color(0xFF263D2E)
+)
+
+/** Orchid: quiet lilac chrome, pale cells and a strong plum grid. */
+private val Orchid = Palette(
+    background = Color(0xFFECE5F0), panel = Color(0xFFFAF7FC), chip = Color(0xFFE3D9E9),
+    boardBackground = Color(0xFF51415C), cell = Color(0xFFF4EEF6),
+    text = Color(0xFF2D2532), textMuted = Color(0xFF62586A),
+    statBackground = Color(0xFFE3D9E9), statLabel = Color(0xFF62586A), statValue = Color(0xFF2D2532),
+    accent = Color(0xFF704C89), onAccent = Color.White, danger = Color(0xFFB4232C),
+    reachableDot = Color(0xFF704C89),
+    dark = false, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID, windowTitleBar = false,
+    ballBorder = Color(0xFF392C42)
 )
 
 fun paletteFor(theme: AppTheme): Palette = when (theme) {
@@ -250,6 +286,9 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.CLEAR -> Clear
     AppTheme.CLEAR_NIGHT -> ClearNight
     AppTheme.RETRO98 -> Retro98
+    AppTheme.SPECTRUM -> Spectrum
+    AppTheme.MEADOW -> Meadow
+    AppTheme.ORCHID -> Orchid
     AppTheme.LINES_98 -> Lines98
     AppTheme.LINES_98_PLUS -> Lines98Plus
     AppTheme.COLORLINES_92 -> ColorLines92

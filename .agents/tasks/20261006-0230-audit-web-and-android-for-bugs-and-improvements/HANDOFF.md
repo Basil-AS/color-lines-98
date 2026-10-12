@@ -1,8 +1,8 @@
 # Handoff
 
 TASK_ID: 20261006-0230-audit-web-and-android-for-bugs-and-improvements
-STATUS: ready_for_commit
-BRANCH: agent/fix-audit-web-android-2
+STATUS: in_progress
+BRANCH: agent/feat-colorful-themes-grid
 BASE_COMMIT: dc622097d37c6d9b75ad9574379fbfc883835052
 HEAD: working tree
 LAST_VERIFIED_COMMIT: working tree verified
@@ -22,13 +22,14 @@ UPDATED_AT: 2026-10-12T01:00:00+03:00
 
 ## Done
 
-- Added clear and clearNight themes for web and Android, including visible grids, distinct ball palettes, sounds and localized labels.
-- Added web/Android CI jobs and bumped both clients to version 2.1.1.
-- Verified full web tests, Android debug unit tests and release APK assembly.
+- Added Spectrum, Meadow and Orchid to web and Android; preserved existing Clear/ClearNight themes.
+- Added distinct sound profiles, localized labels, solid vivid balls and clearer square grid lines.
+- Bumped web/Android release metadata to 2.1.5 (Android versionCode 16).
+- Verified 883 web tests, Android debug/core unit tests, web lint/typecheck/build, npm audit and Android release APK assembly.
 
 ## Current work
 
-- Implementation is complete locally; commit, push, PR and GitHub CI/release remain.
+- Implementation is complete locally; final diff review, commit, push, PR and GitHub CI/release remain.
 
 ## Uncommitted or running state
 
@@ -36,23 +37,28 @@ UPDATED_AT: 2026-10-12T01:00:00+03:00
 
 ## Verification evidence
 
-- Web: 870 tests passed; lint, typecheck and production build passed.
-- Android: 68 debug unit tests passed; core-engine tests and release APK assembly passed.
-- Accessibility contrast checks and `git diff --check` passed.
+- Web: `npm test -- --pool=threads --maxWorkers=1` passed 883/883; lint, typecheck, production build and `npm audit --audit-level=high` passed (0 vulnerabilities).
+- Android: `./gradlew --max-workers=2 :app:testDebugUnitTest :core-engine:test :app:assembleRelease` completed with BUILD SUCCESSFUL.
+- Focused E2E on `PW_CHROMIUM=/home/basil/.local/bin/chromium` passed 16/16, including computed grid/ball CSS and 15 responsive theme cases.
+- Full E2E is not reliable in this workstation environment: bundled Chromium exits with SIGTRAP; system Chromium intermittently exits immediately with `Failed to export bpf: System failure beyond the control of libseccomp`. GitHub CI remains the full-suite gate.
+- `git diff --check` passed. No screenshot captured.
 
 ## Failed approaches
 
-- Compose ImportDialogTest needed `manifest = Config.NONE` for the current Robolectric setup.
-- Duplicate voice entries surfaced in the full web suite and were removed while preserving the new voice IDs.
+- jsdom does not expose loaded CSS computed styles; tests now assert rendered theme/ball classes, with production CSS covered by the build.
+- Android theme-picker UI test needed `performScrollTo()` after the theme list grew.
+- All-theme gameplay test now mutes audio to avoid delayed sound callbacks across repeated Robolectric Activity recreation.
 
 ## Risks and blockers
 
-- agy's follow-up Android test-only run did not finish; Codex completed the missing test and verified the whole suite.
+- Dependabot PR #28 remains open with failed checks: AndroidX Core 1.19.1 requires compileSdk 37 and AGP 9.1; project baseline is SDK 35/AGP 8.13. Avoid approving or merging this incompatible dependency set.
+- Release automation publishes only from main; v2.1.5 is pending PR/CI/merge.
 
 ## Exact next action
 
-COMMAND: `git add ... && git commit && git push -u origin agent/fix-audit-web-android-2`
-EXPECTED: Commit the verified implementation, publish the SSH branch, then create the PR and allow GitHub Actions to produce release v2.1.1.
+BLOCKER: Commit attribution policy requires the exact Codex runtime model ID, which is not exposed in this session's runtime metadata. Do not guess or commit until it is available.
+COMMAND: Establish the exact runtime model ID; then finalize the diff, create the attributed commit, push `agent/feat-colorful-themes-grid` to origin over SSH, open the feature PR, pass GitHub CI, merge under the user's standing authorization, and verify the v2.1.5 release workflow.
+EXPECTED: A policy-compliant commit and green PR checks lead to a merged v2.1.5 release published by the repository workflow.
 
 ## Completion path
 

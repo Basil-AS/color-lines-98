@@ -243,7 +243,7 @@ internal fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell:
                 palette.boardBackground,
                 Offset(left, top),
                 Size(cell, cell),
-                style = androidx.compose.ui.graphics.drawscope.Stroke(width = maxOf(1f, cell * 0.018f))
+                style = androidx.compose.ui.graphics.drawscope.Stroke(width = maxOf(1.5f, cell * 0.03f))
             )
         }
         CellStyle.WIN98, CellStyle.DOS -> {

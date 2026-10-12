@@ -106,6 +106,9 @@
     <string name="theme_clear">Ясная</string>
     <string name="theme_clear_night">Ясная ночь</string>
     <string name="theme_retro98">Ретро 98</string>
+    <string name="theme_spectrum">Спектр</string>
+    <string name="theme_meadow">Луг</string>
+    <string name="theme_orchid">Орхидея</string>
     <string name="theme_synthwave">Синтвейв</string>
     <string name="theme_ocean">Океан</string>
     <string name="theme_paper">Бумага</string>

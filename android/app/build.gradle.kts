@@ -12,8 +12,8 @@ android {
         applicationId = "io.github.basil_as.basillines"
         minSdk = 26
         targetSdk = 35
-        versionCode = 15
-        versionName = "2.1.4"
+        versionCode = 16
+        versionName = "2.1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
