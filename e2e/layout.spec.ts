@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'lines98plus', 'colorlines92'] as const;
+const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'spectrum', 'meadow', 'orchid', 'lines98', 'lines98plus', 'colorlines92'] as const;
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'tablet', width: 820, height: 1180 },
@@ -8,6 +8,30 @@ const VIEWPORTS = [
   { name: 'phone landscape', width: 844, height: 390 },
   { name: 'small phone', width: 320, height: 568 },
 ];
+
+test('vision-friendly themes render a distinct grid and solid balls', async ({ browser }) => {
+  for (const theme of ['spectrum', 'meadow', 'orchid']) {
+    const page = await browser.newPage();
+    await page.goto('/');
+    await page.evaluate((t) => localStorage.setItem('colorlines_theme', t), theme);
+    await page.reload();
+    const board = page.locator('.board-grid');
+    await board.waitFor();
+    const styles = await board.evaluate((element) => {
+      const cell = element.querySelector('.board-cell');
+      const ball = element.querySelector('.ball-contrast');
+      return {
+        gap: getComputedStyle(element).gap,
+        gridBorder: getComputedStyle(element).borderTopWidth,
+        ballBorder: ball ? getComputedStyle(ball).borderTopWidth : '',
+        marker: ball ? getComputedStyle(ball, '::after').content : '',
+        cellRadius: cell ? getComputedStyle(cell).borderRadius : '',
+      };
+    });
+    expect(styles).toEqual({ gap: '2px', gridBorder: '3px', ballBorder: '3px', marker: 'none', cellRadius: '2px' });
+    await page.close();
+  }
+});
 
 for (const theme of THEMES) {
   for (const vp of VIEWPORTS) {

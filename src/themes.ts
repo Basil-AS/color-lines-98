@@ -12,6 +12,9 @@ export const THEMES = [
   'clear',
   'clearNight',
   'retro98',
+  'spectrum',
+  'meadow',
+  'orchid',
   'lines98',
   'lines98plus',
   'colorlines92',
@@ -60,7 +63,7 @@ export function defaultSpawnPreview(theme: Theme): boolean {
 }
 
 /** Every look has its own voice; the two retro ones have theirs in samples and PC-speaker beeps. */
-export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night' | 'retro';
+export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night' | 'retro' | 'spectrum' | 'meadow' | 'orchid';
 
 const VOICES: Record<Theme, VoiceId> = {
   modern: 'soft',
@@ -76,6 +79,9 @@ const VOICES: Record<Theme, VoiceId> = {
   clear: 'clarity',
   clearNight: 'night',
   retro98: 'retro',
+  spectrum: 'spectrum',
+  meadow: 'meadow',
+  orchid: 'orchid',
   lines98: 'soft',
   lines98plus: 'soft',
   colorlines92: 'soft',

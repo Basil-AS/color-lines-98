@@ -504,11 +504,11 @@ body {
   display: grid;
   grid-template-columns: repeat(9, 1fr);
   grid-template-rows: repeat(9, 1fr);
-  gap: 3px;
+  gap: 2px;
   background: var(--board-bg);
-  padding: 6px;
+  padding: 4px;
   border-radius: 12px;
-  border: 1px solid var(--panel-border);
+  border: 2px solid var(--board-bg);
   aspect-ratio: 1 / 1;
   width: min(100%, 520px, calc(100dvh - var(--chrome)));
   min-width: 0;
@@ -2433,6 +2433,9 @@ input[role='switch']:focus-visible {
 .swatch-clear { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f5f3ec; border: 1px solid #d4cebe; border-radius: 6px; }
 .swatch-clearNight { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #161b22; border: 1px solid #30363d; border-radius: 6px; }
 .swatch-retro98 { background: radial-gradient(circle at 25% 50%, #f04438 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #2fb344 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #3b82f6 0 8px, transparent 9px), #4b2a63; border: 1px solid #ffd166; border-radius: 6px; }
+.swatch-spectrum { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f1eadc; border: 2px solid #46515c; }
+.swatch-meadow { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
+.swatch-orchid { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #ece5f0; border: 2px solid #51415c; }
 
 /* Vision-friendly Clear themes: calm surfaces, high-contrast grid, saturated balls with shape markers */
 .theme-clear {
@@ -2470,7 +2473,8 @@ input[role='switch']:focus-visible {
 }
 
 .theme-clear .board-cell {
-  box-shadow: inset 0 0 0 1px #d4cebe;
+  border-radius: 2px;
+  box-shadow: none;
 }
 
 .theme-clear .board-cell:focus-visible,
@@ -2519,7 +2523,8 @@ input[role='switch']:focus-visible {
 }
 
 .theme-clearNight .board-cell {
-  box-shadow: inset 0 0 0 1px #30363d;
+  border-radius: 2px;
+  box-shadow: none;
 }
 
 .theme-clearNight .board-cell:focus-visible,
@@ -2588,6 +2593,86 @@ input[role='switch']:focus-visible {
 
 .theme-retro98 .ball-contrast::after {
   content: none;
+}
+
+/* Calm surfaces, bright solid balls and a strong continuous grid. */
+.theme-spectrum,
+.theme-meadow,
+.theme-orchid {
+  color-scheme: light;
+  --panel-shadow: 0 8px 24px rgba(32, 38, 44, 0.1);
+  --text-main: #252b31;
+  --text-muted: #59636d;
+  --on-accent: #ffffff;
+  --stat-label: #59636d;
+  --stat-value: #252b31;
+  --title-color: #252b31;
+  --radius: 9px;
+  --radius-sm: 5px;
+}
+
+.theme-spectrum {
+  --page-bg: #f1eadc; --panel-bg: #fffcf6; --panel-border: #d6cdbd;
+  --accent: #315d9b; --accent-glow: rgba(49, 93, 155, 0.2);
+  --board-bg: #46515c; --cell-bg: #f7f1e5; --cell-hover: #eae0ce;
+  --cell-reachable-dot: #315d9b; --stat-bg: #e8e0d2; --ctrl-bg: #e8e0d2;
+  --ctrl-hover: #ded4c3; --input-bg: #fffcf6; --card-bg: #f7f1e5; --danger: #b4232c;
+}
+
+.theme-meadow {
+  --page-bg: #e5e9df; --panel-bg: #f5f7f1; --panel-border: #c8d2c2;
+  --accent: #39734a; --accent-glow: rgba(57, 115, 74, 0.2);
+  --board-bg: #405a49; --cell-bg: #ecefdf; --cell-hover: #dfe6d4;
+  --cell-reachable-dot: #39734a; --stat-bg: #d9e0d2; --ctrl-bg: #d9e0d2;
+  --ctrl-hover: #ccd6c3; --input-bg: #f5f7f1; --card-bg: #eef1e9; --danger: #b4232c;
+}
+
+.theme-orchid {
+  --page-bg: #ece5f0; --panel-bg: #faf7fc; --panel-border: #d7c9df;
+  --accent: #704c89; --accent-glow: rgba(112, 76, 137, 0.2);
+  --board-bg: #51415c; --cell-bg: #f4eef6; --cell-hover: #e8deed;
+  --cell-reachable-dot: #704c89; --stat-bg: #e3d9e9; --ctrl-bg: #e3d9e9;
+  --ctrl-hover: #d8cbe0; --input-bg: #faf7fc; --card-bg: #f2ebf5; --danger: #b4232c;
+}
+
+.theme-spectrum .board-grid,
+.theme-meadow .board-grid,
+.theme-orchid .board-grid {
+  border: 3px solid var(--board-bg);
+  border-radius: 4px;
+  gap: 2px;
+  padding: 2px;
+}
+
+.theme-spectrum .board-cell,
+.theme-meadow .board-cell,
+.theme-orchid .board-cell {
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+.theme-spectrum .ball-contrast,
+.theme-meadow .ball-contrast,
+.theme-orchid .ball-contrast {
+  border: 3px solid var(--board-bg);
+  box-shadow: none;
+}
+
+.theme-spectrum .ball-contrast::after,
+.theme-meadow .ball-contrast::after,
+.theme-orchid .ball-contrast::after { content: none; }
+
+.theme-spectrum .board-cell:focus-visible,
+.theme-meadow .board-cell:focus-visible,
+.theme-orchid .board-cell:focus-visible,
+.theme-spectrum .ctrl-btn:focus-visible,
+.theme-meadow .ctrl-btn:focus-visible,
+.theme-orchid .ctrl-btn:focus-visible,
+.theme-spectrum .modal-btn:focus-visible,
+.theme-meadow .modal-btn:focus-visible,
+.theme-orchid .modal-btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Seven action buttons share one row on a phone instead of wrapping onto a second one. */

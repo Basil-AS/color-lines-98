@@ -49,6 +49,9 @@ export const VOICES: Record<VoiceId, Voice> = {
   clarity: { wave: 'sine', pitch: 1.25, tempo: 0.9, gain: 1.1 },
   night: { wave: 'triangle', pitch: 1.75, tempo: 1.1, gain: 1.2 },
   retro: { wave: 'sine', pitch: 1.15, tempo: 1.3, gain: 1.1 },
+  spectrum: { wave: 'sine', pitch: 1.35, tempo: 0.85, gain: 1.0 },
+  meadow: { wave: 'triangle', pitch: 1.2, tempo: 0.95, gain: 1.0 },
+  orchid: { wave: 'sine', pitch: 1.8, tempo: 0.9, gain: 0.9 },
 };
 
 /** The melody of an event in the voice of a look. */

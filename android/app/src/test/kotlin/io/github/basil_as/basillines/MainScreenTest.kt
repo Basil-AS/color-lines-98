@@ -375,7 +375,7 @@ class MainScreenTest {
         rule.waitForIdle()
         assertEquals(AppTheme.LIGHT, GameStorage(ApplicationProvider.getApplicationContext()).theme)
         rule.onNode(hasText("Change")).performScrollTo().performClick()
-        rule.onNode(hasText("Lines 98 (Windows)")).performClick()
+        rule.onNode(hasText("Lines 98 (Windows)")).performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(AppTheme.LINES_98, GameStorage(ApplicationProvider.getApplicationContext()).theme)
         // The Windows theme has a title bar and a text menu, like the original.
@@ -390,6 +390,8 @@ class MainScreenTest {
 
     @Test
     fun everyThemeShowsTheBoardAndCanBePlayed() {
+        // Playing through each theme recreates the activity many times; keep this UI test focused on board/game behavior.
+        rule.onNodeWithContentDescription("Mute sound").performClick()
         for (theme in AppTheme.entries) {
             GameStorage(ApplicationProvider.getApplicationContext()).theme = theme
             recreateActivityWithRetry()
@@ -679,10 +681,12 @@ class GameStorageMigrationTest {
         storage.theme = AppTheme.CLEAR
         assertEquals(AppTheme.CLEAR, GameStorage(context).theme)
         assertEquals(Color(0xFF2D333B), paletteFor(AppTheme.CLEAR).boardBackground)
+        assertEquals(CellStyle.GRID, paletteFor(AppTheme.CLEAR).cellStyle)
 
         storage.theme = AppTheme.CLEAR_NIGHT
         assertEquals(AppTheme.CLEAR_NIGHT, GameStorage(context).theme)
         assertEquals(Color(0xFF6E7681), paletteFor(AppTheme.CLEAR_NIGHT).boardBackground)
+        assertEquals(CellStyle.GRID, paletteFor(AppTheme.CLEAR_NIGHT).cellStyle)
         assertTrue(paletteFor(AppTheme.CLEAR).cell != paletteFor(AppTheme.CLEAR_NIGHT).cell)
 
         storage.theme = AppTheme.RETRO98
@@ -691,6 +695,13 @@ class GameStorageMigrationTest {
         assertEquals(Color(0xFFF0DEC0), paletteFor(AppTheme.RETRO98).cell)
         assertEquals(CellStyle.GRID, paletteFor(AppTheme.RETRO98).cellStyle)
         assertEquals(BallStyle.SOLID, paletteFor(AppTheme.RETRO98).ballStyle)
+
+        listOf(AppTheme.SPECTRUM, AppTheme.MEADOW, AppTheme.ORCHID).forEach { theme ->
+            storage.theme = theme
+            assertEquals(theme, GameStorage(context).theme)
+            assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
+            assertEquals(BallStyle.SOLID, paletteFor(theme).ballStyle)
+        }
     }
 
     @Test
