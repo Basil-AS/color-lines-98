@@ -3,7 +3,7 @@
 TASK_ID: 20261006-0230-audit-web-and-android-for-bugs-and-improvements
 STATUS: wip
 AGENT: codex
-BRANCH: agent/fix-audit-web-android-2
+BRANCH: agent/feat-colorful-themes-grid
 BASE_REF: refs/remotes/origin/main
 BASE_COMMIT: dc622097d37c6d9b75ad9574379fbfc883835052
 LAST_CHECKPOINT_COMMIT: -
@@ -12,7 +12,7 @@ PROFILE: balanced
 ACTIVE_SKILLS: using-superpowers,cold-start-resume,brainstorming,writing-plans,better-colors,systematic-debugging,verification-before-completion
 TOOLS_USED: gortex,agy,rtk,gh,git
 CREATED_AT: 2026-10-06T02:30:24+03:00
-UPDATED_AT: 2026-10-06T02:30:24+03:00
+UPDATED_AT: 2026-10-12T21:23:00+03:00
 RELATED: -
 
 ## Request
@@ -80,29 +80,32 @@ Audit web and Android for bugs and improvements (v2.1.1)
 ## Current state
 
 DONE:
-- Added web and Android themes, palettes, labels, markers and tests.
-- Added distinct web/Android sound voices for the new themes.
-- Added PR CI coverage and aligned release version to 2.1.1.
-- Fixed isolated Compose test manifest configuration exposed by verification.
+- Kept the existing Clear/ClearNight themes and added Spectrum, Meadow, Orchid across web and Android.
+- Added distinct sound profiles, RU/EN labels and plain high-contrast balls; strengthened square board grid lines.
+- Added/updated theme consistency and Android all-theme tests.
+- Aligned web and Android release metadata to 2.1.5 (Android versionCode 16).
 
 CURRENT:
 - Final diff review and GitHub delivery.
 
 NEXT:
-- Commit, push task branch, create PR, then publish/tag release after CI.
+- Commit, push task branch, create PR, pass GitHub CI, merge and let release workflow publish v2.1.5.
 
 ## Verification
 
 | Command | Result | Commit |
 |---|---|---|
-| `rtk npm test` | 870 passed / 26 files | working tree |
-| `rtk npm run lint && npm run typecheck && npm run build` | passed | working tree |
-| `rtk ./gradlew testDebugUnitTest` | BUILD SUCCESSFUL | working tree |
-| `rtk ./gradlew :core-engine:test` | BUILD SUCCESSFUL | working tree |
-| `rtk ./gradlew :app:assembleRelease` | BUILD SUCCESSFUL | working tree |
-| `git diff --check` | clean | working tree |
+| `npm test -- --pool=threads --maxWorkers=1` | 883 passed / 26 files | working tree, 2026-10-13 |
+| `npm run lint && npm run typecheck && npm run build` | passed | working tree, 2026-10-13 |
+| `npm audit --audit-level=high` | 0 vulnerabilities | working tree, 2026-10-13 |
+| Focused theme E2E on `PW_CHROMIUM=/home/basil/.local/bin/chromium` | 16 passed (computed styles + 15 responsive theme cases) | working tree, 2026-10-13 |
+| Full E2E | Not clean locally: bundled Chromium SIGTRAP; system Chromium intermittently exits at launch with libseccomp BPF export error | environment limitation, 2026-10-13 |
+| `./gradlew --max-workers=2 :app:testDebugUnitTest :core-engine:test :app:assembleRelease` | BUILD SUCCESSFUL | working tree, 2026-10-13 |
+| `git diff --check` | clean | working tree, 2026-10-13 |
+| Browser screenshot check | unavailable: Python Playwright not installed | working tree |
 
 ## Delivery
 
 PR: pending
 MERGE_STATUS: not_started
+RELEASE: v2.1.5 pending merge/CI

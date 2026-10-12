@@ -195,6 +195,24 @@ describe('retro98 theme', () => {
   });
 });
 
+describe('vivid themes', () => {
+  it('includes three new plain-ball themes in the shared theme registry', () => {
+    expect(THEMES).toEqual(expect.arrayContaining(['spectrum', 'meadow', 'orchid']));
+  });
+
+  for (const theme of ['spectrum', 'meadow', 'orchid'] as const) {
+    it(`${theme}: uses solid color balls and a clear grid`, () => {
+      localStorage.setItem('colorlines_theme', theme);
+      render(<App />);
+      expect(document.body).toHaveClass(`theme-${theme}`);
+      expect(document.querySelector('.board-grid')).toHaveClass('board-grid');
+      expect(document.querySelector('.ball-contrast')).toBeInTheDocument();
+      expect(document.body).toHaveClass(`theme-${theme}`);
+      expect(document.querySelector('.ball-contrast')?.classList.contains('ball-symbols')).toBe(false);
+    });
+  }
+});
+
 describe('sound events', () => {
   it('plays select, jump and start for the basic actions', async () => {
     const user = userEvent.setup();
