@@ -57,3 +57,18 @@ FAILED_ENVIRONMENT_CHECK: Full local E2E cannot launch consistently: Playwright'
 GITHUB: gh authenticated; current branch has no PR. Dependabot #28 remains incompatible because androidx.core 1.19.1 requires AGP 9.1+ and compileSdk 37; current project uses AGP 8.13 / SDK 35.
 BLOCKER: Commit policy requires exact runtime model ID in AI-Model trailer. Runtime metadata available to this session does not expose the exact ID; do not guess.
 NEXT: Establish exact model ID, then commit/push, create PR, pass full CI, merge with user's standing authorization, and verify v2.1.5 release.
+
+## 2026-10-13T00:48:00+03:00 — PR merged and release published
+
+AGENT: codex
+BRANCH: main
+HEAD_BEFORE: 3cbd1df7fa7421df033322ff0f3e8b4437211cb0
+HEAD_AFTER: ec346a1ae4d98860fb88044b750880b3c29e6450
+STATUS: COMPLETE
+ACTIVE_SKILLS: github-pr-workflow, release-management, verification-before-completion, task-handoff
+TOOLS_USED: rtk, git, gh
+CHANGED: No product code; finalized task state after feature delivery.
+RESULT: PR #34 merged after all 10 CI checks passed. Release workflow 38312262663 succeeded and published v2.1.5 with web ZIP, signed APK, ColorLines.apk alias, SHA256SUMS and provenance attestation.
+VERIFICATION: `gh pr checks 34` reported 10 passed / 0 failed; release API reports tag v2.1.5, non-draft/non-prerelease and all expected uploaded assets with SHA-256 digests.
+DECISION: Mark task complete only after verifying actual merged commit and published assets.
+NEXT: None for this task.
