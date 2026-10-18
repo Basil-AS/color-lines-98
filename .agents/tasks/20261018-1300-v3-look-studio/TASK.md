@@ -39,4 +39,3 @@ look codes, backups of looks, layout and analytics audit.
 ## Constraints and risks
 
 - The Android app module cannot be built in the cloud session (no Android SDK): CI compiles it. Pure logic lives in `core-engine`, tested on the JVM.
-- Removing the contributor "helper" needs a force-push to the protected `main` (see HANDOFF).

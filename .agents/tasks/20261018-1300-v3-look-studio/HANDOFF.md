@@ -34,11 +34,7 @@ UPDATED_AT: 2026-10-18T16:30:00+03:00
 
 ## Exact next action
 
-   is on branch `rewrite/main-without-helper` (based on the old main, before 3.0). `main` is protected and refused the force-push. If the owner
-   allows force-push: rebuild the cleaned history on top of the current main (same filter: delete the trailer lines), push it to `main`,
-   move the tags v2.1.2, v2.1.4, v2.1.5, v2.2.0, v3.0.0 to the matching new commits, then restore the branch protection.
-
-EXPECTED: GitHub's contributor list no longer shows helper (it refreshes with a delay).
+None. The history of `main` was rewritten at the owner's request and the tags were moved to the matching new commits.
 
 ## Verification evidence
 
