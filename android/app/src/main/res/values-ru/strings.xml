@@ -134,11 +134,11 @@
     <string name="settings_themePick">Выберите тему</string>
     <string name="settings_vibrationOff">Это устройство не умеет вибрировать.</string>
     <string name="data_storageApp">На этом устройстве хранится партий: %1$s. Лимита нет: ничего не отбрасывается, сколько бы вы ни играли.</string>
+    <string name="settings_effects">Эффекты</string>
     <string name="settings_colorMode">День или ночь</string>
     <string name="colorMode_auto">Как в системе</string>
     <string name="colorMode_day">День</string>
     <string name="colorMode_night">Ночь</string>
-    <string name="settings_effects">Эффекты</string>
     <string name="effects_off">Выкл</string>
     <string name="effects_calm">Спокойно</string>
     <string name="effects_full">Полные</string>
