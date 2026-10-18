@@ -709,6 +709,8 @@ class AppIdentityTest {
 class GameStorageMigrationTest {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
 
+    private fun prefs() = context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
+
     @Before
     fun clear() {
         context.getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE).edit().clear().commit()
