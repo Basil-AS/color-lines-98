@@ -13,7 +13,7 @@ import { isModeId } from './engine/modes';
 import type { ModeId } from './engine/modes';
 import { sanitizeCustom, sanitizeLookStore } from './appearance';
 import type { CustomTheme, LookStore } from './appearance';
-import { THEMES } from './themes';
+import { knownTheme } from './themes';
 import type { Theme } from './themes';
 
 /** A file with everything worth moving between devices; the same format is written by the web app and by Android. */
@@ -59,7 +59,8 @@ function sanitizeSettings(raw: unknown): BackupSettings {
   if (typeof raw !== 'object' || raw === null) return {};
   const r = raw as Record<string, unknown>;
   const out: BackupSettings = {};
-  if (typeof r.theme === 'string' && (THEMES as readonly string[]).includes(r.theme)) out.theme = r.theme as Theme;
+  const theme = knownTheme(r.theme);
+  if (theme !== null) out.theme = theme;
   if (r.language === 'auto' || r.language === 'en' || r.language === 'ru') out.language = r.language;
   if (typeof r.playerName === 'string') out.playerName = r.playerName.slice(0, 12);
   if (typeof r.soundEnabled === 'boolean') out.soundEnabled = r.soundEnabled;

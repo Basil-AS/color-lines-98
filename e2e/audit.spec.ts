@@ -13,8 +13,8 @@ const VIEWPORTS = [
   { name: 'tablet', width: 820, height: 1180 },
   { name: 'desktop', width: 1440, height: 900 },
 ];
-const ALL_THEMES = ['modern', 'light', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'clear', 'clearNight', 'retro98', 'spectrum', 'meadow', 'meadowClear', 'meadowRelief', 'orchid', 'custom', 'lines98', 'lines98plus', 'colorlines92'];
-const DIALOG_THEMES = ['modern', 'light', 'neon', 'gameboy', 'terminal', 'meadowRelief', 'custom', 'lines98'];
+const ALL_THEMES = ['modern', 'light', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'clear', 'clearNight', 'retro98', 'spectrum', 'meadow', 'orchid', 'custom', 'lines98', 'lines98plus', 'colorlines92'];
+const DIALOG_THEMES = ['modern', 'light', 'neon', 'gameboy', 'terminal', 'meadow', 'custom', 'lines98'];
 
 interface Problem {
   kind: 'overlap' | 'outside' | 'clipped' | 'scroll';

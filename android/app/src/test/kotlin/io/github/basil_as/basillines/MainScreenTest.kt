@@ -746,15 +746,12 @@ class GameStorageMigrationTest {
             storage.theme = theme
             assertEquals(theme, GameStorage(context).theme)
             assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
-            assertEquals(BallStyle.SOLID, paletteFor(theme).ballStyle)
         }
-        listOf(AppTheme.MEADOW_CLEAR, AppTheme.MEADOW_RELIEF).forEach { theme ->
-            storage.theme = theme
-            assertEquals(theme, GameStorage(context).theme)
-            assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
-        }
-        assertEquals(BallStyle.SOLID_CLEAR, paletteFor(AppTheme.MEADOW_CLEAR).ballStyle)
-        assertEquals(BallStyle.RELIEF, paletteFor(AppTheme.MEADOW_RELIEF).ballStyle)
+        assertEquals(BallStyle.SOLID, paletteFor(AppTheme.SPECTRUM).ballStyle)
+        assertEquals(BallStyle.SOLID_CLEAR, paletteFor(AppTheme.MEADOW).ballStyle)
+        // The two meadow looks that were folded into Meadow still open as Meadow.
+        assertEquals(AppTheme.MEADOW, GameStorage.parseTheme("MEADOW_CLEAR"))
+        assertEquals(AppTheme.MEADOW, GameStorage.parseTheme("MEADOW_RELIEF"))
     }
 
     @Test

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 
-const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'spectrum', 'meadow', 'meadowClear', 'meadowRelief', 'orchid', 'lines98', 'lines98plus', 'colorlines92'] as const;
+const THEMES = ['modern', 'light', 'material', 'neon', 'contrast', 'spectrum', 'meadow', 'orchid', 'lines98', 'lines98plus', 'colorlines92'] as const;
 const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900 },
   { name: 'tablet', width: 820, height: 1180 },
@@ -10,7 +10,7 @@ const VIEWPORTS = [
 ];
 
 test('vision-friendly themes render a distinct grid and solid balls', async ({ browser }) => {
-  for (const theme of ['spectrum', 'meadow', 'meadowClear', 'meadowRelief', 'orchid']) {
+  for (const theme of ['spectrum', 'meadow', 'orchid']) {
     const page = await browser.newPage();
     await page.goto('/');
     await page.evaluate((t) => localStorage.setItem('colorlines_theme', t), theme);
