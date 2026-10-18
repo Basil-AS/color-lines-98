@@ -238,7 +238,6 @@ private fun BuilderTab(
     onApplyShare: (LookShare) -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
-    val share = LookCode.encode(LookShare(theme.webId, overrides, custom))
     var pasted by rememberSaveable { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     val badCode = stringResource(R.string.share_bad)
@@ -279,15 +278,13 @@ private fun BuilderTab(
 
         Text(stringResource(R.string.share_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp))
         Text(stringResource(R.string.share_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(share, fontSize = 11.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
-        OutlinedButton(onClick = { clipboard.setText(AnnotatedString(share)); note = copied }) { Text(stringResource(R.string.share_copy)) }
+        OutlinedButton(onClick = { clipboard.setText(AnnotatedString(LookCode.encode(LookShare(theme.webId, overrides, custom)))); note = copied }) { Text(stringResource(R.string.share_copy)) }
         OutlinedTextField(
             value = pasted,
             onValueChange = { pasted = it },
             placeholder = { Text(stringResource(R.string.share_placeholder)) },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            minLines = 2,
-            maxLines = 3
+            singleLine = true
         )
         OutlinedButton(
             enabled = pasted.isNotBlank(),
