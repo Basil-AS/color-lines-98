@@ -315,6 +315,32 @@ internal fun DrawScope.drawBall(
             drawCircle(palette.ballBorder, radius + 2f, center)
             drawCircle(contrastColor(ball), radius - 1f, center)
         }
+        BallStyle.SOLID_CLEAR -> {
+            drawCircle(palette.ballBorder, radius + 2f, center)
+            drawCircle(clearMeadowColor(ball), radius - 1f, center)
+        }
+        BallStyle.RELIEF -> {
+            val base = clearMeadowColor(ball)
+            val r = radius - 1f
+            drawCircle(Color(0xFF202C24).copy(alpha = 0.28f), radius + 2f, center + Offset(0f, radius * 0.08f))
+            drawCircle(palette.ballBorder, radius + 2f, center)
+            drawCircle(base, r, center)
+            // Shade towards the rim, then a soft highlight up and to the left.
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.2f)),
+                    center = center, radius = r
+                ),
+                radius = r, center = center
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.5f), Color.Transparent),
+                    center = Offset(center.x - r * 0.32f, center.y - r * 0.4f), radius = r * 0.9f
+                ),
+                radius = r, center = center
+            )
+        }
         BallStyle.GLOSSY -> {
             val base = ballColor(ball)
             if (shadow) {

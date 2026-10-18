@@ -51,6 +51,8 @@ export const VOICES: Record<VoiceId, Voice> = {
   retro: { wave: 'sine', pitch: 1.15, tempo: 1.3, gain: 1.1 },
   spectrum: { wave: 'sine', pitch: 1.35, tempo: 0.85, gain: 1.0 },
   meadow: { wave: 'triangle', pitch: 1.2, tempo: 0.95, gain: 1.0 },
+  meadowClear: { wave: 'triangle', pitch: 1.3, tempo: 0.9, gain: 1.0 },
+  meadowRelief: { wave: 'sine', pitch: 1.1, tempo: 1.0, gain: 1.1 },
   orchid: { wave: 'sine', pitch: 1.8, tempo: 0.9, gain: 0.9 },
 };
 
