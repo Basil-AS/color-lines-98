@@ -1,6 +1,7 @@
 package io.github.basil_as.basillines
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import io.github.basil_as.basillines.engine.BallColor
 import io.github.basil_as.basillines.engine.colors
 
