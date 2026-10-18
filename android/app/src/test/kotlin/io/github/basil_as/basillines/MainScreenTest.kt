@@ -15,6 +15,15 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasText
 import androidx.test.core.app.ApplicationProvider
+import io.github.basil_as.basillines.engine.BallColor
+import io.github.basil_as.basillines.engine.BallSize
+import io.github.basil_as.basillines.engine.CustomTheme
+import io.github.basil_as.basillines.engine.GridStyle
+import io.github.basil_as.basillines.engine.LookOverrides
+import io.github.basil_as.basillines.engine.LookSpec
+import io.github.basil_as.basillines.engine.RingLevel
+import io.github.basil_as.basillines.engine.ShapeSet
+import io.github.basil_as.basillines.engine.Volume
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -715,7 +724,7 @@ class GameStorageMigrationTest {
     fun everyThemeHasItsOwnWebId() {
         val ids = AppTheme.entries.map { it.webId }
         assertEquals(ids.size, ids.toSet().size)
-        assertTrue(io.github.basil_as.basillines.engine.LookSpec.THEME_IDS.containsAll(ids))
+        assertTrue(LookSpec.THEME_IDS.containsAll(ids))
         assertEquals(AppTheme.CLEAR_NIGHT, appThemeOf("clearNight"))
         assertEquals(AppTheme.CUSTOM, appThemeOf("custom"))
         assertNull(appThemeOf("nope"))
@@ -723,37 +732,34 @@ class GameStorageMigrationTest {
 
     @Test
     fun theLookStudioChoicesAndTheCustomThemeAreRemembered() {
-        val engine = io.github.basil_as.basillines.engine
         val storage = GameStorage(context)
         assertTrue(storage.looks.isEmpty())
-        assertEquals(engine.CustomTheme.DEFAULT, storage.customTheme)
-        val chosen = mapOf("modern" to engine.LookOverrides(volume = engine.Volume.FLAT, grid = engine.GridStyle.DOTS))
+        assertEquals(CustomTheme.DEFAULT, storage.customTheme)
+        val chosen = mapOf("modern" to LookOverrides(volume = Volume.FLAT, grid = GridStyle.DOTS))
         storage.looks = chosen
-        storage.customTheme = engine.CustomTheme.preset(true)
+        storage.customTheme = CustomTheme.preset(true)
         assertEquals(chosen, GameStorage(context).looks)
-        assertEquals(engine.CustomTheme.preset(true), GameStorage(context).customTheme)
+        assertEquals(CustomTheme.preset(true), GameStorage(context).customTheme)
     }
 
     @Test
     fun aThemeIsLeftAloneUntilTheStudioChangesIt() {
-        val engine = io.github.basil_as.basillines.engine
-        val plain = resolvePalette(AppTheme.MODERN, null, engine.CustomTheme.DEFAULT)
+        val plain = resolvePalette(AppTheme.MODERN, null, CustomTheme.DEFAULT)
         assertNull(plain.tones)
-        assertEquals(engine.Volume.GLOSSY, plain.look?.volume)
+        assertEquals(Volume.GLOSSY, plain.look?.volume)
 
-        val flat = resolvePalette(AppTheme.MODERN, engine.LookOverrides(volume = engine.Volume.FLAT), engine.CustomTheme.DEFAULT)
+        val flat = resolvePalette(AppTheme.MODERN, LookOverrides(volume = Volume.FLAT), CustomTheme.DEFAULT)
         assertTrue(flat.tones != null)
 
-        val overlay = resolvePalette(AppTheme.MODERN, engine.LookOverrides(grid = engine.GridStyle.BOLD, ring = engine.RingLevel.MAX), engine.CustomTheme.DEFAULT)
+        val overlay = resolvePalette(AppTheme.MODERN, LookOverrides(grid = GridStyle.BOLD, ring = RingLevel.MAX), CustomTheme.DEFAULT)
         assertNull(overlay.tones)
-        assertEquals(engine.GridStyle.BOLD, overlay.look?.grid)
+        assertEquals(GridStyle.BOLD, overlay.look?.grid)
     }
 
     @Test
     fun theOriginalGamesKeepTheirArtworkWhateverIsChosen() {
-        val engine = io.github.basil_as.basillines.engine
         for (theme in listOf(AppTheme.LINES_98, AppTheme.LINES_98_PLUS, AppTheme.COLORLINES_92)) {
-            val p = resolvePalette(theme, engine.LookOverrides(volume = engine.Volume.FLAT, grid = engine.GridStyle.NONE), engine.CustomTheme.DEFAULT)
+            val p = resolvePalette(theme, LookOverrides(volume = Volume.FLAT, grid = GridStyle.NONE), CustomTheme.DEFAULT)
             assertNull(p.look)
             assertNull(p.tones)
             assertEquals(paletteFor(theme).ballStyle, p.ballStyle)
@@ -762,19 +768,17 @@ class GameStorageMigrationTest {
 
     @Test
     fun theCustomThemeTakesItsColoursFromTheBuilder() {
-        val engine = io.github.basil_as.basillines.engine
-        val custom = engine.CustomTheme.preset(true)
+        val custom = CustomTheme.preset(true)
         val p = resolvePalette(AppTheme.CUSTOM, null, custom)
         assertEquals(Color(custom.page), p.background)
         assertEquals(Color(custom.board), p.boardBackground)
         assertTrue(p.dark)
         assertTrue(p.tones != null)
-        assertEquals(Color(custom.balls.getValue(engine.BallColor.RED)), Color(p.tones!!.getValue(engine.BallColor.RED).base))
+        assertEquals(Color(custom.balls.getValue(BallColor.RED)), Color(p.tones!!.getValue(BallColor.RED).base))
     }
 
     @Test
     fun theLookStudioChangesTheBallsAndTheBoardAndCanBeReset() {
-        val engine = io.github.basil_as.basillines.engine
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.onNode(hasText("Look studio")).performScrollTo().performClick()
         rule.onNode(hasText("Flat")).performScrollTo().performClick()
@@ -782,14 +786,14 @@ class GameStorageMigrationTest {
         rule.onNode(hasText("Large")).performScrollTo().performClick()
         rule.waitForIdle()
         val saved = GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern")
-        assertEquals(engine.Volume.FLAT, saved.volume)
-        assertEquals(engine.ShapeSet.DIGITS, saved.shapes)
-        assertEquals(engine.BallSize.LARGE, saved.ballSize)
+        assertEquals(Volume.FLAT, saved.volume)
+        assertEquals(ShapeSet.DIGITS, saved.shapes)
+        assertEquals(BallSize.LARGE, saved.ballSize)
 
         rule.onNode(hasText("Board")).performScrollTo().performClick()
         rule.onNode(hasText("Checker")).performScrollTo().performClick()
         rule.waitForIdle()
-        assertEquals(engine.GridStyle.CHECKER, GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern").grid)
+        assertEquals(GridStyle.CHECKER, GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern").grid)
 
         rule.onNode(hasText("Reset to the theme")).performScrollTo().performClick()
         rule.waitForIdle()

@@ -311,6 +311,7 @@ body {
 
 .stat-value {
   font-size: 1.3rem;
+  overflow-wrap: anywhere;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--stat-value);
@@ -3543,4 +3544,10 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   min-height: 32px;
   padding: 4px 10px;
   font-size: 0.75rem;
+}
+
+/* Figures such as "123 h 06 min" stay on one line in the statistics cards, a little smaller on a narrow screen. */
+.modal-content .stat-value {
+  white-space: nowrap;
+  font-size: clamp(1rem, 5.2vw, 1.3rem);
 }

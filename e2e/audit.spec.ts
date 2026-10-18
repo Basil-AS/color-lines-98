@@ -104,29 +104,32 @@ async function openAction(page: Page, theme: string, button: string, menuItem: s
 }
 
 test.describe('game screen layout', () => {
-  for (const theme of ALL_THEMES) {
-    for (const vp of VIEWPORTS) {
-      test(`${theme} on ${vp.name}: nothing overlaps, sticks out or is cut off`, async ({ browser }) => {
-        const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
-        const page = await context.newPage();
+  for (const vp of VIEWPORTS) {
+    test(`every theme on ${vp.name}: nothing overlaps, sticks out or is cut off`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+      const page = await context.newPage();
+      const found: string[] = [];
+      for (const theme of ALL_THEMES) {
         await open(page, theme);
-        expect(await audit(page, 'body')).toEqual([]);
-        await context.close();
-      });
-    }
+        for (const p of await audit(page, 'body')) found.push(`${theme}: ${p.kind} ${p.what}`);
+      }
+      expect(found).toEqual([]);
+      await context.close();
+    });
   }
 });
 
 test.describe('dialogs layout', () => {
-  for (const theme of DIALOG_THEMES) {
-    for (const vp of VIEWPORTS) {
-      test(`${theme} on ${vp.name}: settings tabs, statistics and new game`, async ({ browser }) => {
-        const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
-        const page = await context.newPage();
+  for (const vp of VIEWPORTS) {
+    test(`settings tabs, statistics and new game on ${vp.name}`, async ({ browser }) => {
+      test.setTimeout(120_000);
+      const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+      const page = await context.newPage();
+      const found: string[] = [];
+      for (const theme of DIALOG_THEMES) {
         await open(page, theme);
-        const found: string[] = [];
         const check = async (label: string) => {
-          for (const p of await audit(page, '.modal-content')) found.push(`${label}: ${p.kind} ${p.what}`);
+          for (const p of await audit(page, '.modal-content')) found.push(`${theme} ${label}: ${p.kind} ${p.what}`);
         };
 
         await openAction(page, theme, 'Settings', 'Game');
@@ -145,10 +148,10 @@ test.describe('dialogs layout', () => {
 
         await openAction(page, theme, 'New game', 'Game');
         await check('new game');
-        expect(found).toEqual([]);
-        await context.close();
-      });
-    }
+      }
+      expect(found).toEqual([]);
+      await context.close();
+    });
   }
 });
 
@@ -193,4 +196,97 @@ test.describe('look studio keeps balls inside their cells', () => {
       });
     }
   }
+});
+
+test.describe('analysis never shows broken numbers', () => {
+  type Rec = { score: number; endedAt: number; moves: number; lines: number; balls: number; completed: boolean; maxLine: number; durationMs: number; mode: string };
+  const DAY = 86_400_000;
+  const NOW = Date.UTC(2026, 9, 18, 12, 0, 0);
+
+  const many = (): Rec[] => {
+    let seed = 7;
+    const rnd = () => ((seed = (seed * 1664525 + 1013904223) % 4294967296) / 4294967296);
+    const modes = ['classic', 'easy', 'blitz', 'daily'];
+    return Array.from({ length: 400 }, (_, i) => {
+      const moves = Math.floor(rnd() * 250);
+      const lines = Math.floor(rnd() * 40);
+      return {
+        score: Math.floor(rnd() * 3000),
+        endedAt: NOW - Math.floor(rnd() * 700) * DAY - i * 1000,
+        moves,
+        lines,
+        balls: lines * 5 + Math.floor(rnd() * 5),
+        completed: rnd() > 0.4,
+        maxLine: 5 + Math.floor(rnd() * 5),
+        durationMs: Math.floor(rnd() * 3_000_000),
+        mode: modes[Math.floor(rnd() * 4)],
+      };
+    });
+  };
+
+  const SCENARIOS: Record<string, Rec[]> = {
+    empty: [],
+    'one empty game': [{ score: 0, endedAt: NOW, moves: 0, lines: 0, balls: 0, completed: false, maxLine: 0, durationMs: 0, mode: 'classic' }],
+    'one perfect game': [{ score: 99_999, endedAt: NOW, moves: 3000, lines: 900, balls: 4500, completed: true, maxLine: 9, durationMs: 36_000_000, mode: 'blitz' }],
+    'same day, same score': Array.from({ length: 12 }, (_, i) => ({ score: 100, endedAt: NOW - i * 60_000, moves: 20, lines: 1, balls: 5, completed: true, maxLine: 5, durationMs: 60_000, mode: 'classic' })),
+    'two years of play': many(),
+  };
+
+  for (const [name, history] of Object.entries(SCENARIOS)) {
+    for (const vp of [VIEWPORTS[0], VIEWPORTS[4]]) {
+      test(`${name} on ${vp.name}`, async ({ browser }) => {
+        const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
+        await context.addInitScript((fixedNow) => {
+          const RealDate = Date;
+          // The page believes it is the same moment the history was made for, so "this week" has games in it.
+          class FixedDate extends RealDate {
+            constructor(...args: unknown[]) {
+              super(...((args.length === 0 ? [fixedNow] : args) as [number]));
+            }
+            static now() {
+              return fixedNow;
+            }
+          }
+          (window as unknown as { Date: typeof Date }).Date = FixedDate as unknown as typeof Date;
+        }, NOW);
+        const page = await context.newPage();
+        await page.goto('/');
+        await page.evaluate(
+          ([records]) => {
+            localStorage.clear();
+            localStorage.setItem('colorlines_lang', 'en');
+            localStorage.setItem('colorlines_history', JSON.stringify(records));
+          },
+          [history] as const,
+        );
+        await page.reload();
+        await page.locator('.board-cell').first().waitFor();
+        await page.getByRole('button', { name: 'Statistics', exact: true }).click();
+        const problems: string[] = [];
+        for (const tab of ['Overview', 'Career', 'Seasons', 'Records', 'Data']) {
+          await page.getByRole('tab', { name: tab }).click();
+          await page.waitForTimeout(80);
+          const text = await page.locator('.modal-content').innerText();
+          for (const m of text.matchAll(/NaN|undefined|Infinity|\[object|\bnull\b|\b(?:10[1-9]|[2-9]\d\d|\d{4,})%|-\d+(?:\.\d+)?\s*(?:min|s|games)\b/gi)) {
+            problems.push(`${tab}: "${m[0]}" in "${text.slice(Math.max(0, (m.index ?? 0) - 25), (m.index ?? 0) + 25).replace(/\s+/g, ' ')}"`);
+          }
+          for (const p of await audit(page, '.modal-content')) problems.push(`${tab}: ${p.kind} ${p.what}`);
+        }
+        expect(problems).toEqual([]);
+        await context.close();
+      });
+    }
+  }
+});
+
+test('the layout audit really finds an overlap', async ({ page }) => {
+  await open(page, 'modern');
+  await page.evaluate(() => {
+    const a = document.querySelector('.ctrl-btn') as HTMLElement;
+    const clone = a.cloneNode(true) as HTMLElement;
+    clone.style.cssText = `position: fixed; left: ${a.getBoundingClientRect().left + 4}px; top: ${a.getBoundingClientRect().top + 4}px;`;
+    document.body.appendChild(clone);
+  });
+  const problems = await audit(page, 'body');
+  expect(problems.some((p) => p.kind === 'overlap')).toBe(true);
 });
