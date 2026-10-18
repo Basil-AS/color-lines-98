@@ -25,7 +25,8 @@ enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val ga
     MEADOW(Wave.TRIANGLE, 1.2, 0.95, 1.0),
     MEADOW_CLEAR(Wave.TRIANGLE, 1.3, 0.9, 1.0),
     MEADOW_RELIEF(Wave.SINE, 1.1, 1.0, 1.1),
-    ORCHID(Wave.SINE, 1.8, 0.9, 0.9)
+    ORCHID(Wave.SINE, 1.8, 0.9, 0.9),
+    STUDIO(Wave.TRIANGLE, 1.5, 1.15, 1.0)
 }
 
 data class ModernNote(val freq: Int, val ms: Int, val wave: Wave, val gain: Double)

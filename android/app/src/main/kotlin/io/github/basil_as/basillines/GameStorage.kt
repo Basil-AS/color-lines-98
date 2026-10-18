@@ -14,7 +14,13 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, MEADOW_CLEAR, MEADOW_RELIEF, ORCHID, LINES_98, LINES_98_PLUS, COLORLINES_92 }
+enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, MEADOW_CLEAR, MEADOW_RELIEF, ORCHID, CUSTOM, LINES_98, LINES_98_PLUS, COLORLINES_92 }
+
+/** The id the web app uses for a theme; the share code and the backup file carry it. */
+val AppTheme.webId: String
+    get() = io.github.basil_as.basillines.engine.LookSpec.THEME_IDS.first { it.lowercase() == name.lowercase().replace("_", "") }
+
+fun appThemeOf(webId: String): AppTheme? = AppTheme.entries.firstOrNull { it.webId == webId }
 
 /** The instrument a look plays its sounds with (the two retro looks use samples and PC-speaker beeps instead). */
 val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
@@ -35,6 +41,7 @@ val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
         AppTheme.MEADOW_CLEAR -> io.github.basil_as.basillines.engine.VoiceId.MEADOW_CLEAR
         AppTheme.MEADOW_RELIEF -> io.github.basil_as.basillines.engine.VoiceId.MEADOW_RELIEF
         AppTheme.ORCHID -> io.github.basil_as.basillines.engine.VoiceId.ORCHID
+        AppTheme.CUSTOM -> io.github.basil_as.basillines.engine.VoiceId.STUDIO
         else -> io.github.basil_as.basillines.engine.VoiceId.SOFT
     }
 
@@ -45,6 +52,16 @@ class GameStorage(private val context: Context) {
     var theme: AppTheme
         get() = parseTheme(prefs.getString(KEY_THEME, null))
         set(value) = prefs.edit().putString(KEY_THEME, value.name).apply()
+
+    /** The player's choices from the look studio, per theme; a theme without an entry looks as designed. */
+    var looks: Map<String, io.github.basil_as.basillines.engine.LookOverrides>
+        get() = io.github.basil_as.basillines.engine.LookStore.storeFrom(prefs.getString(KEY_LOOKS, null)?.let { io.github.basil_as.basillines.engine.Json.parseOrNull(it) })
+        set(value) = prefs.edit().putString(KEY_LOOKS, io.github.basil_as.basillines.engine.Json.write(io.github.basil_as.basillines.engine.LookStore.storeTo(value))).apply()
+
+    /** The colours of the custom theme made in the builder. */
+    var customTheme: io.github.basil_as.basillines.engine.CustomTheme
+        get() = io.github.basil_as.basillines.engine.LookStore.customFrom(prefs.getString(KEY_CUSTOM, null)?.let { io.github.basil_as.basillines.engine.Json.parseOrNull(it) })
+        set(value) = prefs.edit().putString(KEY_CUSTOM, io.github.basil_as.basillines.engine.Json.write(io.github.basil_as.basillines.engine.LookStore.customTo(value))).apply()
 
     var language: AppLanguage
         get() = AppLanguage.entries.firstOrNull { it.name == prefs.getString(KEY_LANG, null) } ?: AppLanguage.AUTO
@@ -151,6 +168,8 @@ class GameStorage(private val context: Context) {
 
     companion object {
         private const val KEY_THEME = "theme"
+        private const val KEY_LOOKS = "look_studio"
+        private const val KEY_CUSTOM = "custom_theme"
         private const val KEY_LANG = "language"
         private const val KEY_UPDATE_AUTO = "update_auto"
         private const val KEY_UPDATE_AT = "update_checked_at"

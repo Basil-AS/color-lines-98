@@ -94,7 +94,10 @@ describe('efficiency', () => {
   it('measures points per move over finished and unfinished games', () => {
     const e = efficiency([g(100, { moves: 50 }), g(30, { moves: 10 }), g(0, { moves: 0 })]);
     expect(e.average).toBeCloseTo(130 / 60, 5);
-    expect(e.best).toBe(3);
+    // The 10-move game is too short to count as a best.
+    expect(e.best).toBe(2);
+    expect(efficiency([g(300, { moves: 14 })]).best).toBe(0);
+    expect(efficiency([g(300, { moves: 15 })]).best).toBe(20);
     expect(efficiency([])).toEqual({ average: 0, best: 0 });
   });
 });

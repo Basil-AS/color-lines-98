@@ -48,8 +48,9 @@ test.describe('automated accessibility audit (axe)', () => {
 });
 
 test.describe('automated accessibility audit of the dialogs', () => {
-  for (const theme of ['modern', 'light', 'gameboy', 'terminal', 'lines98']) {
+  for (const theme of ['modern', 'light', 'gameboy', 'terminal', 'custom', 'lines98']) {
     test(`${theme}: statistics tabs, new game, settings and help have no serious violations`, async ({ page }) => {
+      test.setTimeout(120_000);
       await open(page, theme);
       const audit = async (label: string) => {
         const results = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']).analyze();
@@ -74,7 +75,10 @@ test.describe('automated accessibility audit of the dialogs', () => {
       await audit('new game');
       await page.keyboard.press('Escape');
       await openAction('Settings', 'Game');
-      await audit('settings');
+      for (const tab of ['Themes', 'Balls', 'Board', 'Builder', 'Game']) {
+        await page.getByRole('button', { name: new RegExp(`^${tab}$`) }).click();
+        await audit(`settings/${tab}`);
+      }
       await page.keyboard.press('Escape');
     });
   }

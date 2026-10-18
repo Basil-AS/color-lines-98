@@ -57,6 +57,8 @@ import {
   loadVibration,
   loadSpawnPreview,
   loadTheme,
+  loadLooks,
+  loadCustomTheme,
   saveBestScore,
   saveGame,
   saveHistory,
@@ -71,13 +73,17 @@ import {
   saveVibration,
   saveSpawnPreview,
   saveTheme,
+  saveLooks,
+  saveCustomTheme,
 } from './storage';
 import type { LanguagePref, Theme } from './storage';
+import { applyLook } from './applyLook';
+import type { CustomTheme, Look, LookKey, LookShare, LookStore } from './appearance';
 import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { defaultSpawnPreview, soundProfile, soundVoice, usesSprites } from './themes';
+import { ballThemeClass, defaultSpawnPreview, soundProfile, soundVoice, usesSprites } from './themes';
 import { BoardFx, travelMs } from './effects';
 import type { EffectsLevel, MoveFx } from './effects';
 import { haptic, setHapticsEnabled } from './haptics';
@@ -139,15 +145,16 @@ const THEME_COLORS: Record<Theme, string> = {
   meadow: '#e5e9df',
   meadowClear: '#e5e9df',
   meadowRelief: '#e5e9df',
+  custom: '#e8eef2',
   orchid: '#ece5f0',
   lines98: '#008080',
   lines98plus: '#dde5ef',
   colorlines92: '#000000',
 };
 
-function applyDocumentTheme(theme: Theme): void {
+function applyDocumentTheme(theme: Theme, custom: CustomTheme): void {
   document.body.className = `theme-${theme}`;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', THEME_COLORS[theme]);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'custom' ? custom.page : THEME_COLORS[theme]);
 }
 
 function withRecord(history: readonly GameRecord[], engine: GameEngine, completed: boolean) {
@@ -164,15 +171,6 @@ function formatClock(ms: number): string {
   return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
 }
 
-function ballThemeClass(theme: Theme): string {
-  if (theme === 'lines98' || theme === 'lines98plus') return '';
-  if (theme === 'colorlines92') return 'ball-dos';
-  if (theme === 'neon') return 'ball-neon';
-  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight' || theme === 'retro98' || theme === 'spectrum' || theme === 'meadow' || theme === 'meadowClear' || theme === 'meadowRelief' || theme === 'orchid') return 'ball-contrast';
-  if (theme === 'gameboy' || theme === 'terminal') return 'ball-contrast ball-symbols';
-  if (theme === 'synthwave') return 'ball-neon ball-synth';
-  return 'ball-modern';
-}
 
 function getSpriteUrl(color: BallColor): string {
   const map: Record<BallColor, string> = {
@@ -198,6 +196,8 @@ export default function App() {
   const [newGameMode, setNewGameMode] = useState<ModeId | null>(null);
   const [version, setVersion] = useState(0); // Bumped after every engine mutation to re-render
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const [looks, setLooks] = useState<LookStore>(loadLooks);
+  const [custom, setCustom] = useState<CustomTheme>(loadCustomTheme);
   const [langPref, setLangPref] = useState<LanguagePref>(loadLanguagePref);
   const [soundEnabled, setSoundEnabled] = useState(() => soundManager.isEnabled);
   const [dialog, setDialog] = useState<'help' | 'stats' | 'settings' | 'newgame' | 'goals' | null>(null);
@@ -326,6 +326,40 @@ export default function App() {
     };
     setLastResult(reward);
     return reward;
+  };
+
+  const changeLook = <K extends LookKey>(key: K, value: Look[K] | undefined) => {
+    const current = { ...(looks[theme] ?? {}) };
+    if (value === undefined) delete current[key];
+    else current[key] = value;
+    const next = { ...looks };
+    if (Object.keys(current).length === 0) delete next[theme];
+    else next[theme] = current;
+    setLooks(next);
+    saveLooks(next);
+  };
+
+  const resetLook = () => {
+    const next = { ...looks };
+    delete next[theme];
+    setLooks(next);
+    saveLooks(next);
+    setAnnouncement(t('look.resetDone'));
+  };
+
+  const changeCustom = (next: CustomTheme) => {
+    setCustom(next);
+    saveCustomTheme(next);
+  };
+
+  const applyShare = (share: LookShare) => {
+    const next = { ...looks };
+    if (Object.keys(share.look).length === 0) delete next[share.theme];
+    else next[share.theme] = share.look;
+    setLooks(next);
+    saveLooks(next);
+    if (share.custom) changeCustom(share.custom);
+    changeTheme(share.theme);
   };
 
   const changeTheme = (newTheme: Theme) => {
@@ -693,7 +727,7 @@ export default function App() {
       ledger,
       progress,
       hall,
-      settings: { theme, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode, effects: effectsLevel, vibration },
+      settings: { theme, looks, custom, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode, effects: effectsLevel, vibration },
     });
     downloadText(`color-lines-backup-${stamp}.json`, JSON.stringify(backup, null, 1), 'application/json');
   };
@@ -721,6 +755,11 @@ export default function App() {
         setTheme(s.theme);
         saveTheme(s.theme);
       }
+      if (s.looks) {
+        setLooks(s.looks);
+        saveLooks(s.looks);
+      }
+      if (s.custom) changeCustom(s.custom);
       if (s.language) {
         setLangPref(s.language);
         saveLanguagePref(s.language);
@@ -748,8 +787,9 @@ export default function App() {
   };
 
   useEffect(() => {
-    applyDocumentTheme(theme);
-  }, [theme]);
+    applyDocumentTheme(theme, custom);
+    applyLook(theme, looks[theme], custom);
+  }, [theme, looks, custom]);
 
   // The installed app's "New game" shortcut opens the dialog (it never restarts on its own).
   useEffect(() => {
@@ -1076,6 +1116,12 @@ export default function App() {
           lang={lang}
           theme={theme}
           onTheme={changeTheme}
+          looks={looks[theme]}
+          onLook={changeLook}
+          onResetLook={resetLook}
+          custom={custom}
+          onCustom={changeCustom}
+          onApplyShare={applyShare}
           langPref={langPref}
           onLangPref={changeLanguage}
           soundEnabled={soundEnabled}

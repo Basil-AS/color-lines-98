@@ -129,6 +129,7 @@ private val THEME_NAMES = listOf(
     AppTheme.MEADOW_CLEAR to R.string.theme_meadowClear,
     AppTheme.MEADOW_RELIEF to R.string.theme_meadowRelief,
     AppTheme.ORCHID to R.string.theme_orchid,
+    AppTheme.CUSTOM to R.string.theme_custom,
     AppTheme.LINES_98 to R.string.theme_lines98,
     AppTheme.LINES_98_PLUS to R.string.theme_lines98plus,
     AppTheme.COLORLINES_92 to R.string.theme_colorlines92
@@ -293,8 +294,27 @@ fun SettingsDialog(
     onAutoUpdate: (Boolean) -> Unit,
     updateStatus: String?,
     onCheckUpdate: () -> Unit,
+    looks: io.github.basil_as.basillines.engine.LookOverrides,
+    onLooks: (io.github.basil_as.basillines.engine.LookOverrides) -> Unit,
+    custom: io.github.basil_as.basillines.engine.CustomTheme,
+    onCustom: (io.github.basil_as.basillines.engine.CustomTheme) -> Unit,
+    onUseCustom: () -> Unit,
+    onApplyShare: (io.github.basil_as.basillines.engine.LookShare) -> Unit,
     onClose: () -> Unit
 ) {
+    var studio by remember { mutableStateOf(false) }
+    if (studio) {
+        LookStudioDialog(
+            theme = theme,
+            overrides = looks,
+            custom = custom,
+            onOverrides = onLooks,
+            onCustom = onCustom,
+            onUseCustom = onUseCustom,
+            onApplyShare = onApplyShare,
+            onClose = { studio = false }
+        )
+    }
     AlertDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.settings_title)) },
@@ -318,23 +338,26 @@ fun SettingsDialog(
                         title = { Text(stringResource(R.string.settings_themePick)) },
                         text = {
                             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                THEME_NAMES.chunked(2).forEach { pair ->
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        pair.forEach { (value, name) ->
-                                            val label = stringResource(name)
-                                            Column(
-                                                Modifier
-                                                    .weight(1f)
-                                                    .border(if (theme == value) 3.dp else 1.dp, if (theme == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                                                    .selectable(selected = theme == value, role = Role.RadioButton, onClick = { onTheme(value); picking = false })
-                                                    .padding(6.dp),
-                                                horizontalAlignment = Alignment.CenterHorizontally
-                                            ) {
-                                                ThemeSwatch(value, Modifier.fillMaxWidth().height(64.dp))
-                                                Text(label, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                                io.github.basil_as.basillines.engine.LookSpec.FAMILIES.forEach { (familyId, ids) ->
+                                    Text(lookText("family_$familyId"), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
+                                    ids.mapNotNull { id -> THEME_NAMES.firstOrNull { it.first.webId == id } }.chunked(2).forEach { pair ->
+                                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            pair.forEach { (value, name) ->
+                                                val label = stringResource(name)
+                                                Column(
+                                                    Modifier
+                                                        .weight(1f)
+                                                        .border(if (theme == value) 3.dp else 1.dp, if (theme == value) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                                                        .selectable(selected = theme == value, role = Role.RadioButton, onClick = { onTheme(value); picking = false })
+                                                        .padding(6.dp),
+                                                    horizontalAlignment = Alignment.CenterHorizontally
+                                                ) {
+                                                    ThemeSwatch(value, Modifier.fillMaxWidth().height(64.dp))
+                                                    Text(label, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+                                                }
                                             }
+                                            if (pair.size == 1) Spacer(Modifier.weight(1f))
                                         }
-                                        if (pair.size == 1) Spacer(Modifier.weight(1f))
                                     }
                                 }
                             }
@@ -342,6 +365,8 @@ fun SettingsDialog(
                         confirmButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.btn_close)) } }
                     )
                 }
+                OutlinedButton(onClick = { studio = true }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) { Text(stringResource(R.string.look_studio)) }
+                Text(stringResource(R.string.look_studioHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
                 Text(stringResource(R.string.settings_effects), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))

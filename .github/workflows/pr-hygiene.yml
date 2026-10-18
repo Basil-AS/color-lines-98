@@ -12,7 +12,7 @@ jobs:
   title:
     runs-on: ubuntu-latest
     steps:
-      - name: Title follows "type(scope): summary"
+      - name: 'Title follows "type(scope): summary"'
         env:
           TITLE: ${{ github.event.pull_request.title }}
         run: |

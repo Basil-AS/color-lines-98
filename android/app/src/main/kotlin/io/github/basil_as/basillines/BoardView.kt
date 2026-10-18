@@ -36,6 +36,22 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
+import io.github.basil_as.basillines.engine.BallSize
+import io.github.basil_as.basillines.engine.BallTone
+import io.github.basil_as.basillines.engine.CellShape
+import io.github.basil_as.basillines.engine.GridStyle
+import io.github.basil_as.basillines.engine.Look
+import io.github.basil_as.basillines.engine.LookPalettes
+import io.github.basil_as.basillines.engine.RingLevel
+import io.github.basil_as.basillines.engine.ShapeSet
+import io.github.basil_as.basillines.engine.Volume
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.stringResource
@@ -176,7 +192,7 @@ fun BoardView(
                     val point = Point(col, row)
                     val left = col * cellSize
                     val top = row * cellSize
-                    drawCell(palette, left, top, cellSize)
+                    drawCell(palette, left, top, cellSize, col, row)
 
                     val center = Offset(left + cellSize / 2f, top + cellSize / 2f)
                     val ball = snapshot[point]
@@ -193,18 +209,18 @@ fun BoardView(
                         if (point in snapshot.reachable) {
                             drawCircle(palette.reachableDot, radius = cellSize * 0.09f, center = center)
                         }
-                        snapshot.incoming[point]?.let { drawBall(palette, sprites, it, center, cellSize * 0.17f) }
+                        snapshot.incoming[point]?.let { drawBall(palette, sprites, it, center, cellSize * 0.17f, marker = false) }
                     } else if (!frame.hidden(point)) {
                         val radius = cellSize * 0.38f * if (snapshot.selected == point) pulse else 1f
                         val (sx, sy) = frame.scaleOf(point)
                         val wiggle = if (wigglePoint == point && wiggleClock.value < 1f) sin(wiggleClock.value * 5f * PI.toFloat()) * 10f * (1f - wiggleClock.value) else 0f
                         if (sx <= 0f) Unit
-                        else if (sx == 1f && sy == 1f && wiggle == 0f) drawBall(palette, sprites, ball, center, radius, shadow = true)
-                        else withTransform({ scale(sx, sy, center); rotate(wiggle, center) }) { drawBall(palette, sprites, ball, center, radius, shadow = true) }
+                        else if (sx == 1f && sy == 1f && wiggle == 0f) drawBall(palette, sprites, ball, center, radius, shadow = true, measurer = textMeasurer)
+                        else withTransform({ scale(sx, sy, center); rotate(wiggle, center) }) { drawBall(palette, sprites, ball, center, radius, shadow = true, measurer = textMeasurer) }
                     }
                 }
             }
-            drawFx(frame, cellSize, textMeasurer) { color, at, r -> drawBall(palette, sprites, color, at, r, shadow = true) }
+            drawFx(frame, cellSize, textMeasurer) { color, at, r -> drawBall(palette, sprites, color, at, r, shadow = true, measurer = textMeasurer) }
             val ring = ripplePoint
             if (ring != null && rippleClock.value < 1f) {
                 val k = rippleClock.value
@@ -228,7 +244,37 @@ fun BoardView(
     }
 }
 
-internal fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell: Float) {
+/** A cell under the look studio's grid and cell-shape choices: the gap between cells is the board showing through. */
+private fun DrawScope.drawStudioCell(palette: Palette, look: Look, left: Float, top: Float, cell: Float, col: Int, row: Int) {
+    val pad = when (look.grid) {
+        GridStyle.PLAIN -> 2f
+        GridStyle.THIN -> 1f
+        GridStyle.BOLD -> maxOf(3f, cell * 0.08f)
+        GridStyle.NONE, GridStyle.CHECKER, GridStyle.DOTS -> 0f
+    }
+    val chosen = palette.overrides.cells
+    val bare = look.grid == GridStyle.NONE || look.grid == GridStyle.CHECKER || look.grid == GridStyle.DOTS
+    val corner = when {
+        chosen == CellShape.ROUND -> cell / 2f - pad
+        chosen == CellShape.SQUARE -> 0f
+        chosen == CellShape.ROUNDED -> cell * 0.16f
+        bare -> 0f
+        palette.cellStyle == CellStyle.ROUNDED -> cell * 0.16f
+        else -> 0f
+    }
+    val fill = if (look.grid == GridStyle.CHECKER && (col + row) % 2 == 1) lerp(palette.cell, palette.text, 0.14f) else palette.cell
+    drawRoundRect(fill, Offset(left + pad, top + pad), Size(cell - pad * 2, cell - pad * 2), CornerRadius(corner))
+    if (look.grid == GridStyle.DOTS) {
+        drawCircle(palette.text.copy(alpha = 0.3f), radius = maxOf(1.5f, cell * 0.03f), center = Offset(left + cell / 2f, top + cell / 2f))
+    }
+}
+
+internal fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell: Float, col: Int = 0, row: Int = 0) {
+    val look = palette.look
+    if (look != null && (palette.overrides.grid != null || palette.overrides.cells != null)) {
+        drawStudioCell(palette, look, left, top, cell, col, row)
+        return
+    }
     when (palette.cellStyle) {
         CellStyle.ROUNDED -> {
             val pad = 2f
@@ -260,13 +306,104 @@ internal fun DrawScope.drawCell(palette: Palette, left: Float, top: Float, cell:
     }
 }
 
+/**
+ * A ball under the look studio: the size, depth and colours the player chose, then a ring and a marker on top.
+ * Without a choice this is exactly the theme's own ball.
+ */
 internal fun DrawScope.drawBall(
     palette: Palette,
     sprites: List<ImageBitmap>?,
     ball: BallColor,
     center: Offset,
     radius: Float,
-    shadow: Boolean = false
+    shadow: Boolean = false,
+    measurer: TextMeasurer? = null,
+    marker: Boolean = true
+) {
+    val look = palette.look
+    if (look == null) {
+        drawBaseBall(palette, sprites, ball, center, radius, shadow)
+        return
+    }
+    val sizeChoice = palette.overrides.ballSize
+    val ring = palette.overrides.ring
+    var r = radius
+    if (sizeChoice != null) r *= sizeChoice.scale / BallSize.NORMAL.scale
+    r *= when (ring) {
+        RingLevel.HIGH -> 0.95f
+        RingLevel.MAX -> 0.91f
+        else -> 1f
+    }
+    val tones = palette.tones
+    if (tones != null) drawStudioBall(palette, look, tones.getValue(ball), center, r, shadow)
+    else drawBaseBall(palette, sprites, ball, center, r, shadow)
+
+    if (ring == RingLevel.HIGH || ring == RingLevel.MAX) {
+        val width = if (ring == RingLevel.MAX) maxOf(3f, r * 0.11f) else maxOf(2f, r * 0.07f)
+        drawCircle(palette.text.copy(alpha = 0.9f), r + width / 2f, center, style = Stroke(width = width))
+    }
+    val shapes = palette.overrides.shapes
+    if (marker && shapes != null && shapes != ShapeSet.OFF && r >= 8f) {
+        val ink = tones?.get(ball)?.let { Color(it.ink) } ?: if (baseColorOf(palette, ball).luminance() > 0.4f) Color.Black else Color.White
+        if (shapes == ShapeSet.DIGITS && measurer != null) {
+            val layout = measurer.measure(LookPalettes.digit(ball), TextStyle(fontSize = (r * 1.05f).toSp(), fontWeight = FontWeight.ExtraBold))
+            drawText(layout, ink, Offset(center.x - layout.size.width / 2f, center.y - layout.size.height / 2f))
+        } else {
+            drawContrastSymbol(ball, center, r * 0.5f, ink)
+        }
+    }
+}
+
+/** The colour a theme paints a ball in, for working out which ink reads on it. */
+private fun baseColorOf(palette: Palette, ball: BallColor): Color = when (palette.ballStyle) {
+    BallStyle.NEON -> neonColor(ball)
+    BallStyle.CONTRAST, BallStyle.SOLID -> contrastColor(ball)
+    BallStyle.SOLID_CLEAR, BallStyle.RELIEF -> clearMeadowColor(ball)
+    else -> ballColor(ball)
+}
+
+private fun DrawScope.drawStudioBall(palette: Palette, look: Look, tone: BallTone, center: Offset, r: Float, shadow: Boolean) {
+    val base = Color(tone.base)
+    when (look.volume) {
+        Volume.FLAT -> drawCircle(base, r, center)
+        Volume.SOFT -> {
+            if (shadow) drawCircle(Color.Black.copy(alpha = 0.28f), r, center + Offset(0f, r * 0.1f))
+            drawCircle(base, r, center)
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.22f)),
+                    center = center, radius = r
+                ),
+                radius = r, center = center
+            )
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color.White.copy(alpha = 0.5f), Color.Transparent),
+                    center = Offset(center.x - r * 0.32f, center.y - r * 0.4f), radius = r * 0.9f
+                ),
+                radius = r, center = center
+            )
+        }
+        Volume.GLOSSY -> {
+            if (shadow) drawCircle(Color.Black.copy(alpha = 0.3f), r * 0.95f, Offset(center.x, center.y + r * 0.15f))
+            drawCircle(
+                brush = Brush.radialGradient(
+                    colors = listOf(Color(tone.hi), base, Color(tone.lo)),
+                    center = Offset(center.x - r * 0.35f, center.y - r * 0.35f), radius = r * 1.3f
+                ),
+                radius = r, center = center
+            )
+        }
+    }
+}
+
+private fun DrawScope.drawBaseBall(
+    palette: Palette,
+    sprites: List<ImageBitmap>?,
+    ball: BallColor,
+    center: Offset,
+    radius: Float,
+    shadow: Boolean
 ) {
     when (palette.ballStyle) {
         BallStyle.SPRITE -> {
@@ -309,7 +446,7 @@ internal fun DrawScope.drawBall(
             val tint = palette.symbolTint?.invoke(ball)
             drawCircle(palette.ballBorder, radius + 2f, center)
             drawCircle(tint?.first ?: contrastColor(ball), radius - 1f, center)
-            drawContrastSymbol(ball, center, radius * 0.5f, tint?.second ?: Color.Black)
+            if (palette.overrides.shapes == null) drawContrastSymbol(ball, center, radius * 0.5f, tint?.second ?: Color.Black)
         }
         BallStyle.SOLID -> {
             drawCircle(palette.ballBorder, radius + 2f, center)

@@ -23,6 +23,7 @@ import App from '../src/App';
 import { GameEngine } from '../src/engine/gameengine';
 import { soundManager } from '../src/audio';
 import { loadHistory, saveGame } from '../src/storage';
+import { encodeLook } from '../src/appearance';
 import { THEMES } from '../src/themes';
 
 function setLanguages(languages: string[]) {
@@ -247,6 +248,7 @@ describe('spawn preview setting', () => {
     const user = userEvent.setup();
     const first = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: /^Game$/ }));
     const toggle = screen.getByRole('switch', { name: /where new balls will appear/i });
     expect(toggle).toBeChecked();
     await user.click(toggle);
@@ -257,6 +259,7 @@ describe('spawn preview setting', () => {
     render(<App />);
     expect(incomingCells()).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: /^Game$/ }));
     await user.click(screen.getByRole('switch', { name: /where new balls will appear/i }));
     await user.click(screen.getByRole('button', { name: 'Close' }));
     expect(incomingCells()).toHaveLength(3);
@@ -283,6 +286,7 @@ describe('language', () => {
     const user = userEvent.setup();
     const first = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: /^Game$/ }));
     await user.selectOptions(screen.getByRole('combobox', { name: 'Language' }), 'ru');
     expect(screen.getByRole('group', { name: 'Игровое поле' })).toBeInTheDocument();
     expect(localStorage.getItem('colorlines_lang')).toBe('ru');
@@ -297,7 +301,7 @@ describe('themes', () => {
     const user = userEvent.setup();
     const first = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
-    const group = screen.getByRole('group', { name: 'Theme' });
+    const group = screen.getByRole('dialog');
     const names: Record<string, RegExp> = {
       modern: /Modern dark/,
       light: /Modern light/,
@@ -809,5 +813,137 @@ describe('modes are explained and visible', () => {
     await user.click(screen.getByRole('button', { name: 'Rules and info' }));
     for (const text of [/Classic: the original rules, all 7 colours/, /Easy: only 5 colours/, /Blitz: 3 minutes/, /Daily challenge: everyone gets the same balls/, /Hint: marks a ball/])
       expect(screen.getByText(text)).toBeInTheDocument();
+  });
+});
+
+describe('look studio', () => {
+  const openSettings = async (user: ReturnType<typeof userEvent.setup>, tab?: string) => {
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    if (tab) await user.click(screen.getByRole('button', { name: new RegExp(`^${tab}$`) }));
+  };
+  const chip = (group: RegExp, name: RegExp) => within(screen.getByRole('group', { name: group })).getByRole('button', { name });
+
+  it('leaves a theme alone until a choice is made', () => {
+    render(<App />);
+    expect(document.body.hasAttribute('data-studio')).toBe(false);
+    expect(document.body.hasAttribute('data-grid')).toBe(false);
+    expect(document.querySelector('.ball-modern')).toBeInTheDocument();
+  });
+
+  it('shows the settings in sections and keeps the game settings on their own tab', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user);
+    for (const name of ['Themes', 'Balls', 'Board', 'Builder', 'Game']) expect(screen.getByRole('button', { name })).toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: /Sound/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Game$/ }));
+    expect(screen.getByRole('switch', { name: /Sound/i })).toBeInTheDocument();
+  });
+
+  it('groups the themes into collections', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user);
+    for (const heading of ['Modern', 'Clear and vivid', 'Neon and colour', 'Mono and contrast', 'Original games', 'Your own']) {
+      expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    }
+  });
+
+  it('changes depth, colours, rings, markers, size and grid, and remembers them per theme', async () => {
+    const user = userEvent.setup();
+    const first = render(<App />);
+    await openSettings(user, 'Balls');
+    await user.click(chip(/Colours/, /^Distinct/));
+    await user.click(chip(/Depth/, /^Flat$/));
+    await user.click(chip(/Ring around balls/, /^Strong$/));
+    await user.click(chip(/Markers on balls/, /^Digits$/));
+    await user.click(chip(/Ball size/, /^Large$/));
+    await user.click(screen.getByRole('button', { name: /^Board$/ }));
+    await user.click(chip(/^Grid$/, /^Checker$/));
+    await user.click(chip(/^Cells$/, /^Round$/));
+    const b = document.body;
+    expect(b.getAttribute('data-studio')).toBe('1');
+    expect(b.getAttribute('data-volume')).toBe('flat');
+    expect(b.getAttribute('data-contrast')).toBe('max');
+    expect(b.getAttribute('data-shapes')).toBe('digits');
+    expect(b.getAttribute('data-ballsize')).toBe('large');
+    expect(b.getAttribute('data-grid')).toBe('checker');
+    expect(b.getAttribute('data-cells')).toBe('round');
+    expect(b.style.getPropertyValue('--bs-red')).toBe('#d55e00');
+    expect(JSON.parse(localStorage.getItem('colorlines_look') ?? '{}')).toEqual({
+      modern: { palette: 'distinct', volume: 'flat', contrast: 'max', shapes: 'digits', ballSize: 'large', grid: 'checker', cells: 'round' },
+    });
+    first.unmount();
+
+    render(<App />);
+    expect(document.body.getAttribute('data-grid')).toBe('checker');
+    expect(document.body.getAttribute('data-volume')).toBe('flat');
+  });
+
+  it('keeps the choices of each theme separate and resets one theme on its own', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user, 'Board');
+    await user.click(chip(/^Grid$/, /^Bold$/));
+    await user.click(screen.getByRole('button', { name: /^Themes$/ }));
+    await user.click(screen.getByRole('button', { name: /Modern light/ }));
+    expect(document.body.hasAttribute('data-grid')).toBe(false);
+    await user.click(screen.getByRole('button', { name: /^Board$/ }));
+    await user.click(chip(/^Grid$/, /^Dots$/));
+    expect(document.body.getAttribute('data-grid')).toBe('dots');
+    await user.click(screen.getByRole('button', { name: 'Reset to the theme' }));
+    expect(document.body.hasAttribute('data-grid')).toBe(false);
+    expect(JSON.parse(localStorage.getItem('colorlines_look') ?? '{}')).toEqual({ modern: { grid: 'bold' } });
+    await user.click(screen.getByRole('button', { name: /^Themes$/ }));
+    await user.click(screen.getByRole('button', { name: /Modern dark/ }));
+    expect(document.body.getAttribute('data-grid')).toBe('bold');
+  });
+
+  it('explains that the original looks keep their artwork', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user);
+    await user.click(screen.getByRole('button', { name: /Lines 98 \(/ }));
+    await user.click(screen.getByRole('button', { name: /^Balls$/ }));
+    expect(screen.getByText(/original looks keep their own artwork/i)).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /Depth/ })).not.toBeInTheDocument();
+    expect(document.body.hasAttribute('data-studio')).toBe(false);
+  });
+
+  it('builds a custom theme from the builder', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user, 'Builder');
+    await user.click(screen.getAllByRole('button', { name: /^Dark$/ })[0]);
+    await user.click(screen.getByRole('button', { name: 'Use my look' }));
+    expect(document.body.className).toBe('theme-custom');
+    expect(document.body.getAttribute('data-studio')).toBe('1');
+    expect(document.body.style.getPropertyValue('--page-bg')).toBe('#14181d');
+    expect(localStorage.getItem('colorlines_theme')).toBe('custom');
+    expect(JSON.parse(localStorage.getItem('colorlines_custom_theme') ?? '{}').dark).toBe(true);
+    expect(screen.getByRole('button', { name: 'Your look is active.' })).toBeDisabled();
+  });
+
+  it('applies a look code and refuses a bad one', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user, 'Builder');
+    const box = screen.getByPlaceholderText('Paste a look code here');
+    await user.click(box);
+    await user.paste('nonsense');
+    await user.click(screen.getByRole('button', { name: 'Apply code' }));
+    expect(screen.getByText('This is not a look code.')).toBeInTheDocument();
+    await user.clear(box);
+    await user.click(box);
+    await user.paste(encodeLook({ theme: 'light', look: { grid: 'thin', volume: 'glossy' } }));
+    await user.click(screen.getByRole('button', { name: 'Apply code' }));
+    expect(document.body.className).toBe('theme-light');
+    expect(document.body.getAttribute('data-grid')).toBe('thin');
+  });
+
+  it('reads the saved looks at start', async () => {
+    localStorage.setItem('colorlines_look', JSON.stringify({ modern: { grid: 'none' } }));
+    render(<App />);
+    expect(document.body.getAttribute('data-grid')).toBe('none');
   });
 });

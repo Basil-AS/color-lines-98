@@ -17,6 +17,7 @@ export const THEMES = [
   'meadowClear',
   'meadowRelief',
   'orchid',
+  'custom',
   'lines98',
   'lines98plus',
   'colorlines92',
@@ -65,7 +66,7 @@ export function defaultSpawnPreview(theme: Theme): boolean {
 }
 
 /** Every look has its own voice; the two retro ones have theirs in samples and PC-speaker beeps. */
-export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night' | 'retro' | 'spectrum' | 'meadow' | 'meadowClear' | 'meadowRelief' | 'orchid';
+export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night' | 'retro' | 'spectrum' | 'meadow' | 'meadowClear' | 'meadowRelief' | 'orchid' | 'studio';
 
 const VOICES: Record<Theme, VoiceId> = {
   modern: 'soft',
@@ -86,6 +87,7 @@ const VOICES: Record<Theme, VoiceId> = {
   meadowClear: 'meadowClear',
   meadowRelief: 'meadowRelief',
   orchid: 'orchid',
+  custom: 'studio',
   lines98: 'soft',
   lines98plus: 'soft',
   colorlines92: 'soft',
@@ -93,4 +95,15 @@ const VOICES: Record<Theme, VoiceId> = {
 
 export function soundVoice(theme: Theme): VoiceId {
   return VOICES[theme];
+}
+
+/** The ball style class a theme draws its balls with; the look studio can still restyle them. */
+export function ballThemeClass(theme: Theme): string {
+  if (theme === 'lines98' || theme === 'lines98plus') return '';
+  if (theme === 'colorlines92') return 'ball-dos';
+  if (theme === 'neon') return 'ball-neon';
+  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight' || theme === 'retro98' || theme === 'spectrum' || theme === 'meadow' || theme === 'meadowClear' || theme === 'meadowRelief' || theme === 'orchid') return 'ball-contrast';
+  if (theme === 'gameboy' || theme === 'terminal') return 'ball-contrast ball-symbols';
+  if (theme === 'synthwave') return 'ball-neon ball-synth';
+  return 'ball-modern';
 }
