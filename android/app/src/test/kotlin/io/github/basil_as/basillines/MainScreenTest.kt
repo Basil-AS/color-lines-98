@@ -702,6 +702,13 @@ class GameStorageMigrationTest {
             assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
             assertEquals(BallStyle.SOLID, paletteFor(theme).ballStyle)
         }
+        listOf(AppTheme.MEADOW_CLEAR, AppTheme.MEADOW_RELIEF).forEach { theme ->
+            storage.theme = theme
+            assertEquals(theme, GameStorage(context).theme)
+            assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
+        }
+        assertEquals(BallStyle.SOLID_CLEAR, paletteFor(AppTheme.MEADOW_CLEAR).ballStyle)
+        assertEquals(BallStyle.RELIEF, paletteFor(AppTheme.MEADOW_RELIEF).ballStyle)
     }
 
     @Test
