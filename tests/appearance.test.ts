@@ -22,7 +22,7 @@ import {
 } from '../src/appearance';
 import { applyLook } from '../src/applyLook';
 import { contrastRatio, luminance } from '../src/colorlab';
-import { THEMES } from '../src/themes';
+import { THEMES, knownTheme, parseTheme } from '../src/themes';
 import { ballWarnings } from '../src/components/LookBuilder';
 import { parseBackup } from '../src/backup';
 
@@ -231,5 +231,31 @@ describe('backups', () => {
       expect(parsed.backup.settings.looks).toEqual({ modern: { volume: 'flat' } });
       expect(parsed.backup.settings.custom?.page).toBe('#101010');
     }
+  });
+});
+
+describe('the three meadow looks became one', () => {
+  it('maps the old theme names to Meadow', () => {
+    expect(THEMES).not.toContain('meadowClear');
+    expect(THEMES).not.toContain('meadowRelief');
+    expect(parseTheme('meadowClear')).toBe('meadow');
+    expect(parseTheme('meadowRelief')).toBe('meadow');
+    expect(knownTheme('meadowRelief')).toBe('meadow');
+    expect(knownTheme('nope')).toBeNull();
+  });
+
+  it('keeps the choices made on the old looks, the relief as soft depth', () => {
+    expect(sanitizeLookStore({ meadowRelief: { grid: 'thin' } })).toEqual({ meadow: { volume: 'soft', grid: 'thin' } });
+    expect(sanitizeLookStore({ meadowClear: { palette: 'distinct' } })).toEqual({ meadow: { palette: 'distinct' } });
+    expect(sanitizeLookStore({ meadowClear: {} })).toEqual({});
+  });
+
+  it('lets what was chosen on Meadow itself win', () => {
+    expect(sanitizeLookStore({ meadow: { volume: 'flat' }, meadowRelief: { volume: 'glossy', grid: 'bold' } })).toEqual({ meadow: { volume: 'flat', grid: 'bold' } });
+  });
+
+  it('reads a look code made on the old relief look', () => {
+    const body = btoa(JSON.stringify({ theme: 'meadowRelief', look: {} }));
+    expect(decodeLook(`CL3:${body}`)).toEqual({ theme: 'meadow', look: { volume: 'soft' }, custom: undefined });
   });
 });

@@ -1,7 +1,7 @@
 import { ensureContrast, inkOn, isDark, mix, normalizeHex, withAlpha } from './colorlab';
 import type { BallColor } from './engine/models';
 import type { Theme } from './themes';
-import { THEMES } from './themes';
+import { THEMES, knownTheme } from './themes';
 
 /**
  * The look studio: every theme is a starting point, and on top of it the player can switch the depth of the balls,
@@ -56,7 +56,7 @@ export const BALL_COLORS: readonly BallColor[] = ['red', 'green', 'blue', 'cyan'
 /** Themes by collection, in the order of the picker. Every theme is in exactly one. */
 export const THEME_FAMILIES: readonly { id: string; themes: readonly Theme[] }[] = [
   { id: 'modern', themes: ['modern', 'light', 'material', 'ocean', 'paper'] },
-  { id: 'vivid', themes: ['clear', 'clearNight', 'spectrum', 'meadow', 'meadowClear', 'meadowRelief', 'orchid'] },
+  { id: 'vivid', themes: ['clear', 'clearNight', 'spectrum', 'meadow', 'orchid'] },
   { id: 'neon', themes: ['neon', 'synthwave', 'retro98'] },
   { id: 'mono', themes: ['gameboy', 'terminal', 'contrast'] },
   { id: 'retro', themes: ['lines98', 'lines98plus', 'colorlines92'] },
@@ -209,6 +209,13 @@ export function sanitizeLookStore(raw: unknown): LookStore {
     const overrides = sanitizeOverrides(r[theme]);
     if (Object.keys(overrides).length > 0) out[theme] = overrides;
   }
+  // Choices kept for the meadow looks that were folded into Meadow: the relief look is the soft depth, and the
+  // choices already made on Meadow itself win.
+  for (const legacy of ['meadowClear', 'meadowRelief'] as const) {
+    if (r[legacy] === undefined) continue;
+    const merged: LookOverrides = { ...(legacy === 'meadowRelief' ? { volume: 'soft' as const } : {}), ...sanitizeOverrides(r[legacy]), ...(out.meadow ?? {}) };
+    if (Object.keys(merged).length > 0) out.meadow = merged;
+  }
   return out;
 }
 
@@ -222,10 +229,6 @@ export function themeDefaults(theme: Theme): Look {
       return { ...base, volume: 'glossy', palette: 'vivid' };
     case 'contrast': case 'clear': case 'clearNight': case 'retro98': case 'spectrum': case 'meadow': case 'orchid':
       return { ...base, volume: 'flat', contrast: 'high', cells: 'square', grid: 'plain' };
-    case 'meadowClear':
-      return { ...base, volume: 'flat', contrast: 'high', cells: 'square', grid: 'plain' };
-    case 'meadowRelief':
-      return { ...base, volume: 'soft', contrast: 'high', cells: 'square', grid: 'plain' };
     case 'gameboy': case 'terminal':
       return { ...base, volume: 'flat', contrast: 'high', shapes: 'shapes', cells: 'square' };
     default:
@@ -297,9 +300,12 @@ export function decodeLook(code: string): LookShare | null {
   if (!text.startsWith('CL3:') || text.length > 4000) return null;
   try {
     const raw = JSON.parse(decodeURIComponent(escape(atob(text.slice(4))))) as Record<string, unknown>;
-    if (typeof raw.theme !== 'string' || !(THEMES as readonly string[]).includes(raw.theme)) return null;
-    const theme = raw.theme as Theme;
-    return { theme, look: sanitizeOverrides(raw.look), custom: theme === 'custom' ? sanitizeCustom(raw.custom) : undefined };
+    const theme = knownTheme(raw.theme);
+    if (theme === null) return null;
+    const look = sanitizeOverrides(raw.look);
+    // A code made on the relief meadow keeps its soft depth.
+    if (raw.theme === 'meadowRelief' && look.volume === undefined) look.volume = 'soft';
+    return { theme, look, custom: theme === 'custom' ? sanitizeCustom(raw.custom) : undefined };
   } catch {
     return null;
   }

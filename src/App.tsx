@@ -143,8 +143,6 @@ const THEME_COLORS: Record<Theme, string> = {
   retro98: '#4b2a63',
   spectrum: '#f1eadc',
   meadow: '#e5e9df',
-  meadowClear: '#e5e9df',
-  meadowRelief: '#e5e9df',
   custom: '#e8eef2',
   orchid: '#ece5f0',
   lines98: '#008080',

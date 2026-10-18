@@ -43,19 +43,25 @@ object LookSpec {
     /** The theme ids of the web app, in the order of its picker. */
     val THEME_IDS = listOf(
         "modern", "light", "material", "neon", "synthwave", "ocean", "paper", "gameboy", "terminal", "contrast", "clear",
-        "clearNight", "retro98", "spectrum", "meadow", "meadowClear", "meadowRelief", "orchid", "custom", "lines98",
+        "clearNight", "retro98", "spectrum", "meadow", "orchid", "custom", "lines98",
         "lines98plus", "colorlines92"
     )
 
     /** Themes by collection, in the order of the picker; every theme is in exactly one. */
     val FAMILIES: List<Pair<String, List<String>>> = listOf(
         "modern" to listOf("modern", "light", "material", "ocean", "paper"),
-        "vivid" to listOf("clear", "clearNight", "spectrum", "meadow", "meadowClear", "meadowRelief", "orchid"),
+        "vivid" to listOf("clear", "clearNight", "spectrum", "meadow", "orchid"),
         "neon" to listOf("neon", "synthwave", "retro98"),
         "mono" to listOf("gameboy", "terminal", "contrast"),
         "retro" to listOf("lines98", "lines98plus", "colorlines92"),
         "own" to listOf("custom")
     )
+
+    /** Names of looks that were folded into another one: the three meadow looks became Meadow. */
+    private val RENAMED = mapOf("meadowClear" to "meadow", "meadowRelief" to "meadow")
+
+    /** The current id for a saved theme id, current or from an older version; null when it is neither. */
+    fun canonicalTheme(id: String): String? = if (id in THEME_IDS) id else RENAMED[id]
 
     /** The balls of the original games and of the DOS look are artwork, so the studio leaves them alone. */
     fun isStudioTheme(themeId: String): Boolean = themeId != "lines98" && themeId != "lines98plus" && themeId != "colorlines92"
@@ -65,9 +71,8 @@ object LookSpec {
         return when (themeId) {
             "modern", "light", "material", "ocean", "paper" -> base.copy(volume = Volume.GLOSSY, palette = PaletteId.CLASSIC)
             "neon", "synthwave" -> base.copy(volume = Volume.GLOSSY)
-            "contrast", "clear", "clearNight", "retro98", "spectrum", "meadow", "orchid", "meadowClear" ->
+            "contrast", "clear", "clearNight", "retro98", "spectrum", "meadow", "orchid" ->
                 base.copy(volume = Volume.FLAT, ring = RingLevel.HIGH, cells = CellShape.SQUARE)
-            "meadowRelief" -> base.copy(ring = RingLevel.HIGH, cells = CellShape.SQUARE)
             "gameboy", "terminal" -> base.copy(volume = Volume.FLAT, ring = RingLevel.HIGH, shapes = ShapeSet.SHAPES, cells = CellShape.SQUARE)
             else -> base
         }
@@ -289,6 +294,24 @@ object LookStore {
             val overrides = overridesFrom(o[id])
             if (!overrides.isEmpty) out[id] = overrides
         }
+        // Choices kept for the meadow looks that were folded into Meadow: the relief look is the soft depth, and the
+        // choices already made on Meadow itself win.
+        for (legacy in listOf("meadowClear", "meadowRelief")) {
+            if (o[legacy] == null) continue
+            val old = overridesFrom(o[legacy])
+            val base = if (legacy == "meadowRelief") LookOverrides(volume = Volume.SOFT) else LookOverrides()
+            val own = out["meadow"] ?: LookOverrides()
+            val merged = LookOverrides(
+                volume = own.volume ?: old.volume ?: base.volume,
+                ring = own.ring ?: old.ring ?: base.ring,
+                shapes = own.shapes ?: old.shapes ?: base.shapes,
+                palette = own.palette ?: old.palette ?: base.palette,
+                ballSize = own.ballSize ?: old.ballSize ?: base.ballSize,
+                grid = own.grid ?: old.grid ?: base.grid,
+                cells = own.cells ?: old.cells ?: base.cells
+            )
+            if (!merged.isEmpty) out["meadow"] = merged
+        }
         return out
     }
 
@@ -341,9 +364,12 @@ object LookCode {
         return try {
             val json = String(java.util.Base64.getDecoder().decode(text.removePrefix(PREFIX)), Charsets.UTF_8)
             val raw = Json.parseOrNull(json) as? Map<*, *> ?: return null
-            val theme = raw["theme"] as? String ?: return null
-            if (theme !in LookSpec.THEME_IDS) return null
-            LookShare(theme, LookStore.overridesFrom(raw["look"]), if (theme == "custom") LookStore.customFrom(raw["custom"]) else null)
+            val saved = raw["theme"] as? String ?: return null
+            val theme = LookSpec.canonicalTheme(saved) ?: return null
+            var look = LookStore.overridesFrom(raw["look"])
+            // A code made on the old relief look keeps its soft depth.
+            if (saved == "meadowRelief" && look.volume == null) look = look.copy(volume = Volume.SOFT)
+            LookShare(theme, look, if (theme == "custom") LookStore.customFrom(raw["custom"]) else null)
         } catch (_: IllegalArgumentException) {
             null
         }

@@ -14,13 +14,16 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, MEADOW_CLEAR, MEADOW_RELIEF, ORCHID, CUSTOM, LINES_98, LINES_98_PLUS, COLORLINES_92 }
+enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, ORCHID, CUSTOM, LINES_98, LINES_98_PLUS, COLORLINES_92 }
 
 /** The id the web app uses for a theme; the share code and the backup file carry it. */
 val AppTheme.webId: String
     get() = io.github.basil_as.basillines.engine.LookSpec.THEME_IDS.first { it.lowercase() == name.lowercase().replace("_", "") }
 
-fun appThemeOf(webId: String): AppTheme? = AppTheme.entries.firstOrNull { it.webId == webId }
+fun appThemeOf(webId: String): AppTheme? {
+    val id = io.github.basil_as.basillines.engine.LookSpec.canonicalTheme(webId) ?: return null
+    return AppTheme.entries.firstOrNull { it.webId == id }
+}
 
 /** The instrument a look plays its sounds with (the two retro looks use samples and PC-speaker beeps instead). */
 val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
@@ -38,8 +41,6 @@ val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
         AppTheme.CLEAR_NIGHT -> io.github.basil_as.basillines.engine.VoiceId.NIGHT
         AppTheme.SPECTRUM -> io.github.basil_as.basillines.engine.VoiceId.SPECTRUM
         AppTheme.MEADOW -> io.github.basil_as.basillines.engine.VoiceId.MEADOW
-        AppTheme.MEADOW_CLEAR -> io.github.basil_as.basillines.engine.VoiceId.MEADOW_CLEAR
-        AppTheme.MEADOW_RELIEF -> io.github.basil_as.basillines.engine.VoiceId.MEADOW_RELIEF
         AppTheme.ORCHID -> io.github.basil_as.basillines.engine.VoiceId.ORCHID
         AppTheme.CUSTOM -> io.github.basil_as.basillines.engine.VoiceId.STUDIO
         else -> io.github.basil_as.basillines.engine.VoiceId.SOFT
@@ -187,7 +188,7 @@ class GameStorage(private val context: Context) {
         private const val KEY_NEXT = "show_next"
 
         /** Names used before the four current themes existed. */
-        private val LEGACY = mapOf("CLASSIC_98" to AppTheme.LINES_98)
+        private val LEGACY = mapOf("CLASSIC_98" to AppTheme.LINES_98, "MEADOW_CLEAR" to AppTheme.MEADOW, "MEADOW_RELIEF" to AppTheme.MEADOW)
 
         /** A context whose resources use the language chosen in the game (the system one for AUTO). */
         fun localized(base: Context): Context {
