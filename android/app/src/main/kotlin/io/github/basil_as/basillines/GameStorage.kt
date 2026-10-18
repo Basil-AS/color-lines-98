@@ -14,7 +14,7 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, ORCHID, LINES_98, LINES_98_PLUS, COLORLINES_92 }
+enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, MEADOW_CLEAR, MEADOW_RELIEF, ORCHID, LINES_98, LINES_98_PLUS, COLORLINES_92 }
 
 /** The instrument a look plays its sounds with (the two retro looks use samples and PC-speaker beeps instead). */
 val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
@@ -32,6 +32,8 @@ val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
         AppTheme.CLEAR_NIGHT -> io.github.basil_as.basillines.engine.VoiceId.NIGHT
         AppTheme.SPECTRUM -> io.github.basil_as.basillines.engine.VoiceId.SPECTRUM
         AppTheme.MEADOW -> io.github.basil_as.basillines.engine.VoiceId.MEADOW
+        AppTheme.MEADOW_CLEAR -> io.github.basil_as.basillines.engine.VoiceId.MEADOW_CLEAR
+        AppTheme.MEADOW_RELIEF -> io.github.basil_as.basillines.engine.VoiceId.MEADOW_RELIEF
         AppTheme.ORCHID -> io.github.basil_as.basillines.engine.VoiceId.ORCHID
         else -> io.github.basil_as.basillines.engine.VoiceId.SOFT
     }

@@ -126,6 +126,8 @@ private val THEME_NAMES = listOf(
     AppTheme.RETRO98 to R.string.theme_retro98,
     AppTheme.SPECTRUM to R.string.theme_spectrum,
     AppTheme.MEADOW to R.string.theme_meadow,
+    AppTheme.MEADOW_CLEAR to R.string.theme_meadowClear,
+    AppTheme.MEADOW_RELIEF to R.string.theme_meadowRelief,
     AppTheme.ORCHID to R.string.theme_orchid,
     AppTheme.LINES_98 to R.string.theme_lines98,
     AppTheme.LINES_98_PLUS to R.string.theme_lines98plus,

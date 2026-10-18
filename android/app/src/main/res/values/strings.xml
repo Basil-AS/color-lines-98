@@ -108,6 +108,8 @@
     <string name="theme_retro98">Retro 98</string>
     <string name="theme_spectrum">Spectrum</string>
     <string name="theme_meadow">Meadow</string>
+    <string name="theme_meadowClear">Meadow Clear</string>
+    <string name="theme_meadowRelief">Meadow Relief</string>
     <string name="theme_orchid">Orchid</string>
     <string name="theme_synthwave">Synthwave</string>
     <string name="theme_ocean">Ocean</string>

@@ -4,7 +4,7 @@ import androidx.compose.ui.graphics.Color
 import io.github.basil_as.basillines.engine.BallColor
 
 enum class CellStyle { ROUNDED, WIN98, DOS, GRID }
-enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID }
+enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID, SOLID_CLEAR, RELIEF }
 
 data class Palette(
     val background: Color,
@@ -260,6 +260,12 @@ private val Meadow = Palette(
     ballBorder = Color(0xFF263D2E)
 )
 
+/** Meadow Clear: the Meadow chrome with a true red and a deep violet, so those two balls cannot be mixed up. */
+private val MeadowClear = Meadow.copy(ballStyle = BallStyle.SOLID_CLEAR)
+
+/** Meadow Relief: Meadow Clear colours with a soft highlight and shade on each ball. */
+private val MeadowRelief = Meadow.copy(ballStyle = BallStyle.RELIEF)
+
 /** Orchid: quiet lilac chrome, pale cells and a strong plum grid. */
 private val Orchid = Palette(
     background = Color(0xFFECE5F0), panel = Color(0xFFFAF7FC), chip = Color(0xFFE3D9E9),
@@ -288,6 +294,8 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.RETRO98 -> Retro98
     AppTheme.SPECTRUM -> Spectrum
     AppTheme.MEADOW -> Meadow
+    AppTheme.MEADOW_CLEAR -> MeadowClear
+    AppTheme.MEADOW_RELIEF -> MeadowRelief
     AppTheme.ORCHID -> Orchid
     AppTheme.LINES_98 -> Lines98
     AppTheme.LINES_98_PLUS -> Lines98Plus
@@ -336,6 +344,13 @@ fun neonColor(ball: BallColor): Color = when (ball) {
     BallColor.MAGENTA -> Color(0xFFFF3CDC)
     BallColor.YELLOW -> Color(0xFFFFE600)
     BallColor.BROWN -> Color(0xFFFF9A3C)
+}
+
+/** Meadow Clear fill: [contrastColor] with a pure red and a violet in place of the pink. */
+fun clearMeadowColor(ball: BallColor): Color = when (ball) {
+    BallColor.RED -> Color(0xFFF0261B)
+    BallColor.MAGENTA -> Color(0xFF7C3AED)
+    else -> contrastColor(ball)
 }
 
 /** High-contrast fill of a ball; the shape on it (see [contrastSymbol]) carries the meaning too. */

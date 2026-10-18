@@ -23,6 +23,8 @@ enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val ga
     RETRO(Wave.SINE, 1.15, 1.3, 1.1),
     SPECTRUM(Wave.SINE, 1.35, 0.85, 1.0),
     MEADOW(Wave.TRIANGLE, 1.2, 0.95, 1.0),
+    MEADOW_CLEAR(Wave.TRIANGLE, 1.3, 0.9, 1.0),
+    MEADOW_RELIEF(Wave.SINE, 1.1, 1.0, 1.1),
     ORCHID(Wave.SINE, 1.8, 0.9, 0.9)
 }
 
