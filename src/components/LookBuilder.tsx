@@ -53,6 +53,8 @@ export function LookBuilder({ lang, theme, custom, overrides, onCustom, onUseCus
   const active = theme === 'custom';
   const warnings = ballWarnings(custom.balls, custom.cell);
   const share = encodeLook({ theme, look: overrides ?? {}, custom });
+  const defaults = customPreset(custom.dark);
+  const isDefault = JSON.stringify(custom) === JSON.stringify(defaults);
 
   const fromCurrent = () => {
     const style = getComputedStyle(document.body);
@@ -136,9 +138,14 @@ export function LookBuilder({ lang, theme, custom, overrides, onCustom, onUseCus
         </ul>
       </div>
 
-      <button type="button" className="modal-btn primary" onClick={onUseCustom} disabled={active}>
-        {active ? t('builder.active') : t('builder.use')}
-      </button>
+      <div className="builder-actions">
+        <button type="button" className="modal-btn primary" onClick={onUseCustom} disabled={active}>
+          {active ? t('builder.active') : t('builder.use')}
+        </button>
+        <button type="button" className="modal-btn" onClick={() => onCustom(defaults)} disabled={isDefault}>
+          {t('builder.reset')}
+        </button>
+      </div>
 
       <div className="look-group" role="group" aria-labelledby="share-title">
         <h4 className="look-label" id="share-title">{t('share.title')}</h4>
