@@ -32,14 +32,16 @@ UPDATED_AT: 2026-10-18T16:30:00+03:00
 
 - None.
 
-## Next action (exact)
+## Exact next action
 
 1. Read the CI result of PR #38 (`get_check_runs`); fix failures, push.
 2. When green: squash-merge, confirm release v3.0.0 and CI/CD on main.
 3. Contributor "Agy": it comes from `Co-authored-by: Agy` trailers in commits #31, #32, #33 on `main`. The cleaned history (identical trees)
    is on branch `rewrite/main-without-agy`; `main` is protected and refused the force-push. Once the owner allows force-push:
    `git push --force origin rewrite/main-without-agy:main`, move tags v2.1.2, v2.1.4, v2.1.5, v2.2.0 (and v3.0.0 if cut) to the matching new
-   commits, rebase open branches. Expected: GitHub's contributor list no longer shows Agy (it refreshes with a delay).
+   commits, rebase open branches.
+
+EXPECTED: PR #38 merged, release v3.0.0 published with APK and web zip, CI/CD green on main; later GitHub's contributor list no longer shows Agy (it refreshes with a delay).
 
 ## Verification evidence
 
