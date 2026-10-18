@@ -1,8 +1,8 @@
 # Current agent state
 
-ACTIVE_TASK: .agents/tasks/20261006-0230-audit-web-and-android-for-bugs-and-improvements
-STATUS: complete
-BRANCH: main
-LAST_VERIFIED_COMMIT: ec346a1ae4d98860fb88044b750880b3c29e6450
-UPDATED_AT: 2026-10-13T00:48:00+03:00
-NEXT_ACTION: Theme work shipped in v2.1.5; no remaining action for this task.
+ACTIVE_TASK: .agents/tasks/20261018-1300-v3-look-studio
+STATUS: in_progress
+BRANCH: claude/v3-appearance-studio
+LAST_VERIFIED_COMMIT: -
+UPDATED_AT: 2026-10-18T16:30:00+03:00
+NEXT_ACTION: Get PR 38 green, merge, verify release v3.0.0 and CI on main; Agy contributor removal waits for force-push permission on main.

@@ -26,7 +26,15 @@ and a native Android app, sharing one rule set.
   previous best), with bonus XP and a goal streak, so they stay a fair challenge as you improve.
 - **Tutorial:** a short guided game on the real board and rules (pick a ball, move it, the next-balls panel, make a line, the free turn, a blocked path); from Help, New game or Settings. It never touches your saved game, records or statistics.
 - **Hint:** marks a ball and where to put it (a clearing move if there is one), three per game.
-- **Thirteen looks** (web and Android), each with its own sound voice, remembered between launches:
+- **Look studio (3.0)** (web and Android): every theme is a starting point, and on top of it you choose, per theme:
+  the **depth** of the balls (flat, soft, glossy), their **colour set** (Classic, Vivid, *Distinct*: colour-blind safe and
+  different in greyscale, Soft, or your own), a **ring** around them, **markers** (a shape or a digit per colour), their
+  **size**, the **grid** (lines, none, thin, bold, checker, dots) and the **cell shape**. A colour-vision preview
+  (greyscale, protanopia, deuteranopia, tritanopia) shows whether balls still tell apart. The **builder** makes a theme
+  of your own (surface, page, board, cell and accent colours, seven ball colours, with warnings for colours that look alike).
+  A *look code* (`CL3:...`) carries a look to another device, web and Android read each other's codes, and backups keep it.
+  The original games keep their artwork.
+- **Themes in collections** (web and Android), each with its own sound voice, remembered between launches:
   - *Modern dark*, *Modern light*, *Material*, *Neon*, *Synthwave*, *Ocean* and *Paper*: different colours, board and
     instrument (soft sine, bell, marimba, arcade square, saw, glass, wood block);
   - *Game Boy (1989)* (four greens, chip sound) and *Amber terminal* (phosphor orange, teletype beeps), both shape-coded;
