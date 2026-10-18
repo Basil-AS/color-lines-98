@@ -248,13 +248,14 @@ private fun BuilderTab(
     Column(Modifier.padding(top = 8.dp)) {
         Text(stringResource(R.string.builder_intro), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(stringResource(R.string.builder_start), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             OutlinedButton(onClick = { onCustom(CustomTheme.preset(false)) }) { Text(stringResource(R.string.builder_startLight)) }
             OutlinedButton(onClick = { onCustom(CustomTheme.preset(true)) }) { Text(stringResource(R.string.builder_startDark)) }
         }
-        Row(Modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.builder_startDark), Modifier.weight(1f))
-            Switch(checked = custom.dark, onCheckedChange = { onCustom(custom.copy(dark = it)) })
+        Text(stringResource(R.string.builder_mode), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
+        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = !custom.dark, onClick = { onCustom(custom.copy(dark = false)) }, label = { Text(stringResource(R.string.builder_startLight)) }, modifier = Modifier.semantics { role = Role.RadioButton })
+            FilterChip(selected = custom.dark, onClick = { onCustom(custom.copy(dark = true)) }, label = { Text(stringResource(R.string.builder_startDark)) }, modifier = Modifier.semantics { role = Role.RadioButton })
         }
         ColorRow(stringResource(R.string.builder_page), custom.page) { onCustom(custom.copy(page = it)) }
         ColorRow(stringResource(R.string.builder_board), custom.board) { onCustom(custom.copy(board = it)) }
