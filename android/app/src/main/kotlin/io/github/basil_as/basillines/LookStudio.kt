@@ -7,6 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -57,6 +58,7 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -281,6 +283,7 @@ private fun BuilderTab(
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedButton(onClick = { onCustom(CustomTheme.preset(false)) }) { Text(stringResource(R.string.builder_startLight)) }
             OutlinedButton(onClick = { onCustom(CustomTheme.preset(true)) }) { Text(stringResource(R.string.builder_startDark)) }
+            TextButton(onClick = { onCustom(CustomTheme.preset(custom.dark)) }) { Text(stringResource(R.string.builder_reset)) }
         }
         Text(stringResource(R.string.builder_mode), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
         FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -360,29 +363,35 @@ fun LookStudioDialog(
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 14.dp)) {
-                Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
-                LookPreview(theme, overrides, custom, vision, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Vision.entries.forEach { v ->
-                        FilterChip(
-                            selected = vision == v,
-                            onClick = { vision = v },
-                            label = { Text(lookText("look_vision_${v.id}"), fontSize = 12.sp) },
-                            modifier = Modifier.semantics { role = Role.RadioButton }
-                        )
+                // On a low screen (landscape) the pinned header would push the buttons off the bottom, so it scrolls with the options.
+                val compact = LocalConfiguration.current.screenHeightDp < 620
+                val header: @Composable ColumnScope.() -> Unit = {
+                    Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
+                    LookPreview(theme, overrides, custom, vision, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
+                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Vision.entries.forEach { v ->
+                            FilterChip(
+                                selected = vision == v,
+                                onClick = { vision = v },
+                                label = { Text(lookText("look_vision_${v.id}"), fontSize = 12.sp) },
+                                modifier = Modifier.semantics { role = Role.RadioButton }
+                            )
+                        }
+                    }
+                    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        StudioTab.entries.forEach { t ->
+                            FilterChip(
+                                selected = tab == t,
+                                onClick = { tab = t },
+                                label = { Text(lookText(t.key)) },
+                                modifier = Modifier.semantics { role = Role.RadioButton }
+                            )
+                        }
                     }
                 }
-                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    StudioTab.entries.forEach { t ->
-                        FilterChip(
-                            selected = tab == t,
-                            onClick = { tab = t },
-                            label = { Text(lookText(t.key)) },
-                            modifier = Modifier.semantics { role = Role.RadioButton }
-                        )
-                    }
-                }
+                if (!compact) header()
                 Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    if (compact) header()
                     if (tab == StudioTab.BUILDER) {
                         BuilderTab(theme, overrides, custom, onCustom, onApplyShare)
                     } else if (!studio) {

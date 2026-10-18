@@ -209,6 +209,7 @@
     <string name="builder_start">Начать с</string>
     <string name="builder_startLight">Светлого</string>
     <string name="builder_startDark">Тёмного</string>
+    <string name="builder_reset">Сбросить цвета</string>
     <string name="builder_fromCurrent">Текущей темы</string>
     <string name="builder_mode">Поверхность</string>
     <string name="builder_page">Фон</string>

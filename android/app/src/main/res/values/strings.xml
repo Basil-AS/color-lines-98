@@ -209,6 +209,7 @@
     <string name="builder_start">Start from</string>
     <string name="builder_startLight">Light</string>
     <string name="builder_startDark">Dark</string>
+    <string name="builder_reset">Reset colours</string>
     <string name="builder_fromCurrent">Current theme</string>
     <string name="builder_mode">Surface</string>
     <string name="builder_page">Page</string>

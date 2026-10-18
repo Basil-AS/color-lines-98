@@ -3604,3 +3604,14 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   white-space: nowrap;
   font-size: clamp(1rem, 5.2vw, 1.3rem);
 }
+
+/* The settings buttons stay reachable at the bottom while the options scroll. */
+.modal-content:has(.settings-head) .modal-actions {
+  position: sticky;
+  bottom: -24px;
+  z-index: 3;
+  margin: 16px -24px -24px;
+  padding: 10px 24px 24px;
+  background: var(--panel-bg);
+  border-top: 1px solid var(--panel-border);
+}

@@ -101,6 +101,7 @@ export function LookBuilder({ lang, theme, custom, overrides, onCustom, onUseCus
           <button type="button" className="chip" onClick={() => onCustom(customPreset(false))}>{t('builder.startLight')}</button>
           <button type="button" className="chip" onClick={() => onCustom(customPreset(true))}>{t('builder.startDark')}</button>
           <button type="button" className="chip" onClick={fromCurrent}>{t('builder.fromCurrent')}</button>
+          <button type="button" className="chip" onClick={() => onCustom(customPreset(custom.dark))}>{t('builder.reset')}</button>
         </div>
       </div>
 
