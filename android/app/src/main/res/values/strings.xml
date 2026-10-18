@@ -21,7 +21,7 @@
     <string name="btn_github">Source code on GitHub</string>
     <string name="btn_close">Close</string>
     <string name="theme_group">Theme</string>
-    <string name="theme_modern">Modern dark</string>
+    <string name="theme_modern">Modern</string>
     <string name="lang_label">Language</string>
     <string name="lang_auto">Auto</string>
     <string name="lang_en">English</string>
@@ -99,12 +99,15 @@
     <string name="settings_language">Language</string>
     <string name="settings_sound">Sound effects</string>
     <string name="settings_preview">Show where new balls will appear</string>
-    <string name="theme_light">Modern light</string>
     <string name="theme_material">Material</string>
     <string name="theme_neon">Neon</string>
     <string name="theme_contrast">High contrast</string>
     <string name="theme_clear">Clear</string>
-    <string name="theme_clear_night">Clear night</string>
+    <string name="scheme_title">Day / night</string>
+    <string name="scheme_auto">Auto (system)</string>
+    <string name="scheme_day">Day</string>
+    <string name="scheme_night">Night</string>
+    <string name="scheme_fixedHint">This look keeps its own colours by day and by night.</string>
     <string name="theme_retro98">Retro 98</string>
     <string name="theme_spectrum">Spectrum</string>
     <string name="theme_meadow">Meadow</string>
