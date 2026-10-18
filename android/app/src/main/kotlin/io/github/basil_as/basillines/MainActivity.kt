@@ -268,7 +268,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var lastResult by remember { mutableStateOf(LastResult()) }
     var lastActionAt by remember { mutableLongStateOf(0L) }
 
-    val palette = resolvePalette(theme, looks[theme.webId], custom)
+    var colorMode by remember { mutableStateOf(storage.colorMode) }
+    val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
+    val palette = resolvePalette(theme, looks[theme.webId], custom).let { if (shouldFlipPalette(theme, it, colorMode, systemDark)) it.flipped() else it }
     val spawnPreview = spawnStored ?: (theme != AppTheme.COLORLINES_92)
     // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
     val defaultName = "Player"
@@ -957,6 +959,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     },
                     effects = effectsLevel,
                     onEffects = { effectsLevel = it; storage.effects = it },
+                    colorMode = colorMode,
+                    onColorMode = { colorMode = it; storage.colorMode = it },
                     vibrationSupported = haptics.supported,
                     vibration = vibration,
                     onVibration = { vibration = it; storage.vibration = it; haptics.enabled = it; if (it) haptics.play(HapticKind.SELECT) },

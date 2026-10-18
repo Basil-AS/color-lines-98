@@ -54,6 +54,8 @@ import {
   loadPlayerName,
   loadShowNext,
   loadEffects,
+  loadColorMode,
+  saveColorMode,
   loadVibration,
   loadSpawnPreview,
   loadTheme,
@@ -83,7 +85,8 @@ import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { ballThemeClass, defaultSpawnPreview, soundProfile, soundVoice, usesSprites } from './themes';
+import { ballThemeClass, defaultSpawnPreview, shouldFlip, soundProfile, soundVoice, usesSprites } from './themes';
+import type { ColorMode } from './themes';
 import { BoardFx, travelMs } from './effects';
 import type { EffectsLevel, MoveFx } from './effects';
 import { haptic, setHapticsEnabled } from './haptics';
@@ -211,6 +214,15 @@ export default function App() {
   const [ledger, setLedger] = useState<Ledger>(loadLedger);
   const [hall, setHall] = useState(loadHall);
   const [showNext, setShowNext] = useState(loadShowNext);
+  const [colorMode, setColorMode] = useState<ColorMode>(loadColorMode);
+  const [systemDark, setSystemDark] = useState(() => typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const query = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = () => setSystemDark(query.matches);
+    query.addEventListener?.('change', onChange);
+    return () => query.removeEventListener?.('change', onChange);
+  }, []);
   const [effectsLevel, setEffectsLevel] = useState<EffectsLevel>(() => loadEffects(prefersReducedMotion()));
   const [vibration, setVibration] = useState(loadVibration);
   const boardRef = useRef<HTMLElement>(null);
@@ -379,6 +391,16 @@ export default function App() {
     setSpawnStored(next);
     saveSpawnPreview(next);
   };
+
+  const changeColorMode = (mode: ColorMode) => {
+    setColorMode(mode);
+    saveColorMode(mode);
+  };
+  const flipped = shouldFlip(theme, custom.dark, colorMode, systemDark);
+  useEffect(() => {
+    if (flipped) document.documentElement.setAttribute('data-flip', '');
+    else document.documentElement.removeAttribute('data-flip');
+  }, [flipped]);
 
   const changeEffects = (level: EffectsLevel) => {
     setEffectsLevel(level);
@@ -1114,6 +1136,8 @@ export default function App() {
           lang={lang}
           theme={theme}
           onTheme={changeTheme}
+          colorMode={colorMode}
+          onColorMode={changeColorMode}
           looks={looks[theme]}
           onLook={changeLook}
           onResetLook={resetLook}

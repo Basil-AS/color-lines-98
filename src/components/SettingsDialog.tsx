@@ -4,7 +4,8 @@ import type { MessageKey } from '../i18n';
 import type { Language } from '../i18n';
 import { THEME_FAMILIES } from '../appearance';
 import type { CustomTheme, Look, LookKey, LookOverrides, LookShare } from '../appearance';
-import type { Theme } from '../themes';
+import { COLOR_MODES } from '../themes';
+import type { ColorMode, Theme } from '../themes';
 import { useState } from 'react';
 import { LookBuilder } from './LookBuilder';
 import { LookControls } from './LookControls';
@@ -18,6 +19,8 @@ interface SettingsDialogProps {
   lang: Language;
   theme: Theme;
   onTheme: (theme: Theme) => void;
+  colorMode: ColorMode;
+  onColorMode: (mode: ColorMode) => void;
   langPref: LanguagePref;
   onLangPref: (pref: LanguagePref) => void;
   soundEnabled: boolean;
@@ -78,6 +81,16 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
       {tab === 'themes' && (
         <div className="settings-section">
+          <div className="settings-row settings-effects" role="group" aria-labelledby="colormode-label">
+            <span id="colormode-label">{t('settings.colorMode')}</span>
+            <div className="segmented">
+              {COLOR_MODES.map((mode) => (
+                <button type="button" key={mode} className={`segment ${props.colorMode === mode ? 'active' : ''}`} aria-pressed={props.colorMode === mode} onClick={() => props.onColorMode(mode)}>
+                  {t(`colorMode.${mode}` as MessageKey)}
+                </button>
+              ))}
+            </div>
+          </div>
           {THEME_FAMILIES.map((family) => (
             <section key={family.id} className="theme-family" aria-labelledby={`family-${family.id}`}>
               <h3 className="settings-label" id={`family-${family.id}`}>

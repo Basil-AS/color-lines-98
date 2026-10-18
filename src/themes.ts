@@ -113,3 +113,24 @@ export function ballThemeClass(theme: Theme): string {
   if (theme === 'synthwave') return 'ball-neon ball-synth';
   return 'ball-modern';
 }
+
+/** Whether a look is a night look as designed; the day/night switch flips the others. */
+export function isNativelyDark(theme: Theme, customDark: boolean): boolean {
+  if (theme === 'custom') return customDark;
+  return ['modern', 'neon', 'synthwave', 'ocean', 'terminal', 'contrast', 'clearNight', 'retro98'].includes(theme);
+}
+
+/** The two original-game pictures are artwork and keep their colours whatever the time of day. */
+export function followsDayNight(theme: Theme): boolean {
+  return theme !== 'lines98' && theme !== 'colorlines92';
+}
+
+export type ColorMode = 'auto' | 'day' | 'night';
+export const COLOR_MODES: readonly ColorMode[] = ['auto', 'day', 'night'];
+
+/** Whether the page should be flipped (light to dark or dark to light) for the chosen mode. */
+export function shouldFlip(theme: Theme, customDark: boolean, mode: ColorMode, systemDark: boolean): boolean {
+  if (!followsDayNight(theme)) return false;
+  const wantDark = mode === 'auto' ? systemDark : mode === 'night';
+  return wantDark !== isNativelyDark(theme, customDark);
+}

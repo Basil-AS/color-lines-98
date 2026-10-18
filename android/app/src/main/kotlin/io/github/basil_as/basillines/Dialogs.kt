@@ -283,6 +283,8 @@ fun SettingsDialog(
     onLanguage: (AppLanguage) -> Unit,
     effects: EffectsLevel,
     onEffects: (EffectsLevel) -> Unit,
+    colorMode: ColorMode,
+    onColorMode: (ColorMode) -> Unit,
     vibrationSupported: Boolean,
     vibration: Boolean,
     onVibration: (Boolean) -> Unit,
@@ -368,6 +370,17 @@ fun SettingsDialog(
                 }
                 OutlinedButton(onClick = { studio = true }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) { Text(stringResource(R.string.look_studio)) }
                 Text(stringResource(R.string.look_studioHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.settings_colorMode), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(ColorMode.AUTO to R.string.colorMode_auto, ColorMode.DAY to R.string.colorMode_day, ColorMode.NIGHT to R.string.colorMode_night).forEach { (mode, name) ->
+                        androidx.compose.material3.FilterChip(
+                            selected = colorMode == mode,
+                            onClick = { onColorMode(mode) },
+                            label = { Text(stringResource(name)) },
+                            modifier = Modifier.semantics { role = Role.RadioButton }
+                        )
+                    }
+                }
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
                 Text(stringResource(R.string.settings_effects), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))

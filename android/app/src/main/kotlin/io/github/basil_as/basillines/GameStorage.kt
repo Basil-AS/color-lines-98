@@ -97,6 +97,10 @@ class GameStorage(private val context: Context) {
     }
 
     /** How lively the board is: off, calm or full (off when the system has animations switched off). */
+    var colorMode: ColorMode
+        get() = ColorMode.parse(prefs.getString("colorMode", null))
+        set(value) = prefs.edit().putString("colorMode", value.id).apply()
+
     var effects: EffectsLevel
         get() = EffectsLevel.parse(prefs.getString("effects", null)) ?: if (animationsOff()) EffectsLevel.OFF else EffectsLevel.FULL
         set(value) = prefs.edit().putString("effects", value.id).apply()

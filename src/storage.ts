@@ -280,6 +280,18 @@ export function clearLedger(): void {
 }
 
 const EFFECTS_KEY = 'colorlines_effects';
+const COLOR_MODE_KEY = 'colorlines_colormode';
+
+/** Day, night or follow the system (the default). */
+export function loadColorMode(): 'auto' | 'day' | 'night' {
+  const raw = read(COLOR_MODE_KEY);
+  return raw === 'day' || raw === 'night' ? raw : 'auto';
+}
+
+export function saveColorMode(mode: 'auto' | 'day' | 'night'): void {
+  write(COLOR_MODE_KEY, mode);
+}
+
 const VIBRATION_KEY = 'colorlines_vibration';
 
 /** How lively the board is: off, calm or full. Calm when the system asks for reduced motion, full otherwise. */

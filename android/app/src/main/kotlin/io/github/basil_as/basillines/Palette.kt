@@ -395,3 +395,34 @@ fun contrastColor(ball: BallColor): Color = when (ball) {
     BallColor.YELLOW -> Color(0xFFFFE600)
     BallColor.BROWN -> Color(0xFFD9A066)
 }
+
+/** Day, night or follow the system. */
+enum class ColorMode(val id: String) {
+    AUTO("auto"), DAY("day"), NIGHT("night");
+    companion object { fun parse(id: String?): ColorMode = entries.firstOrNull { it.id == id } ?: AUTO }
+}
+
+/** Lightness turned over, hue and saturation kept: a light surface becomes its dark twin and the other way round. */
+private fun Color.flipLightness(): Color {
+    val hsl = FloatArray(3)
+    androidx.core.graphics.ColorUtils.colorToHSL(this.toArgb(), hsl)
+    hsl[2] = 1f - hsl[2]
+    return Color(androidx.core.graphics.ColorUtils.HSLToColor(hsl)).copy(alpha = this.alpha)
+}
+
+/** The same look in the other time of day. The balls keep their colours; only the surfaces and inks turn over. */
+fun Palette.flipped(): Palette = copy(
+    background = background.flipLightness(), panel = panel.flipLightness(), chip = chip.flipLightness(),
+    boardBackground = boardBackground.flipLightness(), cell = cell.flipLightness(),
+    text = text.flipLightness(), textMuted = textMuted.flipLightness(),
+    statBackground = statBackground.flipLightness(), statLabel = statLabel.flipLightness(), statValue = statValue.flipLightness(),
+    accent = accent.flipLightness(), onAccent = onAccent.flipLightness(), danger = danger.flipLightness(),
+    reachableDot = reachableDot.flipLightness(), ballBorder = ballBorder.flipLightness(), dark = !dark
+)
+
+/** Whether the palette of [theme] should turn over for the chosen mode; the two original-game pictures never do. */
+fun shouldFlipPalette(theme: AppTheme, palette: Palette, mode: ColorMode, systemDark: Boolean): Boolean {
+    if (theme == AppTheme.LINES_98 || theme == AppTheme.COLORLINES_92) return false
+    val wantDark = when (mode) { ColorMode.AUTO -> systemDark; ColorMode.DAY -> false; ColorMode.NIGHT -> true }
+    return wantDark != palette.dark
+}

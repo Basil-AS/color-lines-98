@@ -3594,3 +3594,17 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   white-space: nowrap;
   font-size: clamp(1rem, 5.2vw, 1.3rem);
 }
+
+/* Day or night for every look: the page is flipped (invert plus a half hue turn keeps the hues), and the balls and other artwork are flipped back so their colours stay exact. */
+html[data-flip] {
+  filter: invert(1) hue-rotate(180deg);
+  background: #fff;
+}
+
+html[data-flip] .ball,
+html[data-flip] canvas,
+html[data-flip] .theme-swatch,
+html[data-flip] img,
+html[data-flip] svg image {
+  filter: invert(1) hue-rotate(180deg);
+}
