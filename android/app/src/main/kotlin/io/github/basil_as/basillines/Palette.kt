@@ -2,6 +2,7 @@ package io.github.basil_as.basillines
 
 import androidx.compose.ui.graphics.Color
 import io.github.basil_as.basillines.engine.BallColor
+import io.github.basil_as.basillines.engine.colors
 
 enum class CellStyle { ROUNDED, WIN98, DOS, GRID }
 enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID, SOLID_CLEAR, RELIEF }
@@ -27,7 +28,11 @@ data class Palette(
     val windowTitleBar: Boolean,
     /** Fill and ink per ball for the shape-coded looks (Game Boy, terminal); null uses the high-contrast colours. */
     val symbolTint: ((BallColor) -> Pair<Color, Color>)? = null,
-    val ballBorder: Color = Color.White
+    val ballBorder: Color = Color.White,
+    /** The look studio: the look in force, what the player chose, and the ball colours when the studio draws the balls. */
+    val look: io.github.basil_as.basillines.engine.Look? = null,
+    val overrides: io.github.basil_as.basillines.engine.LookOverrides = io.github.basil_as.basillines.engine.LookOverrides(),
+    val tones: Map<BallColor, io.github.basil_as.basillines.engine.BallTone>? = null
 ) {
     val square: Boolean get() = cellStyle != CellStyle.ROUNDED
 }
@@ -278,6 +283,40 @@ private val Orchid = Palette(
     ballBorder = Color(0xFF392C42)
 )
 
+/** The interface colours of the custom theme, worked out from the few colours the builder asks for. */
+fun customPalette(custom: io.github.basil_as.basillines.engine.CustomTheme): Palette {
+    val k = custom.colors()
+    return Palette(
+        background = Color(k.page), panel = Color(k.panel), chip = Color(k.ctrl),
+        boardBackground = Color(k.board), cell = Color(k.cell),
+        text = Color(k.text), textMuted = Color(k.muted),
+        statBackground = Color(k.stat), statLabel = Color(k.muted), statValue = Color(k.text),
+        accent = Color(k.accent), onAccent = Color(k.onAccent), danger = Color(k.danger),
+        reachableDot = Color(k.accent),
+        dark = k.dark, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.GLOSSY, windowTitleBar = false,
+        ballBorder = Color(k.board)
+    )
+}
+
+/**
+ * The palette a theme really has: its own, with the player's choices from the look studio on top. The original
+ * games keep their artwork, so their palette comes back untouched.
+ */
+fun resolvePalette(
+    theme: AppTheme,
+    overrides: io.github.basil_as.basillines.engine.LookOverrides?,
+    custom: io.github.basil_as.basillines.engine.CustomTheme
+): Palette {
+    val id = theme.webId
+    val base = if (theme == AppTheme.CUSTOM) customPalette(custom) else paletteFor(theme)
+    if (!io.github.basil_as.basillines.engine.LookSpec.isStudioTheme(id)) return base
+    val chosen = overrides ?: io.github.basil_as.basillines.engine.LookOverrides()
+    val tones = if (io.github.basil_as.basillines.engine.LookSpec.studioActive(id, chosen)) {
+        io.github.basil_as.basillines.engine.LookPalettes.tones(io.github.basil_as.basillines.engine.LookSpec.paletteInUse(id, chosen), custom.balls)
+    } else null
+    return base.copy(look = io.github.basil_as.basillines.engine.LookSpec.effective(id, chosen), overrides = chosen, tones = tones)
+}
+
 fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.MODERN -> Modern
     AppTheme.LIGHT -> Light
@@ -297,6 +336,7 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.MEADOW_CLEAR -> MeadowClear
     AppTheme.MEADOW_RELIEF -> MeadowRelief
     AppTheme.ORCHID -> Orchid
+    AppTheme.CUSTOM -> customPalette(io.github.basil_as.basillines.engine.CustomTheme.DEFAULT)
     AppTheme.LINES_98 -> Lines98
     AppTheme.LINES_98_PLUS -> Lines98Plus
     AppTheme.COLORLINES_92 -> ColorLines92

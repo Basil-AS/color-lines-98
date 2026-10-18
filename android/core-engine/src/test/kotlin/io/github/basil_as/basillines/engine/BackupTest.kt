@@ -160,4 +160,29 @@ class BackupTest {
         assertEquals(setOf("goals_7", "all_modes"), b.progress.achievements.keys)
         assertEquals(4, b.progress.gamesByMode[ModeId.DAILY])
     }
+
+    @Test
+    fun theLookStudioChoicesTravelWithTheBackup() {
+        val looks = mapOf("modern" to LookOverrides(volume = Volume.FLAT, grid = GridStyle.DOTS))
+        val custom = CustomTheme.preset(true)
+        val b = Backup(
+            1790000000000L, "android", "3.0.0", emptyList(), Careers.fromHistory(emptyList(), utc), ProgressTracker.rebuild(emptyList()), emptyList(),
+            BackupSettings(theme = "custom", looks = looks, custom = custom)
+        )
+        val back = (Backups.parse(Backups.encode(b)) as ParsedBackup.Ok).backup
+        assertEquals(looks, back.settings.looks)
+        assertEquals(custom, back.settings.custom)
+    }
+
+    @Test
+    fun aHostileLooksSectionIsCleanedAndAnOldFileHasNone() {
+        val hostile = """{"format":"color-lines-backup","version":2,"exportedAt":1,"app":{"platform":"web","version":"3"},"history":[],"settings":{"looks":{"modern":{"volume":"flat","grid":"<x>"},"evil":{"volume":"flat"}},"custom":{"page":"zzz","dark":true}}}"""
+        val b = (Backups.parse(hostile) as ParsedBackup.Ok).backup
+        assertEquals(mapOf("modern" to LookOverrides(volume = Volume.FLAT)), b.settings.looks)
+        assertEquals(true, b.settings.custom?.dark)
+        assertEquals(CustomTheme.DEFAULT.page, b.settings.custom?.page)
+        val old = (Backups.parse(webFileV2) as ParsedBackup.Ok).backup
+        assertNull(old.settings.looks)
+        assertNull(old.settings.custom)
+    }
 }

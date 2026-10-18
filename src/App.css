@@ -311,6 +311,7 @@ body {
 
 .stat-value {
   font-size: 1.3rem;
+  overflow-wrap: anywhere;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--stat-value);
@@ -2436,7 +2437,7 @@ input[role='switch']:focus-visible {
 .swatch-spectrum { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f1eadc; border: 2px solid #46515c; }
 .swatch-meadow { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
 .swatch-meadowClear { background: radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
-.swatch-meadowRelief { background: radial-gradient(circle at 20% 38%, rgba(255,255,255,.55) 0 2px, transparent 3px), radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at 45% 38%, rgba(255,255,255,.55) 0 2px, transparent 3px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 70% 38%, rgba(255,255,255,.55) 0 2px, transparent 3px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
+.swatch-meadowRelief { background: radial-gradient(circle at calc(25% - 3px) calc(50% - 3px), rgba(255,255,255,.6) 0 2px, transparent 3px), radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at calc(50% - 3px) calc(50% - 3px), rgba(255,255,255,.6) 0 2px, transparent 3px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at calc(75% - 3px) calc(50% - 3px), rgba(255,255,255,.6) 0 2px, transparent 3px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
 .swatch-orchid { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #ece5f0; border: 2px solid #51415c; }
 
 /* Vision-friendly Clear themes: calm surfaces, high-contrast grid, saturated balls with shape markers */
@@ -3175,4 +3176,382 @@ input[role='switch']:focus-visible {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+/* ==========================================================================
+   Look studio (3.0): choices layered over any theme. A theme is left alone until a choice is made;
+   data-studio takes over the ball fill (depth and colours), the rest are small overlays.
+   ========================================================================== */
+body {
+  --ring: var(--text-main);
+}
+
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  body {
+    --ring: color-mix(in srgb, var(--text-main) 90%, transparent);
+    --grid-ink: color-mix(in srgb, var(--text-main) 26%, transparent);
+    --cell-alt: color-mix(in srgb, var(--cell-bg) 86%, var(--text-main));
+  }
+}
+
+body {
+  --grid-ink: rgba(128, 128, 128, 0.35);
+  --cell-alt: var(--cell-hover);
+}
+
+.ball {
+  width: calc(var(--ball-base, 82%) - var(--ring-w, 0px) * 2);
+  height: calc(var(--ball-base, 82%) - var(--ring-w, 0px) * 2);
+}
+
+.ball.ball-preview {
+  width: 36%;
+  height: 36%;
+}
+
+.ball.ball-mini {
+  width: 18px;
+  height: 18px;
+}
+
+body[data-ballsize='compact'] { --ball-base: 68%; }
+body[data-ballsize='normal'] { --ball-base: 82%; }
+body[data-ballsize='large'] { --ball-base: 94%; }
+body[data-contrast='high'] { --ring-w: 2px; }
+body[data-contrast='max'] { --ring-w: 3px; }
+
+/* Colour and depth drawn by the studio */
+body[data-studio='1'] .ball.color-red { --b: var(--bs-red); --b-hi: var(--bs-red-hi); --b-lo: var(--bs-red-lo); }
+body[data-studio='1'] .ball.color-green { --b: var(--bs-green); --b-hi: var(--bs-green-hi); --b-lo: var(--bs-green-lo); }
+body[data-studio='1'] .ball.color-blue { --b: var(--bs-blue); --b-hi: var(--bs-blue-hi); --b-lo: var(--bs-blue-lo); }
+body[data-studio='1'] .ball.color-cyan { --b: var(--bs-cyan); --b-hi: var(--bs-cyan-hi); --b-lo: var(--bs-cyan-lo); }
+body[data-studio='1'] .ball.color-magenta { --b: var(--bs-magenta); --b-hi: var(--bs-magenta-hi); --b-lo: var(--bs-magenta-lo); }
+body[data-studio='1'] .ball.color-yellow { --b: var(--bs-yellow); --b-hi: var(--bs-yellow-hi); --b-lo: var(--bs-yellow-lo); }
+body[data-studio='1'] .ball.color-brown { --b: var(--bs-brown); --b-hi: var(--bs-brown-hi); --b-lo: var(--bs-brown-lo); }
+
+body[data-studio='1'] .ball[class*='color-'] {
+  border: 0;
+  filter: none;
+  background: var(--b);
+  box-shadow: none;
+}
+
+body[data-studio='1'][data-volume='soft'] .ball[class*='color-'] {
+  background-color: var(--b);
+  background-image: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.5) 0, rgba(255, 255, 255, 0) 45%),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.22) 100%);
+  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.28);
+}
+
+body[data-studio='1'][data-volume='glossy'] .ball[class*='color-'] {
+  background: radial-gradient(circle at 35% 30%, var(--b-hi), var(--b) 60%, var(--b-lo));
+  box-shadow: inset -3px -3px 8px rgba(0, 0, 0, 0.35), inset 3px 3px 6px rgba(255, 255, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.35);
+}
+
+body[data-studio='1'][data-volume='glossy'] .ball.ball-preview,
+body[data-studio='1'][data-volume='glossy'] .ball.ball-mini {
+  box-shadow: inset -1px -1px 3px rgba(0, 0, 0, 0.35), inset 1px 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+body[data-studio='1'][data-volume='soft'] .ball.ball-preview,
+body[data-studio='1'][data-volume='soft'] .ball.ball-mini {
+  box-shadow: none;
+}
+
+/* Contrast: a ring in the text colour separates a ball from the cell and from its neighbours */
+body[data-contrast='high'] .ball[class*='color-'],
+body[data-contrast='max'] .ball[class*='color-'] {
+  outline: var(--ring-w) solid var(--ring);
+  outline-offset: 0;
+}
+
+body[data-contrast='max'] .ball[class*='color-']:not(.ball-neon) {
+  filter: saturate(1.35) contrast(1.06);
+}
+
+body[data-contrast='high'] .ball.ball-preview,
+body[data-contrast='high'] .ball.ball-mini { outline-width: 1px; }
+body[data-contrast='max'] .ball.ball-preview,
+body[data-contrast='max'] .ball.ball-mini { outline-width: 2px; }
+
+/* Markers on the balls */
+body[data-shapes='off'] .ball::after { content: none; }
+
+body[data-shapes='shapes'] .ball[class*='color-']:not(.ball-preview):not(.ball-mini)::after,
+body[data-shapes='digits'] .ball[class*='color-']:not(.ball-preview):not(.ball-mini)::after {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink, #000000);
+  text-shadow: 0 0 3px var(--halo, rgba(255, 255, 255, 0.8));
+  font-size: clamp(10px, 2.2vw, 20px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+body[data-studio='1'] .ball.color-red { --ink: var(--bs-red-ink); --halo: var(--bs-red-halo); }
+body[data-studio='1'] .ball.color-green { --ink: var(--bs-green-ink); --halo: var(--bs-green-halo); }
+body[data-studio='1'] .ball.color-blue { --ink: var(--bs-blue-ink); --halo: var(--bs-blue-halo); }
+body[data-studio='1'] .ball.color-cyan { --ink: var(--bs-cyan-ink); --halo: var(--bs-cyan-halo); }
+body[data-studio='1'] .ball.color-magenta { --ink: var(--bs-magenta-ink); --halo: var(--bs-magenta-halo); }
+body[data-studio='1'] .ball.color-yellow { --ink: var(--bs-yellow-ink); --halo: var(--bs-yellow-halo); }
+body[data-studio='1'] .ball.color-brown { --ink: var(--bs-brown-ink); --halo: var(--bs-brown-halo); }
+
+body[data-shapes='shapes'] .ball.color-red::after { content: '●'; }
+body[data-shapes='shapes'] .ball.color-green::after { content: '▲'; }
+body[data-shapes='shapes'] .ball.color-blue::after { content: '■'; }
+body[data-shapes='shapes'] .ball.color-cyan::after { content: '◆'; }
+body[data-shapes='shapes'] .ball.color-magenta::after { content: '★'; }
+body[data-shapes='shapes'] .ball.color-yellow::after { content: '✚'; }
+body[data-shapes='shapes'] .ball.color-brown::after { content: '♥'; }
+body[data-shapes='digits'] .ball.color-red::after { content: '1'; }
+body[data-shapes='digits'] .ball.color-green::after { content: '2'; }
+body[data-shapes='digits'] .ball.color-blue::after { content: '3'; }
+body[data-shapes='digits'] .ball.color-cyan::after { content: '4'; }
+body[data-shapes='digits'] .ball.color-magenta::after { content: '5'; }
+body[data-shapes='digits'] .ball.color-yellow::after { content: '6'; }
+body[data-shapes='digits'] .ball.color-brown::after { content: '7'; }
+body[data-shapes] .ball.ball-preview::after,
+body[data-shapes] .ball.ball-mini::after { content: none; }
+
+/* Grid styles */
+body[data-grid='plain'] .board-grid { gap: 2px; padding: 4px; }
+body[data-grid='none'] .board-grid { gap: 0; padding: 0; }
+body[data-grid='none'] .board-cell { box-shadow: none; }
+body[data-grid='thin'] .board-grid { gap: 1px; padding: 1px; }
+body[data-grid='bold'] .board-grid { gap: 5px; padding: 5px; }
+body[data-grid='checker'] .board-grid { gap: 0; padding: 0; }
+body[data-grid='checker'] .board-cell { box-shadow: none; }
+body[data-grid='checker'] .board-cell:nth-child(even):not(:hover) { background: var(--cell-alt); }
+body[data-grid='dots'] .board-grid { gap: 0; padding: 0; }
+body[data-grid='dots'] .board-cell {
+  box-shadow: none;
+  background-image: radial-gradient(circle at 50% 50%, var(--grid-ink) 0 2px, transparent 2.5px);
+}
+
+body[data-grid='none'] .board-cell,
+body[data-grid='checker'] .board-cell,
+body[data-grid='dots'] .board-cell { border-radius: 0; }
+body[data-cells='square'] .board-cell { border-radius: 0; }
+body[data-cells='rounded'] .board-cell { border-radius: 8px; }
+body[data-cells='round'] .board-cell { border-radius: 50%; }
+body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
+
+/* The custom theme takes its colours from inline custom properties; only the shape of things is set here. */
+.theme-custom .board-grid { border: 3px solid var(--board-bg); border-radius: 10px; }
+
+.swatch-custom {
+  background: conic-gradient(from 0deg, #f0261b, #ffd60a, #2fbf4a, #00d8f0, #2f7bff, #8b3dff, #f0261b);
+  border-radius: 6px;
+}
+
+/* ---- Settings tabs and the look studio ---- */
+.settings-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.settings-tab {
+  flex: 1 1 auto;
+  min-height: 40px;
+  padding: 6px 6px;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-main);
+  background: var(--ctrl-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.settings-tab.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.settings-tab:focus-visible,
+.chip:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-family + .theme-family {
+  margin-top: 16px;
+}
+
+.look-preview {
+  margin-top: 12px;
+}
+
+.look-preview .look-preview-grid {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: none;
+  aspect-ratio: auto;
+  width: 100%;
+  margin: 0;
+}
+
+.look-preview .look-cell {
+  cursor: default;
+  pointer-events: none;
+}
+
+.look-group {
+  margin-top: 14px;
+}
+
+.look-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  min-height: 40px;
+  padding: 6px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  background: var(--ctrl-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.chip.active {
+  background: var(--accent);
+  color: var(--on-accent);
+  border-color: var(--accent);
+  font-weight: 700;
+}
+
+.chip-sub {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.chip.active .chip-sub {
+  color: inherit;
+}
+
+.chip-dots {
+  display: inline-flex;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.chip-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.look-group .settings-hint { margin: 8px 0 0; }
+
+.look-reset {
+  margin-top: 16px;
+}
+
+.look-note {
+  margin: 12px 0 0;
+}
+
+.color-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.color-field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 8px;
+  font-size: 0.85rem;
+  background: var(--card-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+}
+
+.color-field input[type='color'] {
+  flex: none;
+  width: 36px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.look-warnings {
+  list-style: none;
+  margin-top: 8px;
+  font-size: 0.8rem;
+}
+
+.look-warnings .warn { color: var(--danger); }
+.look-warnings .ok { color: var(--text-muted); }
+
+.look-builder .modal-btn.primary { margin-top: 16px; width: 100%; }
+
+.share-code {
+  display: block;
+  width: 100%;
+  margin: 6px 0;
+  padding: 8px;
+  font: 0.75rem ui-monospace, Menlo, Consolas, monospace;
+  color: var(--text-main);
+  background: var(--input-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  resize: vertical;
+  user-select: text;
+  -webkit-user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.vision-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.vision-chips { margin-top: 8px; }
+
+.chip-small {
+  min-height: 32px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+}
+
+/* Figures such as "123 h 06 min" stay on one line in the statistics cards, a little smaller on a narrow screen. */
+.modal-content .stat-value {
+  white-space: nowrap;
+  font-size: clamp(1rem, 5.2vw, 1.3rem);
 }

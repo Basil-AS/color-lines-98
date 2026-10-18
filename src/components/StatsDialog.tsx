@@ -76,11 +76,11 @@ export function StatsDialog({ lang, history, progress, ledger, now, onExport, on
   const bestIndex = summary.bestRecord ? history.indexOf(summary.bestRecord) : -1;
 
   const cards: [string, string | number][] = [
-    [t('stats.gamesPlayed'), progress.totalGames],
-    [t('stats.best'), progress.bestScore],
-    [t('stats.average'), summary.averageScore],
-    [t('stats.totalScore'), progress.totalScore],
-    [t('stats.lines'), progress.totalLines],
+    [t('stats.gamesPlayed'), progress.totalGames.toLocaleString(lang)],
+    [t('stats.best'), progress.bestScore.toLocaleString(lang)],
+    [t('stats.average'), summary.averageScore.toLocaleString(lang)],
+    [t('stats.totalScore'), progress.totalScore.toLocaleString(lang)],
+    [t('stats.lines'), progress.totalLines.toLocaleString(lang)],
     [t('stats.bestLine'), progress.bestLine],
     [t('stats.streak'), translatePlural(lang, 'plural.days', streak)],
     [t('stats.bestStreak'), translatePlural(lang, 'plural.days', bestStreak(progress.days))],

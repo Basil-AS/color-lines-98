@@ -77,7 +77,10 @@ export function weekdayActivity(games: readonly GameRecord[]): WeekdayStat[] {
   return sums.map((s, weekday) => ({ weekday, games: s.games, average: s.games === 0 ? 0 : Math.round(s.total / s.games) }));
 }
 
-/** Points per move: the overall rate and the best single game. */
+/** Short games would make the points-per-move of a single game meaningless (the records and goals use the same floor). */
+export const MIN_EFFICIENCY_MOVES = 15;
+
+/** Points per move: the overall rate, and the best single game that lasted long enough to count. */
 export function efficiency(games: readonly GameRecord[]): { average: number; best: number } {
   let score = 0;
   let moves = 0;
@@ -85,7 +88,7 @@ export function efficiency(games: readonly GameRecord[]): { average: number; bes
   for (const g of games) {
     score += g.score;
     moves += g.moves;
-    if (g.moves > 0) best = Math.max(best, g.score / g.moves);
+    if (g.moves >= MIN_EFFICIENCY_MOVES) best = Math.max(best, g.score / g.moves);
   }
   return { average: moves === 0 ? 0 : score / moves, best };
 }

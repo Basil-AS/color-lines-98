@@ -222,6 +222,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
     var theme by remember { mutableStateOf(storage.theme) }
+    var looks by remember { mutableStateOf(storage.looks) }
+    var custom by remember { mutableStateOf(storage.customTheme) }
     var engine by remember { mutableStateOf(storage.loadGame() ?: Modes.createEngine(storage.mode, dayKey())) }
     var hint by remember { mutableStateOf<Hint?>(null) }
     var hintsLeft by remember { mutableIntStateOf(HINTS_PER_GAME) }
@@ -266,7 +268,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var lastResult by remember { mutableStateOf(LastResult()) }
     var lastActionAt by remember { mutableLongStateOf(0L) }
 
-    val palette = paletteFor(theme)
+    val palette = resolvePalette(theme, looks[theme.webId], custom)
     val spawnPreview = spawnStored ?: (theme != AppTheme.COLORLINES_92)
     // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
     val defaultName = "Player"
@@ -613,7 +615,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     System.currentTimeMillis(), "android", version, history, ledger, progress, hall,
                     io.github.basil_as.basillines.engine.BackupSettings(
                         theme, storage.language.name.lowercase(), playerName, soundEnabled, spawnStored, showNext, engine.mode,
-                        effectsLevel.id, vibration
+                        effectsLevel.id, vibration, looks = looks, custom = custom
                     )
                 )
             )
@@ -665,6 +667,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             st.showNext?.let { showNext = it; storage.showNext = it }
             EffectsLevel.parse(st.effects)?.let { effectsLevel = it; storage.effects = it }
             st.vibration?.let { vibration = it; storage.vibration = it }
+            st.looks?.let { looks = it; storage.looks = it }
+            st.custom?.let { custom = it; storage.customTheme = it }
             val lang = AppLanguage.entries.firstOrNull { it.name.lowercase() == st.language }
             if (lang != null && lang != storage.language) { storage.language = lang; (context as? android.app.Activity)?.recreate() }
         }
@@ -962,6 +966,22 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     onAutoUpdate = { autoUpdate = it; storage.autoUpdateCheck = it },
                     updateStatus = updateStatus,
                     onCheckUpdate = { checkNow(manual = true) },
+                    looks = looks[theme.webId] ?: io.github.basil_as.basillines.engine.LookOverrides(),
+                    onLooks = { picked ->
+                        val next = if (picked.isEmpty) looks - theme.webId else looks + (theme.webId to picked)
+                        looks = next
+                        storage.looks = next
+                    },
+                    custom = custom,
+                    onCustom = { custom = it; storage.customTheme = it },
+                    onUseCustom = { theme = AppTheme.CUSTOM; storage.theme = AppTheme.CUSTOM },
+                    onApplyShare = { share ->
+                        val next = if (share.overrides.isEmpty) looks - share.themeId else looks + (share.themeId to share.overrides)
+                        looks = next
+                        storage.looks = next
+                        share.custom?.let { custom = it; storage.customTheme = it }
+                        appThemeOf(share.themeId)?.let { theme = it; storage.theme = it }
+                    },
                     onClose = { dialog = Dialog.NONE; updateStatus = null }
                 )
                 Dialog.NONE -> Unit
