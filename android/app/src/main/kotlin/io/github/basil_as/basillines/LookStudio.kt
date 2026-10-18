@@ -238,7 +238,6 @@ private fun BuilderTab(
     onApplyShare: (LookShare) -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
-    var pasted by rememberSaveable { mutableStateOf("") }
     var note by remember { mutableStateOf("") }
     val badCode = stringResource(R.string.share_bad)
     val applied = stringResource(R.string.share_applied)
@@ -280,18 +279,11 @@ private fun BuilderTab(
         Text(stringResource(R.string.share_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp))
         Text(stringResource(R.string.share_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         OutlinedButton(onClick = { clipboard.setText(AnnotatedString(LookCode.encode(LookShare(theme.webId, overrides, custom)))); note = copied }) { Text(stringResource(R.string.share_copy)) }
-        OutlinedTextField(
-            value = pasted,
-            onValueChange = { pasted = it },
-            placeholder = { Text(stringResource(R.string.share_placeholder)) },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            singleLine = true
-        )
+        // The code is read from the clipboard: nobody types four hundred characters on a phone.
         OutlinedButton(
-            enabled = pasted.isNotBlank(),
             onClick = {
-                val decoded = LookCode.decode(pasted)
-                if (decoded == null) note = badCode else { onApplyShare(decoded); pasted = ""; note = applied }
+                val decoded = clipboard.getText()?.text?.let { LookCode.decode(it) }
+                if (decoded == null) note = badCode else { onApplyShare(decoded); note = applied }
             }
         ) { Text(stringResource(R.string.share_apply)) }
         if (note.isNotEmpty()) Text(note, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
