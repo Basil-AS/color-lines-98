@@ -135,7 +135,9 @@ describe('custom theme', () => {
   it('warns about similar and faint colours', () => {
     const same = { ...DEFAULT_CUSTOM.balls, magenta: '#f0281c' };
     expect(ballWarnings(same, '#ffffff').similar.some(([a, b]) => a === 'red' && b === 'magenta')).toBe(true);
-    expect(ballWarnings(DEFAULT_CUSTOM.balls, DEFAULT_CUSTOM.cell).similar).toEqual([]);
+    expect(ballWarnings(DEFAULT_CUSTOM.balls, DEFAULT_CUSTOM.cell)).toEqual({ similar: [], faint: [] });
+    const dark = customPreset(true);
+    expect(ballWarnings(dark.balls, dark.cell)).toEqual({ similar: [], faint: [] });
     expect(ballWarnings({ ...DEFAULT_CUSTOM.balls, yellow: '#f4f4f4' }, '#f2f6f8').faint).toContain('yellow');
   });
 });

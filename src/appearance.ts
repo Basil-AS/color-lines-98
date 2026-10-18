@@ -111,13 +111,16 @@ export interface CustomTheme {
   balls: Record<BallColor, string>;
 }
 
+/** The balls a fresh custom look starts with: Vivid, with a yellow dark enough to stand out on a light cell. */
+const START_BALLS: Record<BallColor, string> = { ...PALETTE_COLORS.vivid, yellow: '#f2b705' };
+
 export const DEFAULT_CUSTOM: CustomTheme = {
   dark: false,
   page: '#e8eef2',
   board: '#3f5566',
   cell: '#f2f6f8',
   accent: '#2a7ab0',
-  balls: { ...PALETTE_COLORS.vivid },
+  balls: { ...START_BALLS },
 };
 
 export function sanitizeCustom(raw: unknown): CustomTheme {
@@ -138,7 +141,7 @@ export function sanitizeCustom(raw: unknown): CustomTheme {
 export function customPreset(dark: boolean): CustomTheme {
   return dark
     ? { dark: true, page: '#14181d', board: '#0b0e11', cell: '#262d35', accent: '#4fd1a5', balls: { ...PALETTE_COLORS.vivid } }
-    : { ...DEFAULT_CUSTOM, balls: { ...PALETTE_COLORS.vivid } };
+    : { ...DEFAULT_CUSTOM, balls: { ...START_BALLS } };
 }
 
 /** Every custom property the interface reads, worked out from the handful of colours the builder asks for. */

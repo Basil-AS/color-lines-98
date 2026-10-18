@@ -10,7 +10,10 @@ data class BackupSettings(
     val showNext: Boolean? = null,
     val mode: ModeId? = null,
     val effects: String? = null,
-    val vibration: Boolean? = null
+    val vibration: Boolean? = null,
+    /** Choices from the look studio, per theme id, and the custom theme's colours; both are already sanitised. */
+    val looks: Map<String, LookOverrides>? = null,
+    val custom: CustomTheme? = null
 )
 
 data class Backup(
@@ -70,6 +73,8 @@ object Backups {
                 b.settings.mode?.let { put("mode", it.id) }
                 b.settings.effects?.let { put("effects", it) }
                 b.settings.vibration?.let { put("vibration", it) }
+                b.settings.looks?.let { put("looks", LookStore.storeTo(it)) }
+                b.settings.custom?.let { put("custom", LookStore.customTo(it)) }
             }
         )
     )
@@ -149,7 +154,9 @@ object Backups {
             showNext = o["showNext"] as? Boolean,
             mode = ModeId.fromId(o["mode"] as? String),
             effects = (o["effects"] as? String)?.takeIf { it == "off" || it == "calm" || it == "full" },
-            vibration = o["vibration"] as? Boolean
+            vibration = o["vibration"] as? Boolean,
+            looks = o["looks"]?.let { LookStore.storeFrom(it) },
+            custom = o["custom"]?.let { LookStore.customFrom(it) }
         )
     }
 
