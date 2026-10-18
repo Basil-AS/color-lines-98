@@ -7,3 +7,4 @@
 - Layout audit `e2e/audit.spec.ts`: found that a strong ring on large balls stuck out of small round cells; fixed by sizing the ball from the ring width in pixels.
 - Analytics audit: the best points-per-move now ignores games under 15 moves (as records and goals do); overview figures use thousands separators; figures in cards stay on one line.
 - First Android CI run failed on a missing import and on test code (`val engine = <package>` is not Kotlin); fixed.
+- 2026-10-18: PR #38 merged (775046f); release v3.0.0 published. Android builder tab: an `OutlinedTextField` made the Compose test never idle; the look code is now applied from the clipboard.
