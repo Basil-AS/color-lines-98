@@ -37,7 +37,6 @@ interface Voice {
  */
 export const VOICES: Record<VoiceId, Voice> = {
   soft: { wave: null, pitch: 1, tempo: 1, gain: 1 },
-  bell: { wave: 'sine', pitch: 2, tempo: 0.8, gain: 1 },
   marimba: { wave: 'triangle', pitch: 1, tempo: 0.7, gain: 1.5 },
   arcade: { wave: 'square', pitch: 1, tempo: 0.75, gain: 0.45 },
   saw: { wave: 'sawtooth', pitch: 1, tempo: 1.25, gain: 0.5 },
@@ -47,7 +46,6 @@ export const VOICES: Record<VoiceId, Voice> = {
   teletype: { wave: 'square', pitch: 1.5, tempo: 0.4, gain: 0.4 },
   beep: { wave: 'square', pitch: 1.25, tempo: 1.6, gain: 0.45 },
   clarity: { wave: 'sine', pitch: 1.25, tempo: 0.9, gain: 1.1 },
-  night: { wave: 'triangle', pitch: 1.75, tempo: 1.1, gain: 1.2 },
   retro: { wave: 'sine', pitch: 1.15, tempo: 1.3, gain: 1.1 },
   spectrum: { wave: 'sine', pitch: 1.35, tempo: 0.85, gain: 1.0 },
   meadow: { wave: 'triangle', pitch: 1.2, tempo: 0.95, gain: 1.0 },

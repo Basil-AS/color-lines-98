@@ -221,6 +221,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val haptics = remember { Haptics(context) }
     val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
 
+    // The scheme is read before anything can overwrite the theme name it may be migrated from.
+    var scheme by remember { mutableStateOf(storage.colorScheme) }
     var theme by remember { mutableStateOf(storage.theme) }
     var looks by remember { mutableStateOf(storage.looks) }
     var custom by remember { mutableStateOf(storage.customTheme) }
@@ -268,7 +270,8 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var lastResult by remember { mutableStateOf(LastResult()) }
     var lastActionAt by remember { mutableLongStateOf(0L) }
 
-    val palette = resolvePalette(theme, looks[theme.webId], custom)
+    val night = resolveNight(scheme, androidx.compose.foundation.isSystemInDarkTheme())
+    val palette = resolvePalette(theme, looks[theme.webId], custom, night)
     val spawnPreview = spawnStored ?: (theme != AppTheme.COLORLINES_92)
     // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
     val defaultName = "Player"
@@ -279,7 +282,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         else -> SoundManager.Profile.MODERN
     }
     soundManager.prime()
-    DisposableEffect(theme) {
+    DisposableEffect(theme, night) {
         onSystemBars(palette.dark || palette.background == Color(0xFF008080) || palette.background == Color.Black)
         onDispose { }
     }
@@ -607,7 +610,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     val exportJson = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.CreateDocument("application/json")) { uri ->
         val version = runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: ""
-        val theme = if (theme == AppTheme.CLEAR_NIGHT) "clearNight" else theme.name.lowercase().replace("_", "")
+        val theme = theme.webId
         writeTo(
             uri,
             io.github.basil_as.basillines.engine.Backups.encode(
@@ -615,7 +618,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     System.currentTimeMillis(), "android", version, history, ledger, progress, hall,
                     io.github.basil_as.basillines.engine.BackupSettings(
                         theme, storage.language.name.lowercase(), playerName, soundEnabled, spawnStored, showNext, engine.mode,
-                        effectsLevel.id, vibration, looks = looks, custom = custom
+                        effectsLevel.id, vibration, looks = looks, custom = custom, scheme = scheme.id
                     )
                 )
             )
@@ -660,7 +663,12 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         bestScore = maxOf(bestScore, nextProgress.bestScore); storage.bestScore = bestScore
         if (replace) {
             val st = b.settings
-            AppTheme.entries.firstOrNull { it.name.lowercase().replace("_", "") == st.theme?.lowercase()?.replace("_", "") }?.let { theme = it; storage.theme = it }
+            st.theme?.let { saved ->
+                appThemeOf(saved)?.let { theme = it; storage.theme = it }
+                // A backup from before the schemes: the light Modern was day and Clear night was night.
+                if (st.scheme == null) io.github.basil_as.basillines.engine.LookSpec.schemeOfRenamed(saved)?.let { DayNight.parse(it) }?.let { scheme = it; storage.colorScheme = it }
+            }
+            DayNight.parse(st.scheme)?.let { scheme = it; storage.colorScheme = it }
             st.playerName?.let { playerName = it; storage.playerName = it }
             st.soundEnabled?.let { soundEnabled = it; soundManager.isEnabled = it }
             st.spawnPreview?.let { spawnStored = it; storage.spawnPreview = it }
@@ -938,6 +946,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                         theme = it
                         storage.theme = it
                     },
+                    scheme = scheme,
+                    onScheme = { scheme = it; storage.colorScheme = it },
+                    night = night,
                     soundEnabled = soundEnabled,
                     onToggleSound = {
                         soundEnabled = !soundEnabled

@@ -24,7 +24,8 @@ import { GameEngine } from '../src/engine/gameengine';
 import { soundManager } from '../src/audio';
 import { loadHistory, saveGame } from '../src/storage';
 import { encodeLook } from '../src/appearance';
-import { THEMES } from '../src/themes';
+import { THEMES, nativeShade } from '../src/themes';
+import type { Theme } from '../src/themes';
 
 function setLanguages(languages: string[]) {
   Object.defineProperty(window.navigator, 'languages', { value: languages, configurable: true });
@@ -296,20 +297,87 @@ describe('language', () => {
   });
 });
 
+describe('day and night', () => {
+  const bodyFor = (theme: string, scheme?: string) => {
+    localStorage.setItem('colorlines_theme', theme);
+    if (scheme) localStorage.setItem('colorlines_scheme', scheme);
+    render(<App />);
+    return document.body.className;
+  };
+
+  it('uses the sheet of its own for Modern and Clear in the other shade', () => {
+    expect(bodyFor('modern', 'day')).toBe('theme-light');
+    cleanup();
+    expect(bodyFor('modern', 'night')).toBe('theme-modern');
+    cleanup();
+    expect(bodyFor('clear', 'night')).toBe('theme-clearNight');
+    cleanup();
+    expect(bodyFor('clear', 'day')).toBe('theme-clear');
+  });
+
+  it('recolours the other looks only when they are drawn in the other shade', () => {
+    expect(bodyFor('neon', 'day')).toBe('theme-neon shade-day');
+    cleanup();
+    expect(bodyFor('neon', 'night')).toBe('theme-neon');
+    cleanup();
+    expect(bodyFor('paper', 'night')).toBe('theme-paper shade-night');
+    cleanup();
+    expect(bodyFor('paper', 'day')).toBe('theme-paper');
+  });
+
+  it('leaves the looks that are their colours alone', () => {
+    for (const theme of ['gameboy', 'terminal', 'lines98', 'colorlines92', 'custom']) {
+      expect(bodyFor(theme, 'night')).toBe(`theme-${theme}`);
+      cleanup();
+      expect(bodyFor(theme, 'day')).toBe(`theme-${theme}`);
+      cleanup();
+    }
+  });
+
+  it('follows the device in Auto and is changed from the themes tab', async () => {
+    const mq = { matches: true, addEventListener: vi.fn(), removeEventListener: vi.fn() };
+    vi.stubGlobal('matchMedia', () => mq);
+    try {
+      const user = userEvent.setup();
+      localStorage.setItem('colorlines_theme', 'modern');
+      render(<App />);
+      expect(document.body.className).toBe('theme-modern');
+      await user.click(screen.getByRole('button', { name: 'Settings' }));
+      const dialog = screen.getByRole('dialog');
+      expect(within(dialog).getByRole('button', { name: /Auto/ })).toHaveAttribute('aria-pressed', 'true');
+      await user.click(within(dialog).getByRole('button', { name: 'Day' }));
+      expect(document.body.className).toBe('theme-light');
+      expect(localStorage.getItem('colorlines_scheme')).toBe('day');
+      await user.click(within(dialog).getByRole('button', { name: /Auto/ }));
+      expect(document.body.className).toBe('theme-modern');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('keeps the old light and night looks as a fixed choice', () => {
+    expect(bodyFor('light')).toBe('theme-light');
+    expect(localStorage.getItem('colorlines_theme')).toBe('light');
+    cleanup();
+    localStorage.clear();
+    expect(bodyFor('clearNight')).toBe('theme-clearNight');
+  });
+});
+
 describe('themes', () => {
-  it.each(['modern', 'light', 'material', 'neon', 'contrast', 'clear', 'clearNight', 'lines98', 'colorlines92'])('applies and remembers the %s theme', async (theme) => {
+  it.each(['modern', 'material', 'neon', 'contrast', 'clear', 'lines98', 'colorlines92'])('applies and remembers the %s theme', async (theme) => {
+    // Drawn in its own shade, so the class is the plain theme.
+    localStorage.setItem('colorlines_scheme', nativeShade(theme as Theme));
     const user = userEvent.setup();
     const first = render(<App />);
     await user.click(screen.getByRole('button', { name: 'Settings' }));
     const group = screen.getByRole('dialog');
     const names: Record<string, RegExp> = {
-      modern: /Modern dark/,
-      light: /Modern light/,
+      modern: /^Modern$/,
       material: /^Material/,
       neon: /Neon/,
       contrast: /High contrast/,
       clear: /^Clear$/,
-      clearNight: /^Clear night$/,
       lines98: /Lines 98/,
       colorlines92: /Color Lines 1992/,
     };
@@ -321,7 +389,7 @@ describe('themes', () => {
     expect(document.body.className).toBe(`theme-${theme}`);
   });
 
-  it('clear and clearNight use shape markers on balls and preserve high visibility', () => {
+  it('clear in day and in night uses shape markers on balls and preserve high visibility', () => {
     localStorage.setItem('colorlines_theme', 'clear');
     const first = render(<App />);
     const balls = ballCells();
@@ -331,7 +399,8 @@ describe('themes', () => {
     }
     first.unmount();
 
-    localStorage.setItem('colorlines_theme', 'clearNight');
+    localStorage.setItem('colorlines_theme', 'clear');
+    localStorage.setItem('colorlines_scheme', 'night');
     render(<App />);
     expect(document.body.className).toBe('theme-clearNight');
     const nightBalls = ballCells();
@@ -886,7 +955,7 @@ describe('look studio', () => {
     await openSettings(user, 'Board');
     await user.click(chip(/^Grid$/, /^Bold$/));
     await user.click(screen.getByRole('button', { name: /^Themes$/ }));
-    await user.click(screen.getByRole('button', { name: /Modern light/ }));
+    await user.click(screen.getByRole('button', { name: /^Material/ }));
     expect(document.body.hasAttribute('data-grid')).toBe(false);
     await user.click(screen.getByRole('button', { name: /^Board$/ }));
     await user.click(chip(/^Grid$/, /^Dots$/));
@@ -895,7 +964,7 @@ describe('look studio', () => {
     expect(document.body.hasAttribute('data-grid')).toBe(false);
     expect(JSON.parse(localStorage.getItem('colorlines_look') ?? '{}')).toEqual({ modern: { grid: 'bold' } });
     await user.click(screen.getByRole('button', { name: /^Themes$/ }));
-    await user.click(screen.getByRole('button', { name: /Modern dark/ }));
+    await user.click(screen.getByRole('button', { name: /^Modern$/ }));
     expect(document.body.getAttribute('data-grid')).toBe('bold');
   });
 
@@ -925,6 +994,7 @@ describe('look studio', () => {
   });
 
   it('applies a look code and refuses a bad one', async () => {
+    localStorage.setItem('colorlines_scheme', 'night');
     const user = userEvent.setup();
     render(<App />);
     await openSettings(user, 'Builder');
@@ -935,9 +1005,9 @@ describe('look studio', () => {
     expect(screen.getByText('This is not a look code.')).toBeInTheDocument();
     await user.clear(box);
     await user.click(box);
-    await user.paste(encodeLook({ theme: 'light', look: { grid: 'thin', volume: 'glossy' } }));
+    await user.paste(encodeLook({ theme: 'modern', look: { grid: 'thin', volume: 'glossy' } }));
     await user.click(screen.getByRole('button', { name: 'Apply code' }));
-    expect(document.body.className).toBe('theme-light');
+    expect(document.body.className).toBe('theme-modern');
     expect(document.body.getAttribute('data-grid')).toBe('thin');
   });
 

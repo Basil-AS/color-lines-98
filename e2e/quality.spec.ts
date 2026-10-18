@@ -1,15 +1,19 @@
 import { AxeBuilder } from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 
-const THEMES = ['modern', 'light', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'lines98', 'lines98plus', 'colorlines92'];
+const BASE_THEMES = ['modern', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'clear', 'retro98', 'spectrum', 'meadow', 'orchid', 'lines98', 'lines98plus', 'colorlines92'];
+/** `theme@day` and `theme@night` pin the day/night switch; every look is checked in both shades. */
+const THEMES = BASE_THEMES.flatMap((t) => [`${t}@day`, `${t}@night`]);
 
-async function open(page: import('@playwright/test').Page, theme: string) {
+async function open(page: import('@playwright/test').Page, spec: string) {
+  const [theme, shade] = spec.split('@');
   await page.goto('/');
-  await page.evaluate((t) => {
+  await page.evaluate(([t, s]) => {
     localStorage.clear();
     localStorage.setItem('colorlines_theme', t);
+    if (s) localStorage.setItem('colorlines_scheme', s);
     localStorage.setItem('colorlines_lang', 'en');
-  }, theme);
+  }, [theme, shade ?? ''] as const);
   await page.reload();
   await expect(page.locator('.board-cell').first()).toBeVisible();
 }
@@ -48,7 +52,7 @@ test.describe('automated accessibility audit (axe)', () => {
 });
 
 test.describe('automated accessibility audit of the dialogs', () => {
-  for (const theme of ['modern', 'light', 'gameboy', 'terminal', 'custom', 'lines98']) {
+  for (const theme of ['modern@day', 'modern@night', 'neon@day', 'paper@night', 'gameboy', 'terminal', 'custom', 'lines98']) {
     test(`${theme}: statistics tabs, new game, settings and help have no serious violations`, async ({ page }) => {
       test.setTimeout(120_000);
       await open(page, theme);

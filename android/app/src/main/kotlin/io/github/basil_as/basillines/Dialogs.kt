@@ -112,7 +112,6 @@ val ACHIEVEMENT_TEXT: Map<String, Pair<Int, Int>> = mapOf(
 
 private val THEME_NAMES = listOf(
     AppTheme.MODERN to R.string.theme_modern,
-    AppTheme.LIGHT to R.string.theme_light,
     AppTheme.MATERIAL to R.string.theme_material,
     AppTheme.NEON to R.string.theme_neon,
     AppTheme.SYNTHWAVE to R.string.theme_synthwave,
@@ -122,7 +121,6 @@ private val THEME_NAMES = listOf(
     AppTheme.TERMINAL to R.string.theme_terminal,
     AppTheme.CONTRAST to R.string.theme_contrast,
     AppTheme.CLEAR to R.string.theme_clear,
-    AppTheme.CLEAR_NIGHT to R.string.theme_clear_night,
     AppTheme.RETRO98 to R.string.theme_retro98,
     AppTheme.SPECTRUM to R.string.theme_spectrum,
     AppTheme.MEADOW to R.string.theme_meadow,
@@ -275,6 +273,9 @@ fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
 fun SettingsDialog(
     theme: AppTheme,
     onTheme: (AppTheme) -> Unit,
+    scheme: DayNight,
+    onScheme: (DayNight) -> Unit,
+    night: Boolean,
     soundEnabled: Boolean,
     onToggleSound: () -> Unit,
     spawnPreview: Boolean,
@@ -306,6 +307,7 @@ fun SettingsDialog(
             theme = theme,
             overrides = looks,
             custom = custom,
+            night = night,
             onOverrides = onLooks,
             onCustom = onCustom,
             onUseCustom = onUseCustom,
@@ -318,7 +320,21 @@ fun SettingsDialog(
         title = { Text(stringResource(R.string.settings_title)) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
-                Text(stringResource(R.string.settings_theme), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(stringResource(R.string.scheme_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(DayNight.AUTO to R.string.scheme_auto, DayNight.DAY to R.string.scheme_day, DayNight.NIGHT to R.string.scheme_night).forEach { (value, name) ->
+                        androidx.compose.material3.FilterChip(
+                            selected = scheme == value,
+                            onClick = { onScheme(value) },
+                            label = { Text(stringResource(name)) },
+                            modifier = Modifier.semantics { role = Role.RadioButton }
+                        )
+                    }
+                }
+                if (theme.nativeNight == null) {
+                    Text(stringResource(R.string.scheme_fixedHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Text(stringResource(R.string.settings_theme), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
                 var picking by remember { mutableStateOf(false) }
                 val currentName = stringResource(THEME_NAMES.first { it.first == theme }.second)
                 // The themes stay folded: one row shows the current look, a tap opens the picker with previews.
@@ -326,7 +342,7 @@ fun SettingsDialog(
                     Modifier.fillMaxWidth().clickable(role = Role.Button) { picking = true }.padding(vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    ThemeSwatch(theme, Modifier.width(88.dp).height(56.dp))
+                    ThemeSwatch(theme, night, Modifier.width(88.dp).height(56.dp))
                     // Name above the button: side by side they squeezed the name until its last letter wrapped.
                     Column(Modifier.weight(1f).padding(start = 12.dp)) {
                         Text(currentName, fontWeight = FontWeight.SemiBold)
@@ -353,7 +369,7 @@ fun SettingsDialog(
                                                         .padding(6.dp),
                                                     horizontalAlignment = Alignment.CenterHorizontally
                                                 ) {
-                                                    ThemeSwatch(value, Modifier.fillMaxWidth().height(64.dp))
+                                                    ThemeSwatch(value, night, Modifier.fillMaxWidth().height(64.dp))
                                                     Text(label, fontSize = 12.sp, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
                                                 }
                                             }
@@ -992,8 +1008,8 @@ fun UpdateDialog(
 
 /** A small picture of a look: its board with three balls, drawn from the real palette and ball style. */
 @Composable
-internal fun ThemeSwatch(theme: AppTheme, modifier: Modifier = Modifier) {
-    val palette = paletteFor(theme)
+internal fun ThemeSwatch(theme: AppTheme, night: Boolean?, modifier: Modifier = Modifier) {
+    val palette = paletteFor(theme, night)
     val sprites = rememberSprites(palette)
     val balls = listOf(BallColor.RED, BallColor.BLUE, BallColor.GREEN)
     Canvas(modifier.clip(RoundedCornerShape(if (palette.square) 0.dp else 8.dp)).background(palette.background).border(1.dp, Color.Gray.copy(alpha = 0.5f), RoundedCornerShape(if (palette.square) 0.dp else 8.dp))) {

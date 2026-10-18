@@ -18,6 +18,8 @@ import {
   loadShowNext,
   loadSpawnPreview,
   loadTheme,
+  loadColorScheme,
+  saveColorScheme,
   saveBestScore,
   saveGame,
   saveHistory,
@@ -55,10 +57,23 @@ describe('theme', () => {
   });
 
   it('round-trips every theme', () => {
-    for (const theme of ['modern', 'light', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'] as const) {
+    for (const theme of ['modern', 'material', 'neon', 'contrast', 'lines98', 'colorlines92'] as const) {
       saveTheme(theme);
       expect(loadTheme()).toBe(theme);
     }
+  });
+
+  it('stores day, night or auto; the old light and night looks keep their shade', () => {
+    expect(loadColorScheme()).toBe('auto');
+    saveColorScheme('night');
+    expect(loadColorScheme()).toBe('night');
+    store.setItem('colorlines_scheme', 'dusk');
+    expect(loadColorScheme()).toBe('auto');
+    store.removeItem('colorlines_scheme');
+    store.setItem('colorlines_theme', 'light');
+    expect(loadColorScheme()).toBe('day');
+    store.setItem('colorlines_theme', 'clearNight');
+    expect(loadColorScheme()).toBe('night');
   });
 
   it('migrates the theme names used before the redesign', () => {
@@ -194,7 +209,7 @@ describe('spawn preview setting', () => {
 
   it('defaults per theme: on except for the 1992 DOS look, which never marked the cells', () => {
     expect(defaultSpawnPreview('modern')).toBe(true);
-    expect(defaultSpawnPreview('light')).toBe(true);
+    expect(defaultSpawnPreview('material')).toBe(true);
     expect(defaultSpawnPreview('lines98')).toBe(true);
     expect(defaultSpawnPreview('colorlines92')).toBe(false);
   });

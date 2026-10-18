@@ -13,8 +13,8 @@ const VIEWPORTS = [
   { name: 'tablet', width: 820, height: 1180 },
   { name: 'desktop', width: 1440, height: 900 },
 ];
-const ALL_THEMES = ['modern', 'light', 'material', 'neon', 'synthwave', 'ocean', 'paper', 'gameboy', 'terminal', 'contrast', 'clear', 'clearNight', 'retro98', 'spectrum', 'meadow', 'orchid', 'custom', 'lines98', 'lines98plus', 'colorlines92'];
-const DIALOG_THEMES = ['modern', 'light', 'neon', 'gameboy', 'terminal', 'meadow', 'custom', 'lines98'];
+const ALL_THEMES = ['modern', 'modern@day', 'material', 'material@night', 'neon', 'neon@day', 'synthwave', 'ocean', 'paper', 'paper@night', 'gameboy', 'terminal', 'contrast', 'contrast@day', 'clear', 'clear@night', 'retro98', 'retro98@day', 'spectrum', 'meadow', 'orchid', 'custom', 'lines98', 'lines98plus', 'colorlines92'];
+const DIALOG_THEMES = ['modern', 'modern@day', 'neon', 'neon@day', 'paper@night', 'gameboy', 'terminal', 'meadow', 'custom', 'lines98'];
 
 interface Problem {
   kind: 'overlap' | 'outside' | 'clipped' | 'scroll';
@@ -78,16 +78,20 @@ async function audit(page: Page, rootSelector: string): Promise<Problem[]> {
   }, rootSelector);
 }
 
-async function open(page: Page, theme: string, extra: Record<string, string> = {}) {
+async function open(page: Page, spec: string, extra: Record<string, string> = {}) {
+  // `theme@day` / `theme@night` pins the day/night switch; without it the headless browser's own (light) setting decides.
+  const [theme, shade] = spec.split('@');
   await page.goto('/');
   await page.evaluate(
     ([t, more]) => {
       localStorage.clear();
       localStorage.setItem('colorlines_theme', t as string);
+      const s = (more as Record<string, string>).__shade;
+      if (s) localStorage.setItem('colorlines_scheme', s);
       localStorage.setItem('colorlines_lang', 'en');
-      for (const [k, v] of Object.entries(more as Record<string, string>)) localStorage.setItem(k, v);
+      for (const [k, v] of Object.entries(more as Record<string, string>)) if (k !== '__shade') localStorage.setItem(k, v);
     },
-    [theme, extra] as const,
+    [theme, { ...extra, __shade: shade ?? '' }] as const,
   );
   await page.reload();
   await page.locator('.board-cell').first().waitFor();
@@ -98,7 +102,7 @@ const RETRO = new Set(['lines98', 'lines98plus', 'colorlines92']);
 
 async function openAction(page: Page, theme: string, button: string, menuItem: string) {
   const direct = page.getByRole('button', { name: button, exact: true });
-  if (!RETRO.has(theme) && (await direct.count())) {
+  if (!RETRO.has(theme.split('@')[0]) && (await direct.count())) {
     await direct.first().click();
     return;
   }
@@ -166,13 +170,13 @@ test.describe('look studio keeps balls inside their cells', () => {
     { ballSize: 'normal', contrast: 'normal', grid: 'checker', cells: 'round', shapes: 'digits', volume: 'soft' },
     { ballSize: 'large', contrast: 'high', grid: 'checkerLines', cells: 'rounded', shapes: 'shapes', volume: 'glossy' },
   ];
-  for (const theme of ['modern', 'clearNight', 'meadow', 'custom']) {
+  for (const theme of ['modern', 'clear@night', 'meadow', 'custom']) {
     for (const vp of [VIEWPORTS[0], VIEWPORTS[1], VIEWPORTS[4]]) {
       test(`${theme} on ${vp.name}`, async ({ browser }) => {
         const context = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
         const page = await context.newPage();
         for (const combo of COMBOS) {
-          await open(page, theme, { colorlines_look: JSON.stringify({ [theme]: combo }) });
+          await open(page, theme, { colorlines_look: JSON.stringify({ [theme.split('@')[0]]: combo }) });
           const bad = await page.evaluate(() => {
             const out: string[] = [];
             for (const cell of document.querySelectorAll('.board-cell')) {

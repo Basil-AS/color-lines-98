@@ -9,7 +9,6 @@ enum class Wave { SINE, TRIANGLE, SQUARE, SAWTOOTH }
 /** Every look has its own voice: the same melodies played by a different instrument (mirrors src/modernsound.ts). */
 enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val gain: Double) {
     SOFT(null, 1.0, 1.0, 1.0),
-    BELL(Wave.SINE, 2.0, 0.8, 1.0),
     MARIMBA(Wave.TRIANGLE, 1.0, 0.7, 1.5),
     ARCADE(Wave.SQUARE, 1.0, 0.75, 0.45),
     SAW(Wave.SAWTOOTH, 1.0, 1.25, 0.5),
@@ -19,7 +18,6 @@ enum class VoiceId(val wave: Wave?, val pitch: Double, val tempo: Double, val ga
     TELETYPE(Wave.SQUARE, 1.5, 0.4, 0.4),
     BEEP(Wave.SQUARE, 1.25, 1.6, 0.45),
     CLARITY(Wave.SINE, 1.25, 0.9, 1.1),
-    NIGHT(Wave.TRIANGLE, 1.75, 1.1, 1.2),
     RETRO(Wave.SINE, 1.15, 1.3, 1.1),
     SPECTRUM(Wave.SINE, 1.35, 0.85, 1.0),
     MEADOW(Wave.TRIANGLE, 1.2, 0.95, 1.0),

@@ -3,6 +3,7 @@ package io.github.basil_as.basillines
 import android.content.Context
 import java.util.concurrent.RejectedExecutionException
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
@@ -415,11 +416,11 @@ class MainScreenTest {
     fun switchingTheThemeIsRemembered() {
         rule.onNodeWithContentDescription("Settings").performClick()
         // The themes are folded behind one row until it is tapped.
-        assertEquals(0, rule.onAllNodes(hasText("Modern light")).fetchSemanticsNodes().size)
+        assertEquals(0, rule.onAllNodes(hasText("Material")).fetchSemanticsNodes().size)
         rule.onNode(hasText("Change")).performScrollTo().performClick()
-        rule.onNode(hasText("Modern light")).performClick()
+        rule.onNode(hasText("Material")).performClick()
         rule.waitForIdle()
-        assertEquals(AppTheme.LIGHT, GameStorage(ApplicationProvider.getApplicationContext()).theme)
+        assertEquals(AppTheme.MATERIAL, GameStorage(ApplicationProvider.getApplicationContext()).theme)
         rule.onNode(hasText("Change")).performScrollTo().performClick()
         rule.onNode(hasText("Lines 98 (Windows)")).performScrollTo().performClick()
         rule.waitForIdle()
@@ -729,11 +730,10 @@ class GameStorageMigrationTest {
         assertEquals(Color(0xFF2D333B), paletteFor(AppTheme.CLEAR).boardBackground)
         assertEquals(CellStyle.GRID, paletteFor(AppTheme.CLEAR).cellStyle)
 
-        storage.theme = AppTheme.CLEAR_NIGHT
-        assertEquals(AppTheme.CLEAR_NIGHT, GameStorage(context).theme)
-        assertEquals(Color(0xFF6E7681), paletteFor(AppTheme.CLEAR_NIGHT).boardBackground)
-        assertEquals(CellStyle.GRID, paletteFor(AppTheme.CLEAR_NIGHT).cellStyle)
-        assertTrue(paletteFor(AppTheme.CLEAR).cell != paletteFor(AppTheme.CLEAR_NIGHT).cell)
+        // Clear at night is the dark form of the same look.
+        assertEquals(Color(0xFF6E7681), paletteFor(AppTheme.CLEAR, night = true).boardBackground)
+        assertEquals(CellStyle.GRID, paletteFor(AppTheme.CLEAR, night = true).cellStyle)
+        assertTrue(paletteFor(AppTheme.CLEAR).cell != paletteFor(AppTheme.CLEAR, night = true).cell)
 
         storage.theme = AppTheme.RETRO98
         assertEquals(AppTheme.RETRO98, GameStorage(context).theme)
@@ -755,11 +755,69 @@ class GameStorageMigrationTest {
     }
 
     @Test
+    fun theSchemeDefaultsToTheSystemAndIsRemembered() {
+        val storage = GameStorage(context)
+        assertEquals(DayNight.AUTO, storage.colorScheme)
+        assertTrue(resolveNight(DayNight.AUTO, systemDark = true))
+        assertTrue(!resolveNight(DayNight.AUTO, systemDark = false))
+        assertTrue(resolveNight(DayNight.NIGHT, systemDark = false))
+        assertTrue(!resolveNight(DayNight.DAY, systemDark = true))
+        storage.colorScheme = DayNight.NIGHT
+        assertEquals(DayNight.NIGHT, GameStorage(context).colorScheme)
+        prefs().edit().putString("color_scheme", "bogus").commit()
+        assertEquals(DayNight.AUTO, GameStorage(context).colorScheme)
+    }
+
+    @Test
+    fun theOldLightAndNightThemeNamesKeepTheirScheme() {
+        assertEquals(AppTheme.MODERN, GameStorage.parseTheme("LIGHT"))
+        assertEquals(AppTheme.CLEAR, GameStorage.parseTheme("CLEAR_NIGHT"))
+        prefs().edit().putString("theme", "LIGHT").commit()
+        assertEquals(DayNight.DAY, GameStorage(context).colorScheme)
+        // Picking another look afterwards must not forget it.
+        GameStorage(context).theme = AppTheme.NEON
+        assertEquals(DayNight.DAY, GameStorage(context).colorScheme)
+        prefs().edit().clear().putString("theme", "CLEAR_NIGHT").commit()
+        assertEquals(DayNight.NIGHT, GameStorage(context).colorScheme)
+        // An explicit choice wins over the old name.
+        prefs().edit().clear().putString("theme", "LIGHT").putString("color_scheme", "auto").commit()
+        assertEquals(DayNight.AUTO, GameStorage(context).colorScheme)
+    }
+
+    @Test
+    fun everyLookHasADayAndANightFormExceptTheOnesThatKeepTheirColours() {
+        val keep = setOf(AppTheme.CUSTOM, AppTheme.GAMEBOY, AppTheme.TERMINAL, AppTheme.LINES_98, AppTheme.COLORLINES_92)
+        AppTheme.entries.forEach { theme ->
+            val day = paletteFor(theme, night = false)
+            val night = paletteFor(theme, night = true)
+            if (theme in keep) {
+                assertNull(theme.nativeNight)
+                assertEquals(paletteFor(theme), day)
+                assertEquals(paletteFor(theme), night)
+            } else {
+                assertTrue("$theme day", !day.dark)
+                assertTrue("$theme night", night.dark)
+                assertTrue("$theme night surface darker than day", night.panel.luminance() < day.panel.luminance())
+                assertTrue("$theme night text lighter than day", night.text.luminance() > day.text.luminance())
+                // The look's own form is returned untouched.
+                assertEquals(paletteFor(theme), if (theme.nativeNight == true) night else day)
+                assertEquals(day.cellStyle, night.cellStyle)
+                assertEquals(day.ballStyle, night.ballStyle)
+            }
+        }
+        assertEquals(paletteFor(AppTheme.NEON), paletteFor(AppTheme.NEON, night = null))
+        // Modern by day is the old light Modern; its balls and cells keep the look's shapes.
+        assertEquals(Color(0xFFE9ECF5), paletteFor(AppTheme.MODERN, night = false).background)
+    }
+
+    @Test
     fun everyThemeHasItsOwnWebId() {
         val ids = AppTheme.entries.map { it.webId }
         assertEquals(ids.size, ids.toSet().size)
         assertTrue(LookSpec.THEME_IDS.containsAll(ids))
-        assertEquals(AppTheme.CLEAR_NIGHT, appThemeOf("clearNight"))
+        // The light Modern and Clear night became schemes of Modern and Clear.
+        assertEquals(AppTheme.CLEAR, appThemeOf("clearNight"))
+        assertEquals(AppTheme.MODERN, appThemeOf("light"))
         assertEquals(AppTheme.CUSTOM, appThemeOf("custom"))
         assertNull(appThemeOf("nope"))
     }

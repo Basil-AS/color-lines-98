@@ -4,7 +4,8 @@ import type { MessageKey } from '../i18n';
 import type { Language } from '../i18n';
 import { THEME_FAMILIES } from '../appearance';
 import type { CustomTheme, Look, LookKey, LookOverrides, LookShare } from '../appearance';
-import type { Theme } from '../themes';
+import { COLOR_SCHEMES, followsShade } from '../themes';
+import type { ColorScheme, Theme } from '../themes';
 import { useState } from 'react';
 import { LookBuilder } from './LookBuilder';
 import { LookControls } from './LookControls';
@@ -18,6 +19,8 @@ interface SettingsDialogProps {
   lang: Language;
   theme: Theme;
   onTheme: (theme: Theme) => void;
+  scheme: ColorScheme;
+  onScheme: (scheme: ColorScheme) => void;
   langPref: LanguagePref;
   onLangPref: (pref: LanguagePref) => void;
   soundEnabled: boolean;
@@ -78,6 +81,17 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
       {tab === 'themes' && (
         <div className="settings-section">
+          <div className="settings-row settings-scheme" role="group" aria-labelledby="scheme-label">
+            <span id="scheme-label">{t('scheme.title')}</span>
+            <div className="segmented">
+              {COLOR_SCHEMES.map((id) => (
+                <button type="button" key={id} className={`segment ${props.scheme === id ? 'active' : ''}`} aria-pressed={props.scheme === id} onClick={() => props.onScheme(id)}>
+                  {t(`scheme.${id}` as MessageKey)}
+                </button>
+              ))}
+            </div>
+          </div>
+          {!followsShade(theme) && <p className="settings-hint">{t('scheme.fixedHint')}</p>}
           {THEME_FAMILIES.map((family) => (
             <section key={family.id} className="theme-family" aria-labelledby={`family-${family.id}`}>
               <h3 className="settings-label" id={`family-${family.id}`}>

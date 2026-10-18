@@ -65,6 +65,17 @@ class BackupTest {
     }
 
     @Test
+    fun theDayNightSchemeTravelsInTheBackup() {
+        val withScheme = webFileV2.replace("\"effects\":\"calm\"", "\"scheme\":\"night\",\"effects\":\"calm\"")
+        val b = (Backups.parse(withScheme) as ParsedBackup.Ok).backup
+        assertEquals("night", b.settings.scheme)
+        assertEquals("night", (Backups.parse(Backups.encode(b)) as ParsedBackup.Ok).backup.settings.scheme)
+        assertNull((Backups.parse(webFileV2) as ParsedBackup.Ok).backup.settings.scheme)
+        val bogus = webFileV2.replace("\"effects\":\"calm\"", "\"scheme\":\"dusk\",\"effects\":\"calm\"")
+        assertNull((Backups.parse(bogus) as ParsedBackup.Ok).backup.settings.scheme)
+    }
+
+    @Test
     fun theSameGameWithPlayDataWinsAMerge() {
         val plain = g(300, 3000)
         val rich = plain.copy(cog = Cognition.of(List(CogKey.entries.size) { 1L }))

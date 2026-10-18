@@ -14,7 +14,7 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 /** The language the player picked inside the game; AUTO follows the system. */
 enum class AppLanguage(val tag: String?) { AUTO(null), EN("en"), RU("ru") }
 
-enum class AppTheme { MODERN, LIGHT, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, CLEAR_NIGHT, RETRO98, SPECTRUM, MEADOW, ORCHID, CUSTOM, LINES_98, LINES_98_PLUS, COLORLINES_92 }
+enum class AppTheme { MODERN, MATERIAL, NEON, SYNTHWAVE, OCEAN, PAPER, GAMEBOY, TERMINAL, CONTRAST, CLEAR, RETRO98, SPECTRUM, MEADOW, ORCHID, CUSTOM, LINES_98, LINES_98_PLUS, COLORLINES_92 }
 
 /** The id the web app uses for a theme; the share code and the backup file carry it. */
 val AppTheme.webId: String
@@ -28,7 +28,6 @@ fun appThemeOf(webId: String): AppTheme? {
 /** The instrument a look plays its sounds with (the two retro looks use samples and PC-speaker beeps instead). */
 val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
     get() = when (this) {
-        AppTheme.LIGHT -> io.github.basil_as.basillines.engine.VoiceId.BELL
         AppTheme.MATERIAL -> io.github.basil_as.basillines.engine.VoiceId.MARIMBA
         AppTheme.NEON -> io.github.basil_as.basillines.engine.VoiceId.ARCADE
         AppTheme.SYNTHWAVE -> io.github.basil_as.basillines.engine.VoiceId.SAW
@@ -38,7 +37,6 @@ val AppTheme.voice: io.github.basil_as.basillines.engine.VoiceId
         AppTheme.TERMINAL -> io.github.basil_as.basillines.engine.VoiceId.TELETYPE
         AppTheme.CONTRAST -> io.github.basil_as.basillines.engine.VoiceId.BEEP
         AppTheme.CLEAR -> io.github.basil_as.basillines.engine.VoiceId.CLARITY
-        AppTheme.CLEAR_NIGHT -> io.github.basil_as.basillines.engine.VoiceId.NIGHT
         AppTheme.SPECTRUM -> io.github.basil_as.basillines.engine.VoiceId.SPECTRUM
         AppTheme.MEADOW -> io.github.basil_as.basillines.engine.VoiceId.MEADOW
         AppTheme.ORCHID -> io.github.basil_as.basillines.engine.VoiceId.ORCHID
@@ -53,6 +51,17 @@ class GameStorage(private val context: Context) {
     var theme: AppTheme
         get() = parseTheme(prefs.getString(KEY_THEME, null))
         set(value) = prefs.edit().putString(KEY_THEME, value.name).apply()
+
+    /**
+     * Day, night or the system's choice for every look. A player who had picked the light Modern or Clear night before
+     * they became schemes of Modern and Clear keeps that choice until they pick one.
+     */
+    var colorScheme: DayNight
+        get() = DayNight.parse(prefs.getString(KEY_SCHEME, null)) ?: legacyScheme(prefs.getString(KEY_THEME, null)).also {
+            // Kept for good: picking another look later must not bring the old theme name's scheme back to AUTO.
+            if (it != DayNight.AUTO) prefs.edit().putString(KEY_SCHEME, it.id).apply()
+        }
+        set(value) = prefs.edit().putString(KEY_SCHEME, value.id).apply()
 
     /** The player's choices from the look studio, per theme; a theme without an entry looks as designed. */
     var looks: Map<String, io.github.basil_as.basillines.engine.LookOverrides>
@@ -169,6 +178,7 @@ class GameStorage(private val context: Context) {
 
     companion object {
         private const val KEY_THEME = "theme"
+        private const val KEY_SCHEME = "color_scheme"
         private const val KEY_LOOKS = "look_studio"
         private const val KEY_CUSTOM = "custom_theme"
         private const val KEY_LANG = "language"
@@ -188,7 +198,14 @@ class GameStorage(private val context: Context) {
         private const val KEY_NEXT = "show_next"
 
         /** Names used before the four current themes existed. */
-        private val LEGACY = mapOf("CLASSIC_98" to AppTheme.LINES_98, "MEADOW_CLEAR" to AppTheme.MEADOW, "MEADOW_RELIEF" to AppTheme.MEADOW)
+        private val LEGACY = mapOf("CLASSIC_98" to AppTheme.LINES_98, "MEADOW_CLEAR" to AppTheme.MEADOW, "MEADOW_RELIEF" to AppTheme.MEADOW, "LIGHT" to AppTheme.MODERN, "CLEAR_NIGHT" to AppTheme.CLEAR)
+
+        /** The scheme a stored theme name stood for before day and night were a setting of their own. */
+        fun legacyScheme(raw: String?): DayNight = when (raw) {
+            "LIGHT" -> DayNight.DAY
+            "CLEAR_NIGHT" -> DayNight.NIGHT
+            else -> DayNight.AUTO
+        }
 
         /** A context whose resources use the language chosen in the game (the system one for AUTO). */
         fun localized(base: Context): Context {

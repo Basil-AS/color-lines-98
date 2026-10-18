@@ -42,7 +42,7 @@ describe('modernNotes', () => {
 describe('sound profile per theme', () => {
   it('gives every look its own sound', () => {
     expect(soundProfile('modern')).toBe('modern');
-    expect(soundProfile('light')).toBe('modern');
+    expect(soundProfile('modern')).toBe('modern');
     for (const theme of ['material', 'neon', 'contrast'] as const) expect(soundProfile(theme)).toBe('modern');
     expect(soundProfile('lines98')).toBe('sampled');
     expect(soundProfile('colorlines92')).toBe('pcspeaker');
