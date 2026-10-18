@@ -218,6 +218,7 @@
     <string name="builder_balls">Цвета шариков</string>
     <string name="builder_colors">Цвета</string>
     <string name="builder_use">Включить мой стиль</string>
+    <string name="builder_reset">Сбросить цвета</string>
     <string name="builder_active">Ваш стиль включён.</string>
     <string name="builder_warnSimilar">%1$s и %2$s похожи: измените один из цветов.</string>
     <string name="builder_warnCell">%1$s плохо виден на клетках.</string>

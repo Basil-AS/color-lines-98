@@ -59,11 +59,14 @@ async function audit(page: Page, rootSelector: string): Promise<Problem[]> {
       }
     }
 
+    // A pinned bar (the dialog's tabs, its Close button) sits over whatever has scrolled under it: that is not an overlap.
+    const pinned = (el: Element) => !!el.closest('.settings-head, .settings-actions');
     for (let i = 0; i < items.length; i++) {
       for (let j = i + 1; j < items.length; j++) {
         const a = items[i];
         const b = items[j];
         if (a.contains(b) || b.contains(a)) continue;
+        if (pinned(a) !== pinned(b)) continue;
         const ra = a.getBoundingClientRect();
         const rb = b.getBoundingClientRect();
         const w = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left);

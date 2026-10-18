@@ -179,7 +179,7 @@ export function SettingsDialog(props: SettingsDialogProps) {
               </div>
       )}
 
-      <div className="modal-actions">
+      <div className="modal-actions settings-actions">
         <button type="button" className="modal-btn" onClick={props.onClose}>
           {t('btn.close')}
         </button>

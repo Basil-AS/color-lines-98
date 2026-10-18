@@ -3555,7 +3555,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 .look-warnings .warn { color: var(--danger); }
 .look-warnings .ok { color: var(--text-muted); }
 
-.look-builder .modal-btn.primary { margin-top: 16px; width: 100%; }
+.look-builder .builder-actions .modal-btn { flex: 1 1 140px; }
 
 .share-code {
   display: block;
@@ -3586,8 +3586,28 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   flex: none;
 }
 
+/* The close button stays in reach at the bottom of the dialog however far the options scroll (not on a low screen, where it would cover them). */
+@media (min-height: 521px) {
+  .settings-actions {
+    position: sticky;
+    bottom: -24px;
+    z-index: 3;
+    margin: 16px -24px -24px;
+    padding: 12px 24px 24px;
+    background: var(--panel-bg);
+    border-top: 1px solid var(--panel-border);
+  }
+}
+
+.builder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
 /* On a low screen the options need the room more than the preview does. */
-@media (max-height: 520px) {
+@media (max-height: 640px) {
   .settings-head {
     position: static;
   }
