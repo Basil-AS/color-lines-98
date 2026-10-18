@@ -1,8 +1,8 @@
 # Current agent state
 
 ACTIVE_TASK: .agents/tasks/20261018-1300-v3-look-studio
-STATUS: in_progress
-BRANCH: claude/v3-appearance-studio
-LAST_VERIFIED_COMMIT: -
-UPDATED_AT: 2026-10-18T16:30:00+03:00
-NEXT_ACTION: Get PR 38 green, merge, verify release v3.0.0 and CI on main; Agy contributor removal waits for force-push permission on main.
+STATUS: complete
+BRANCH: main
+LAST_VERIFIED_COMMIT: 775046f6c4c6534ebda4819a4144d0168ee5e1e6
+UPDATED_AT: 2026-10-18T17:00:00+03:00
+NEXT_ACTION: 3.0.0 shipped. Only open item: remove the contributor Agy once force-push on protected main is allowed (see HANDOFF).
