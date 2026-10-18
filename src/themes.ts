@@ -158,3 +158,9 @@ export function shadeStyle(theme: Theme, shade: Shade): { css: string; flip: Sha
   if (theme === 'clear') return { css: shade === 'night' ? 'clearNight' : 'clear', flip: null };
   return { css: theme, flip: shade === nativeShade(theme) ? null : shade };
 }
+
+/** The classes of a look in a shade, for the page and for the game container. */
+export function themeClasses(theme: Theme, shade: Shade): string {
+  const { css, flip } = shadeStyle(theme, shade);
+  return `theme-${css}${flip ? ` shade-${flip}` : ''}`;
+}

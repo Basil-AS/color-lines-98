@@ -85,7 +85,7 @@ import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { ballThemeClass, defaultSpawnPreview, resolveShade, shadeStyle, soundProfile, soundVoice, usesSprites } from './themes';
+import { ballThemeClass, defaultSpawnPreview, resolveShade, shadeStyle, themeClasses, soundProfile, soundVoice, usesSprites } from './themes';
 import type { ColorScheme, Shade } from './themes';
 import { BoardFx, travelMs } from './effects';
 import type { EffectsLevel, MoveFx } from './effects';
@@ -157,19 +157,7 @@ const SHEET_COLORS: Record<string, string> = { light: '#e9ecf5', clearNight: '#1
 
 function applyDocumentTheme(theme: Theme, custom: CustomTheme, shade: Shade): void {
   const { css, flip } = shadeStyle(theme, shade);
-  const body = document.body;
-  body.className = `theme-${css}${flip ? ` shade-${flip}` : ''}`;
-  body.style.removeProperty('--accent');
-  body.style.removeProperty('--cell-reachable-dot');
-  if (flip) {
-    // Bright accents of the dark looks are too faint on a light surface, dark ones too dim on a dark one.
-    const accent = getComputedStyle(body).getPropertyValue('--accent').trim();
-    if (accent) {
-      const tuned = flip === 'day' ? `color-mix(in srgb, ${accent} 55%, #000)` : `color-mix(in srgb, ${accent} 65%, #fff)`;
-      body.style.setProperty('--accent', tuned);
-      body.style.setProperty('--cell-reachable-dot', tuned);
-    }
-  }
+  document.body.className = themeClasses(theme, shade);
   const color = theme === 'custom' ? custom.page : flip ? SHADE_PAGE[flip] : (SHEET_COLORS[css] ?? THEME_COLORS[theme]);
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
 }
@@ -1307,7 +1295,7 @@ export default function App() {
 
   if (dos) {
     return (
-      <div className={`app-container theme-${theme} has-side`}>
+      <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
         {tutorialBanner}
         {dosView}
         {sidePanel}
@@ -1317,7 +1305,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app-container theme-${theme} has-side`}>
+    <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
       <div className="game-window">
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
