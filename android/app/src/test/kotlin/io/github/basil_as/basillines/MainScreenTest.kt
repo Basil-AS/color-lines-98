@@ -387,12 +387,15 @@ class MainScreenTest {
         assertEquals(ShapeSet.DIGITS, saved.shapes)
         assertEquals(BallSize.LARGE, saved.ballSize)
 
-        rule.onNode(hasText("Board")).performScrollTo().performClick()
+        rule.onNode(hasText("Board")).performClick()
         rule.onNode(hasText("Checker")).performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(GridStyle.CHECKER, GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern").grid)
+        rule.onNode(hasText("Checker + lines")).performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals(GridStyle.CHECKER_LINES, GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern").grid)
 
-        rule.onNode(hasText("Reset to the theme")).performScrollTo().performClick()
+        rule.onNode(hasText("Reset to the theme")).performClick()
         rule.waitForIdle()
         assertTrue(GameStorage(ApplicationProvider.getApplicationContext()).looks.isEmpty())
     }
@@ -401,9 +404,9 @@ class MainScreenTest {
     fun theBuilderSwitchesToTheCustomTheme() {
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.onNode(hasText("Look studio")).performScrollTo().performClick()
-        rule.onNode(hasText("Builder")).performScrollTo().performClick()
+        rule.onNode(hasText("Builder")).performClick()
         rule.waitForIdle()
-        rule.onNode(hasText("Use my look")).performScrollTo().performClick()
+        rule.onNode(hasText("Use my look")).performClick()
         rule.waitForIdle()
         assertEquals(AppTheme.CUSTOM, GameStorage(ApplicationProvider.getApplicationContext()).theme)
     }

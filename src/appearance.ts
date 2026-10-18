@@ -13,7 +13,7 @@ export const CONTRASTS = ['normal', 'high', 'max'] as const;
 export const SHAPE_SETS = ['off', 'shapes', 'digits'] as const;
 export const PALETTES = ['classic', 'vivid', 'distinct', 'soft', 'custom'] as const;
 export const BALL_SIZES = ['compact', 'normal', 'large'] as const;
-export const GRIDS = ['plain', 'none', 'thin', 'bold', 'checker', 'dots'] as const;
+export const GRIDS = ['plain', 'none', 'thin', 'bold', 'checker', 'checkerLines', 'dots'] as const;
 export const CELL_SHAPES = ['square', 'rounded', 'round'] as const;
 
 export type Volume = (typeof VOLUMES)[number];
@@ -70,7 +70,8 @@ export interface BallTone {
 }
 
 function tone(base: string): BallTone {
-  return { base, hi: mix(base, '#ffffff', 0.55), lo: mix(base, '#000000', 0.5) };
+  // Highlight and shade stay close to the colour itself, so a ball looks lit rather than whitened or dirtied.
+  return { base, hi: mix(base, '#ffffff', 0.34), lo: mix(base, '#000000', 0.32) };
 }
 
 const toneSet = (colors: Record<BallColor, string>): Record<BallColor, BallTone> => ({

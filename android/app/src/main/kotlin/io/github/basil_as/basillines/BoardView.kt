@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
@@ -247,7 +248,7 @@ fun BoardView(
 /** A cell under the look studio's grid and cell-shape choices: the gap between cells is the board showing through. */
 private fun DrawScope.drawStudioCell(palette: Palette, look: Look, left: Float, top: Float, cell: Float, col: Int, row: Int) {
     val pad = when (look.grid) {
-        GridStyle.PLAIN -> 2f
+        GridStyle.PLAIN, GridStyle.CHECKER_LINES -> 2f
         GridStyle.THIN -> 1f
         GridStyle.BOLD -> maxOf(3f, cell * 0.08f)
         GridStyle.NONE, GridStyle.CHECKER, GridStyle.DOTS -> 0f
@@ -262,7 +263,8 @@ private fun DrawScope.drawStudioCell(palette: Palette, look: Look, left: Float, 
         palette.cellStyle == CellStyle.ROUNDED -> cell * 0.16f
         else -> 0f
     }
-    val fill = if (look.grid == GridStyle.CHECKER && (col + row) % 2 == 1) lerp(palette.cell, palette.text, 0.14f) else palette.cell
+    val checkered = look.grid == GridStyle.CHECKER || look.grid == GridStyle.CHECKER_LINES
+    val fill = if (checkered && (col + row) % 2 == 1) lerp(palette.cell, palette.text, 0.14f) else palette.cell
     drawRoundRect(fill, Offset(left + pad, top + pad), Size(cell - pad * 2, cell - pad * 2), CornerRadius(corner))
     if (look.grid == GridStyle.DOTS) {
         drawCircle(palette.text.copy(alpha = 0.3f), radius = maxOf(1.5f, cell * 0.03f), center = Offset(left + cell / 2f, top + cell / 2f))
@@ -362,37 +364,61 @@ private fun baseColorOf(palette: Palette, ball: BallColor): Color = when (palett
     else -> ballColor(ball)
 }
 
+/** A soft dark ellipse under the ball, where it touches the board. */
+private fun DrawScope.drawContactShadow(center: Offset, r: Float, strength: Float) {
+    val at = Offset(center.x, center.y + r * 0.82f)
+    drawOval(
+        brush = Brush.radialGradient(colors = listOf(Color.Black.copy(alpha = strength), Color.Transparent), center = at, radius = r * 0.95f),
+        topLeft = Offset(center.x - r, center.y + r * 0.52f),
+        size = Size(r * 2f, r * 0.62f)
+    )
+}
+
+/** A lit sphere: highlight, body and shade are the colour itself, lighter and darker, so the hue is kept. */
+private fun DrawScope.drawLitSphere(tone: BallTone, center: Offset, r: Float, bounce: Boolean) {
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(Color(tone.hi), Color(tone.base), Color(tone.lo)),
+            center = Offset(center.x - r * 0.32f, center.y - r * 0.38f), radius = r * 1.45f
+        ),
+        radius = r, center = center
+    )
+    if (bounce) {
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(Color.White.copy(alpha = 0.2f), Color.Transparent),
+                center = Offset(center.x, center.y + r * 1.2f), radius = r
+            ),
+            radius = r, center = center
+        )
+    }
+}
+
+/** A small crisp highlight at the upper left. */
+private fun DrawScope.drawSpecular(center: Offset, r: Float) {
+    val at = Offset(center.x - r * 0.42f, center.y - r * 0.52f)
+    withTransform({ rotate(-30f, at) }) {
+        drawOval(
+            brush = Brush.radialGradient(colors = listOf(Color.White.copy(alpha = 0.62f), Color.Transparent), center = at, radius = r * 0.36f),
+            topLeft = Offset(at.x - r * 0.38f, at.y - r * 0.24f),
+            size = Size(r * 0.76f, r * 0.48f)
+        )
+    }
+}
+
+/** Soft is a satin finish; glossy adds the highlight and the light bouncing back from below. */
 private fun DrawScope.drawStudioBall(palette: Palette, look: Look, tone: BallTone, center: Offset, r: Float, shadow: Boolean) {
-    val base = Color(tone.base)
     when (look.volume) {
-        Volume.FLAT -> drawCircle(base, r, center)
+        Volume.FLAT -> drawCircle(Color(tone.base), r, center)
         Volume.SOFT -> {
-            if (shadow) drawCircle(Color.Black.copy(alpha = 0.28f), r, center + Offset(0f, r * 0.1f))
-            drawCircle(base, r, center)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.22f)),
-                    center = center, radius = r
-                ),
-                radius = r, center = center
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color.White.copy(alpha = 0.5f), Color.Transparent),
-                    center = Offset(center.x - r * 0.32f, center.y - r * 0.4f), radius = r * 0.9f
-                ),
-                radius = r, center = center
-            )
+            if (shadow) drawContactShadow(center, r, 0.32f)
+            drawLitSphere(tone, center, r, bounce = false)
         }
         Volume.GLOSSY -> {
-            if (shadow) drawCircle(Color.Black.copy(alpha = 0.3f), r * 0.95f, Offset(center.x, center.y + r * 0.15f))
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color(tone.hi), base, Color(tone.lo)),
-                    center = Offset(center.x - r * 0.35f, center.y - r * 0.35f), radius = r * 1.3f
-                ),
-                radius = r, center = center
-            )
+            if (shadow) drawContactShadow(center, r, 0.38f)
+            drawLitSphere(tone, center, r, bounce = true)
+            drawCircle(Color.White.copy(alpha = 0.14f), r - 0.5f, center, style = Stroke(width = 1f))
+            if (shadow) drawSpecular(center, r)
         }
     }
 }
@@ -457,41 +483,17 @@ private fun DrawScope.drawBaseBall(
             drawCircle(clearMeadowColor(ball), radius - 1f, center)
         }
         BallStyle.RELIEF -> {
-            val base = clearMeadowColor(ball)
             val r = radius - 1f
-            drawCircle(Color(0xFF202C24).copy(alpha = 0.28f), radius + 2f, center + Offset(0f, radius * 0.08f))
+            if (shadow) drawContactShadow(center, radius + 2f, 0.3f)
             drawCircle(palette.ballBorder, radius + 2f, center)
-            drawCircle(base, r, center)
-            // Shade towards the rim, then a soft highlight up and to the left.
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color.Transparent, Color.Transparent, Color.Black.copy(alpha = 0.2f)),
-                    center = center, radius = r
-                ),
-                radius = r, center = center
-            )
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color.White.copy(alpha = 0.5f), Color.Transparent),
-                    center = Offset(center.x - r * 0.32f, center.y - r * 0.4f), radius = r * 0.9f
-                ),
-                radius = r, center = center
-            )
+            drawLitSphere(LookPalettes.tone(clearMeadowColor(ball).toArgb()), center, r, bounce = false)
         }
         BallStyle.GLOSSY -> {
-            val base = ballColor(ball)
-            if (shadow) {
-                drawCircle(Color.Black.copy(alpha = 0.3f), radius * 0.95f, Offset(center.x, center.y + radius * 0.15f))
-            }
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(Color.White.copy(alpha = 0.75f), base, base.copy(alpha = 0.85f), Color.Black.copy(alpha = 0.4f)),
-                    center = Offset(center.x - radius * 0.35f, center.y - radius * 0.35f),
-                    radius = radius * 1.3f
-                ),
-                radius = radius,
-                center = center
-            )
+            val tone = LookPalettes.tone(ballColor(ball).toArgb())
+            if (shadow) drawContactShadow(center, radius, 0.38f)
+            drawLitSphere(tone, center, radius, bounce = true)
+            drawCircle(Color.White.copy(alpha = 0.14f), radius - 0.5f, center, style = Stroke(width = 1f))
+            if (shadow) drawSpecular(center, radius)
         }
     }
 }

@@ -26,10 +26,10 @@ and a native Android app, sharing one rule set.
   previous best), with bonus XP and a goal streak, so they stay a fair challenge as you improve.
 - **Tutorial:** a short guided game on the real board and rules (pick a ball, move it, the next-balls panel, make a line, the free turn, a blocked path); from Help, New game or Settings. It never touches your saved game, records or statistics.
 - **Hint:** marks a ball and where to put it (a clearing move if there is one), three per game.
-- **Look studio (3.0)** (web and Android): every theme is a starting point, and on top of it you choose, per theme:
+- **Look studio** (web and Android; 3.1: a fuller-screen Android studio with the preview pinned on top, a checker grid with lines, redrawn ball depth): every theme is a starting point, and on top of it you choose, per theme:
   the **depth** of the balls (flat, soft, glossy), their **colour set** (Classic, Vivid, *Distinct*: colour-blind safe and
   different in greyscale, Soft, or your own), a **ring** around them, **markers** (a shape or a digit per colour), their
-  **size**, the **grid** (lines, none, thin, bold, checker, dots) and the **cell shape**. A colour-vision preview
+  **size**, the **grid** (lines, none, thin, bold, checker, checker with lines, dots) and the **cell shape**. A colour-vision preview
   (greyscale, protanopia, deuteranopia, tritanopia) shows whether balls still tell apart. The **builder** makes a theme
   of your own (surface, page, board, cell and accent colours, seven ball colours, with warnings for colours that look alike).
   A *look code* (`CL3:...`) carries a look to another device, web and Android read each other's codes, and backups keep it.

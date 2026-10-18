@@ -73,6 +73,14 @@ describe('look overrides', () => {
   });
 });
 
+describe('grid styles', () => {
+  it('include the checker with lines and accept it from storage and codes', () => {
+    expect(LOOK_OPTIONS.grid).toContain('checkerLines');
+    expect(sanitizeLookStore({ modern: { grid: 'checkerLines' } })).toEqual({ modern: { grid: 'checkerLines' } });
+    expect(decodeLook(encodeLook({ theme: 'modern', look: { grid: 'checkerLines' } }))?.look).toEqual({ grid: 'checkerLines' });
+  });
+});
+
 describe('colour sets', () => {
   it('keep red and violet far apart in vivid and distinct', () => {
     for (const set of ['vivid', 'distinct'] as const) {
@@ -86,6 +94,16 @@ describe('colour sets', () => {
   it('spread the distinct set over lightness so it also differs in greyscale', () => {
     const lum = BALL_COLORS.map((c) => luminance(PALETTE_COLORS.distinct[c])).sort((a, b) => a - b);
     for (let i = 1; i < lum.length; i++) expect(lum[i] - lum[i - 1]).toBeGreaterThan(0.01);
+  });
+
+  it('keep the hue of a ball in its highlight and shade', () => {
+    for (const color of BALL_COLORS) {
+      const t = paletteTones('vivid', DEFAULT_CUSTOM.balls)[color];
+      expect(luminance(t.hi)).toBeGreaterThan(luminance(t.base));
+      expect(luminance(t.lo)).toBeLessThan(luminance(t.base));
+      expect(luminance(t.hi)).toBeLessThan(0.95);
+      expect(luminance(t.lo)).toBeGreaterThan(0.002);
+    }
   });
 
   it('build a tone for every colour', () => {
