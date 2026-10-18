@@ -222,12 +222,15 @@ fun CustomTheme.colors(): CustomColors {
     val away = if (dark) Colors.BLACK else Colors.WHITE
     val panel = Colors.mix(page, away, if (dark) 0.04f else 0.55f)
     val text = Colors.argb(if (dark) "#eef1f4" else "#1d242b")!!
-    val muted = Colors.ensureContrast(Colors.mix(text, page, 0.35f), panel, 4.5)
     val acc = Colors.ensureContrast(accent, panel, 3.0)
     val ctrl = Colors.mix(panel, toward, if (dark) 0.1f else 0.06f)
+    val stat = Colors.mix(page, toward, if (dark) 0.12f else 0.06f)
+    val card = Colors.mix(panel, toward, 0.04f)
+    // Muted text sits on the panel, the stat boxes, the controls and the cards: it must read on every one of them.
+    val muted = listOf(panel, stat, ctrl, card).fold(Colors.mix(text, page, 0.35f)) { c, bg -> Colors.ensureContrast(c, bg, 4.5) }
     return CustomColors(
         page = page, panel = panel, border = Colors.mix(panel, toward, 0.16f), text = text, muted = muted, accent = acc,
-        onAccent = Colors.inkOn(acc), board = board, cell = cell, stat = Colors.mix(page, toward, if (dark) 0.12f else 0.06f),
+        onAccent = Colors.inkOn(acc), board = board, cell = cell, stat = stat,
         ctrl = ctrl, danger = Colors.argb(if (dark) "#ff6b6b" else "#b4232c")!!, dark = dark
     )
 }

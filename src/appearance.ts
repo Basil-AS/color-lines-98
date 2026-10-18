@@ -151,10 +151,12 @@ export function customVariables(custom: CustomTheme): Record<string, string> {
   const away = dark ? '#000000' : '#ffffff';
   const panel = mix(custom.page, away, dark ? 0.04 : 0.55);
   const text = dark ? '#eef1f4' : '#1d242b';
-  const muted = ensureContrast(mix(text, custom.page, 0.35), panel, 4.5);
   const accent = ensureContrast(custom.accent, panel, 3);
   const stat = mix(custom.page, toward, dark ? 0.12 : 0.06);
   const ctrl = mix(panel, toward, dark ? 0.1 : 0.06);
+  const card = mix(panel, toward, 0.04);
+  // Muted text sits on the panel, the stat boxes, the controls and the cards: it must read on every one of them.
+  const muted = [panel, stat, ctrl, card].reduce((c, bg) => ensureContrast(c, bg, 4.5), mix(text, custom.page, 0.35));
   return {
     '--page-bg': custom.page,
     '--panel-bg': panel,
@@ -176,7 +178,7 @@ export function customVariables(custom: CustomTheme): Record<string, string> {
     '--ctrl-bg': ctrl,
     '--ctrl-hover': mix(ctrl, toward, 0.08),
     '--input-bg': ctrl,
-    '--card-bg': mix(panel, toward, 0.04),
+    '--card-bg': card,
     '--danger': dark ? '#ff6b6b' : '#b4232c',
   };
 }

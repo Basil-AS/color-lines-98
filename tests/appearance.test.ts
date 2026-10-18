@@ -121,7 +121,9 @@ describe('custom theme', () => {
     for (const dark of [false, true]) {
       const v = customVariables(customPreset(dark));
       expect(contrastRatio(v['--text-main'], v['--panel-bg'])).toBeGreaterThan(7);
-      expect(contrastRatio(v['--text-muted'], v['--panel-bg'])).toBeGreaterThanOrEqual(4.5);
+      for (const surface of ['--panel-bg', '--stat-bg', '--ctrl-bg', '--card-bg']) {
+        expect(contrastRatio(v['--text-muted'], v[surface])).toBeGreaterThanOrEqual(4.5);
+      }
       expect(contrastRatio(v['--accent'], v['--panel-bg'])).toBeGreaterThanOrEqual(3);
       expect(contrastRatio(v['--on-accent'], v['--accent'])).toBeGreaterThan(4);
     }

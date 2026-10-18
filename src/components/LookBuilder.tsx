@@ -125,7 +125,7 @@ export function LookBuilder({ lang, theme, custom, overrides, onCustom, onUseCus
             <ColorField key={color} id={`cf-${color}`} label={colorName(lang, color)} value={custom.balls[color]} onChange={(hex) => onCustom({ ...custom, balls: { ...custom.balls, [color]: hex } })} />
           ))}
         </div>
-        <ul className="look-warnings" role="status">
+        <ul className="look-warnings">
           {warnings.similar.map(([a, b]) => (
             <li key={`${a}-${b}`} className="warn">{t('builder.warnSimilar', { a: colorName(lang, a), b: colorName(lang, b) })}</li>
           ))}

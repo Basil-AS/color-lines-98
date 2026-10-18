@@ -85,7 +85,7 @@ class LookTest {
         for (dark in listOf(false, true)) {
             val c = CustomTheme.preset(dark).colors()
             assertTrue(Colors.contrast(c.text, c.panel) > 7.0)
-            assertTrue(Colors.contrast(c.muted, c.panel) >= 4.5)
+            for (surface in listOf(c.panel, c.stat, c.ctrl)) assertTrue(Colors.contrast(c.muted, surface) >= 4.5)
             assertTrue(Colors.contrast(c.accent, c.panel) >= 3.0)
             assertTrue(Colors.contrast(c.onAccent, c.accent) > 4.0)
         }

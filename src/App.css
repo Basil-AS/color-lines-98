@@ -3452,7 +3452,11 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 .chip-sub {
   font-size: 0.7rem;
   font-weight: 400;
-  opacity: 0.8;
+  color: var(--text-muted);
+}
+
+.chip.active .chip-sub {
+  color: inherit;
 }
 
 .chip-dots {
