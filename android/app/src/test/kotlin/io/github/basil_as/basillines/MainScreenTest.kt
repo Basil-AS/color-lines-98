@@ -375,6 +375,39 @@ class MainScreenTest {
     }
 
     @Test
+    fun theLookStudioChangesTheBallsAndTheBoardAndCanBeReset() {
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.onNode(hasText("Look studio")).performScrollTo().performClick()
+        rule.onNode(hasText("Flat")).performScrollTo().performClick()
+        rule.onNode(hasText("Digits")).performScrollTo().performClick()
+        rule.onNode(hasText("Large")).performScrollTo().performClick()
+        rule.waitForIdle()
+        val saved = GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern")
+        assertEquals(Volume.FLAT, saved.volume)
+        assertEquals(ShapeSet.DIGITS, saved.shapes)
+        assertEquals(BallSize.LARGE, saved.ballSize)
+
+        rule.onNode(hasText("Board")).performScrollTo().performClick()
+        rule.onNode(hasText("Checker")).performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals(GridStyle.CHECKER, GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern").grid)
+
+        rule.onNode(hasText("Reset to the theme")).performScrollTo().performClick()
+        rule.waitForIdle()
+        assertTrue(GameStorage(ApplicationProvider.getApplicationContext()).looks.isEmpty())
+    }
+
+    @Test
+    fun theBuilderSwitchesToTheCustomTheme() {
+        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.onNode(hasText("Look studio")).performScrollTo().performClick()
+        rule.onNode(hasText("Builder")).performScrollTo().performClick()
+        rule.onNode(hasText("Use my look")).performScrollTo().performClick()
+        rule.waitForIdle()
+        assertEquals(AppTheme.CUSTOM, GameStorage(ApplicationProvider.getApplicationContext()).theme)
+    }
+
+    @Test
     fun switchingTheThemeIsRemembered() {
         rule.onNodeWithContentDescription("Settings").performClick()
         // The themes are folded behind one row until it is tapped.
@@ -775,39 +808,6 @@ class GameStorageMigrationTest {
         assertTrue(p.dark)
         assertTrue(p.tones != null)
         assertEquals(Color(custom.balls.getValue(BallColor.RED)), Color(p.tones!!.getValue(BallColor.RED).base))
-    }
-
-    @Test
-    fun theLookStudioChangesTheBallsAndTheBoardAndCanBeReset() {
-        rule.onNodeWithContentDescription("Settings").performClick()
-        rule.onNode(hasText("Look studio")).performScrollTo().performClick()
-        rule.onNode(hasText("Flat")).performScrollTo().performClick()
-        rule.onNode(hasText("Digits")).performScrollTo().performClick()
-        rule.onNode(hasText("Large")).performScrollTo().performClick()
-        rule.waitForIdle()
-        val saved = GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern")
-        assertEquals(Volume.FLAT, saved.volume)
-        assertEquals(ShapeSet.DIGITS, saved.shapes)
-        assertEquals(BallSize.LARGE, saved.ballSize)
-
-        rule.onNode(hasText("Board")).performScrollTo().performClick()
-        rule.onNode(hasText("Checker")).performScrollTo().performClick()
-        rule.waitForIdle()
-        assertEquals(GridStyle.CHECKER, GameStorage(ApplicationProvider.getApplicationContext()).looks.getValue("modern").grid)
-
-        rule.onNode(hasText("Reset to the theme")).performScrollTo().performClick()
-        rule.waitForIdle()
-        assertTrue(GameStorage(ApplicationProvider.getApplicationContext()).looks.isEmpty())
-    }
-
-    @Test
-    fun theBuilderSwitchesToTheCustomTheme() {
-        rule.onNodeWithContentDescription("Settings").performClick()
-        rule.onNode(hasText("Look studio")).performScrollTo().performClick()
-        rule.onNode(hasText("Builder")).performScrollTo().performClick()
-        rule.onNode(hasText("Use my look")).performScrollTo().performClick()
-        rule.waitForIdle()
-        assertEquals(AppTheme.CUSTOM, GameStorage(ApplicationProvider.getApplicationContext()).theme)
     }
 
     @Test
