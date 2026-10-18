@@ -2,6 +2,7 @@ package io.github.basil_as.basillines
 
 import androidx.compose.ui.graphics.Color
 import io.github.basil_as.basillines.engine.BallColor
+import io.github.basil_as.basillines.engine.colors
 
 enum class CellStyle { ROUNDED, WIN98, DOS, GRID }
 enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID, SOLID_CLEAR, RELIEF }

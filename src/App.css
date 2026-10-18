@@ -3199,8 +3199,8 @@ body {
 }
 
 .ball {
-  width: calc(var(--ball-base, 82%) - var(--ball-trim, 0%));
-  height: calc(var(--ball-base, 82%) - var(--ball-trim, 0%));
+  width: calc(var(--ball-base, 82%) - var(--ring-w, 0px) * 2);
+  height: calc(var(--ball-base, 82%) - var(--ring-w, 0px) * 2);
 }
 
 .ball.ball-preview {
@@ -3216,8 +3216,8 @@ body {
 body[data-ballsize='compact'] { --ball-base: 68%; }
 body[data-ballsize='normal'] { --ball-base: 82%; }
 body[data-ballsize='large'] { --ball-base: 94%; }
-body[data-contrast='high'] { --ball-trim: 4%; }
-body[data-contrast='max'] { --ball-trim: 7%; }
+body[data-contrast='high'] { --ring-w: 2px; }
+body[data-contrast='max'] { --ring-w: 3px; }
 
 /* Colour and depth drawn by the studio */
 body[data-studio='1'] .ball.color-red { --b: var(--bs-red); --b-hi: var(--bs-red-hi); --b-lo: var(--bs-red-lo); }
@@ -3258,13 +3258,9 @@ body[data-studio='1'][data-volume='soft'] .ball.ball-mini {
 }
 
 /* Contrast: a ring in the text colour separates a ball from the cell and from its neighbours */
-body[data-contrast='high'] .ball[class*='color-'] {
-  outline: 2px solid var(--ring);
-  outline-offset: 0;
-}
-
+body[data-contrast='high'] .ball[class*='color-'],
 body[data-contrast='max'] .ball[class*='color-'] {
-  outline: 3px solid var(--ring);
+  outline: var(--ring-w) solid var(--ring);
   outline-offset: 0;
 }
 
@@ -3276,7 +3272,6 @@ body[data-contrast='high'] .ball.ball-preview,
 body[data-contrast='high'] .ball.ball-mini { outline-width: 1px; }
 body[data-contrast='max'] .ball.ball-preview,
 body[data-contrast='max'] .ball.ball-mini { outline-width: 2px; }
-body[data-contrast] .ball.ball-preview { --ball-trim: 0%; }
 
 /* Markers on the balls */
 body[data-shapes='off'] .ball::after { content: none; }
