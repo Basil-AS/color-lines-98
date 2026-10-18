@@ -329,8 +329,11 @@ fun SettingsDialog(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     ThemeSwatch(theme, Modifier.width(88.dp).height(56.dp))
-                    Text(currentName, Modifier.weight(1f).padding(horizontal = 12.dp), fontWeight = FontWeight.SemiBold)
-                    OutlinedButton(onClick = { picking = true }) { Text(stringResource(R.string.settings_themeChange)) }
+                    // Name above the button: side by side they squeezed the name until its last letter wrapped.
+                    Column(Modifier.weight(1f).padding(start = 12.dp)) {
+                        Text(currentName, fontWeight = FontWeight.SemiBold)
+                        OutlinedButton(onClick = { picking = true }) { Text(stringResource(R.string.settings_themeChange)) }
+                    }
                 }
                 if (picking) {
                     AlertDialog(
