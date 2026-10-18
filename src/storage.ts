@@ -13,6 +13,8 @@ import { compactHistory, expandHistory, sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 
 import { parseTheme } from './themes';
+import { DEFAULT_CUSTOM, sanitizeCustom, sanitizeLookStore } from './appearance';
+import type { CustomTheme, LookStore } from './appearance';
 import type { Theme } from './themes';
 
 export { THEMES } from './themes';
@@ -296,4 +298,36 @@ export function loadVibration(): boolean {
 
 export function saveVibration(on: boolean): void {
   write(VIBRATION_KEY, String(on));
+}
+
+const LOOK_KEY = 'colorlines_look';
+const CUSTOM_KEY = 'colorlines_custom_theme';
+
+/** The player's choices from the look studio, per theme; nothing set means every theme looks as designed. */
+export function loadLooks(): LookStore {
+  const raw = read(LOOK_KEY);
+  if (raw === null) return {};
+  try {
+    return sanitizeLookStore(JSON.parse(raw));
+  } catch {
+    return {};
+  }
+}
+
+export function saveLooks(looks: LookStore): void {
+  write(LOOK_KEY, JSON.stringify(looks));
+}
+
+export function loadCustomTheme(): CustomTheme {
+  const raw = read(CUSTOM_KEY);
+  if (raw === null) return sanitizeCustom(null);
+  try {
+    return sanitizeCustom(JSON.parse(raw));
+  } catch {
+    return { ...DEFAULT_CUSTOM, balls: { ...DEFAULT_CUSTOM.balls } };
+  }
+}
+
+export function saveCustomTheme(custom: CustomTheme): void {
+  write(CUSTOM_KEY, JSON.stringify(custom));
 }

@@ -11,6 +11,8 @@ import { sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 import { isModeId } from './engine/modes';
 import type { ModeId } from './engine/modes';
+import { sanitizeCustom, sanitizeLookStore } from './appearance';
+import type { CustomTheme, LookStore } from './appearance';
 import { THEMES } from './themes';
 import type { Theme } from './themes';
 
@@ -30,6 +32,9 @@ export interface BackupSettings {
   mode?: ModeId;
   effects?: EffectsLevel;
   vibration?: boolean;
+  /** Choices from the look studio, per theme, and the colours of the custom theme (web 3.0 and newer). */
+  looks?: LookStore;
+  custom?: CustomTheme;
 }
 
 export interface Backup {
@@ -63,6 +68,8 @@ function sanitizeSettings(raw: unknown): BackupSettings {
   if (isModeId(r.mode)) out.mode = r.mode;
   if (isEffectsLevel(r.effects)) out.effects = r.effects;
   if (typeof r.vibration === 'boolean') out.vibration = r.vibration;
+  if (typeof r.looks === 'object' && r.looks !== null) out.looks = sanitizeLookStore(r.looks);
+  if (typeof r.custom === 'object' && r.custom !== null) out.custom = sanitizeCustom(r.custom);
   return out;
 }
 
