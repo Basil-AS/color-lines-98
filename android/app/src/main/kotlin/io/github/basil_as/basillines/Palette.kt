@@ -5,7 +5,7 @@ import io.github.basil_as.basillines.engine.BallColor
 import io.github.basil_as.basillines.engine.colors
 
 enum class CellStyle { ROUNDED, WIN98, DOS, GRID }
-enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID, SOLID_CLEAR, RELIEF }
+enum class BallStyle { GLOSSY, SPRITE, DOS, NEON, CONTRAST, SOLID, SOLID_CLEAR }
 
 data class Palette(
     val background: Color,
@@ -253,7 +253,7 @@ private val Spectrum = Palette(
     ballBorder = Color(0xFF26313B)
 )
 
-/** Meadow: soft sage surfaces, deep green grid and clear solid balls. */
+/** Meadow: soft sage surfaces, deep green grid and clear solid balls, with a true red and a deep violet so those two cannot be mixed up. */
 private val Meadow = Palette(
     background = Color(0xFFE5E9DF), panel = Color(0xFFF5F7F1), chip = Color(0xFFD9E0D2),
     boardBackground = Color(0xFF405A49), cell = Color(0xFFECEFDF),
@@ -261,15 +261,9 @@ private val Meadow = Palette(
     statBackground = Color(0xFFD9E0D2), statLabel = Color(0xFF526457), statValue = Color(0xFF202C24),
     accent = Color(0xFF39734A), onAccent = Color.White, danger = Color(0xFFB4232C),
     reachableDot = Color(0xFF39734A),
-    dark = false, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID, windowTitleBar = false,
+    dark = false, cellStyle = CellStyle.GRID, ballStyle = BallStyle.SOLID_CLEAR, windowTitleBar = false,
     ballBorder = Color(0xFF263D2E)
 )
-
-/** Meadow Clear: the Meadow chrome with a true red and a deep violet, so those two balls cannot be mixed up. */
-private val MeadowClear = Meadow.copy(ballStyle = BallStyle.SOLID_CLEAR)
-
-/** Meadow Relief: Meadow Clear colours with a soft highlight and shade on each ball. */
-private val MeadowRelief = Meadow.copy(ballStyle = BallStyle.RELIEF)
 
 /** Orchid: quiet lilac chrome, pale cells and a strong plum grid. */
 private val Orchid = Palette(
@@ -333,8 +327,6 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.RETRO98 -> Retro98
     AppTheme.SPECTRUM -> Spectrum
     AppTheme.MEADOW -> Meadow
-    AppTheme.MEADOW_CLEAR -> MeadowClear
-    AppTheme.MEADOW_RELIEF -> MeadowRelief
     AppTheme.ORCHID -> Orchid
     AppTheme.CUSTOM -> customPalette(io.github.basil_as.basillines.engine.CustomTheme.DEFAULT)
     AppTheme.LINES_98 -> Lines98

@@ -43,14 +43,14 @@ object LookSpec {
     /** The theme ids of the web app, in the order of its picker. */
     val THEME_IDS = listOf(
         "modern", "light", "material", "neon", "synthwave", "ocean", "paper", "gameboy", "terminal", "contrast", "clear",
-        "clearNight", "retro98", "spectrum", "meadow", "meadowClear", "meadowRelief", "orchid", "custom", "lines98",
+        "clearNight", "retro98", "spectrum", "meadow", "orchid", "custom", "lines98",
         "lines98plus", "colorlines92"
     )
 
     /** Themes by collection, in the order of the picker; every theme is in exactly one. */
     val FAMILIES: List<Pair<String, List<String>>> = listOf(
         "modern" to listOf("modern", "light", "material", "ocean", "paper"),
-        "vivid" to listOf("clear", "clearNight", "spectrum", "meadow", "meadowClear", "meadowRelief", "orchid"),
+        "vivid" to listOf("clear", "clearNight", "spectrum", "meadow", "orchid"),
         "neon" to listOf("neon", "synthwave", "retro98"),
         "mono" to listOf("gameboy", "terminal", "contrast"),
         "retro" to listOf("lines98", "lines98plus", "colorlines92"),
@@ -65,9 +65,8 @@ object LookSpec {
         return when (themeId) {
             "modern", "light", "material", "ocean", "paper" -> base.copy(volume = Volume.GLOSSY, palette = PaletteId.CLASSIC)
             "neon", "synthwave" -> base.copy(volume = Volume.GLOSSY)
-            "contrast", "clear", "clearNight", "retro98", "spectrum", "meadow", "orchid", "meadowClear" ->
+            "contrast", "clear", "clearNight", "retro98", "spectrum", "meadow", "orchid" ->
                 base.copy(volume = Volume.FLAT, ring = RingLevel.HIGH, cells = CellShape.SQUARE)
-            "meadowRelief" -> base.copy(ring = RingLevel.HIGH, cells = CellShape.SQUARE)
             "gameboy", "terminal" -> base.copy(volume = Volume.FLAT, ring = RingLevel.HIGH, shapes = ShapeSet.SHAPES, cells = CellShape.SQUARE)
             else -> base
         }

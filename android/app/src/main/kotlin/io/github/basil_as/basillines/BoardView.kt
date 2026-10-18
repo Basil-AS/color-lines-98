@@ -360,7 +360,7 @@ internal fun DrawScope.drawBall(
 private fun baseColorOf(palette: Palette, ball: BallColor): Color = when (palette.ballStyle) {
     BallStyle.NEON -> neonColor(ball)
     BallStyle.CONTRAST, BallStyle.SOLID -> contrastColor(ball)
-    BallStyle.SOLID_CLEAR, BallStyle.RELIEF -> clearMeadowColor(ball)
+    BallStyle.SOLID_CLEAR -> clearMeadowColor(ball)
     else -> ballColor(ball)
 }
 
@@ -481,12 +481,6 @@ private fun DrawScope.drawBaseBall(
         BallStyle.SOLID_CLEAR -> {
             drawCircle(palette.ballBorder, radius + 2f, center)
             drawCircle(clearMeadowColor(ball), radius - 1f, center)
-        }
-        BallStyle.RELIEF -> {
-            val r = radius - 1f
-            if (shadow) drawContactShadow(center, radius + 2f, 0.3f)
-            drawCircle(palette.ballBorder, radius + 2f, center)
-            drawLitSphere(LookPalettes.tone(clearMeadowColor(ball).toArgb()), center, r, bounce = false)
         }
         BallStyle.GLOSSY -> {
             val tone = LookPalettes.tone(ballColor(ball).toArgb())

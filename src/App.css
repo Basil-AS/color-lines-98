@@ -2433,9 +2433,7 @@ input[role='switch']:focus-visible {
 .swatch-clearNight { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #161b22; border: 1px solid #30363d; border-radius: 6px; }
 .swatch-retro98 { background: radial-gradient(circle at 25% 50%, #f04438 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #2fb344 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #3b82f6 0 8px, transparent 9px), #4b2a63; border: 1px solid #ffd166; border-radius: 6px; }
 .swatch-spectrum { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f1eadc; border: 2px solid #46515c; }
-.swatch-meadow { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
-.swatch-meadowClear { background: radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
-.swatch-meadowRelief { background: radial-gradient(circle at calc(25% - 3px) calc(50% - 3px), rgba(255,255,255,.6) 0 2px, transparent 3px), radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at calc(50% - 3px) calc(50% - 3px), rgba(255,255,255,.6) 0 2px, transparent 3px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at calc(75% - 3px) calc(50% - 3px), rgba(255,255,255,.6) 0 2px, transparent 3px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
+.swatch-meadow { background: radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
 .swatch-orchid { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #ece5f0; border: 2px solid #51415c; }
 
 /* Vision-friendly Clear themes: calm surfaces, high-contrast grid, saturated balls with shape markers */
@@ -2599,8 +2597,6 @@ input[role='switch']:focus-visible {
 /* Calm surfaces, bright solid balls and a strong continuous grid. */
 .theme-spectrum,
 .theme-meadow,
-.theme-meadowClear,
-.theme-meadowRelief,
 .theme-orchid {
   color-scheme: light;
   --panel-shadow: 0 8px 24px rgba(32, 38, 44, 0.1);
@@ -2622,9 +2618,7 @@ input[role='switch']:focus-visible {
   --ctrl-hover: #ded4c3; --input-bg: #fffcf6; --card-bg: #f7f1e5; --danger: #b4232c;
 }
 
-.theme-meadow,
-.theme-meadowClear,
-.theme-meadowRelief {
+.theme-meadow {
   --page-bg: #e5e9df; --panel-bg: #f5f7f1; --panel-border: #c8d2c2;
   --accent: #39734a; --accent-glow: rgba(57, 115, 74, 0.2);
   --board-bg: #405a49; --cell-bg: #ecefdf; --cell-hover: #dfe6d4;
@@ -2642,8 +2636,6 @@ input[role='switch']:focus-visible {
 
 .theme-spectrum .board-grid,
 .theme-meadow .board-grid,
-.theme-meadowClear .board-grid,
-.theme-meadowRelief .board-grid,
 .theme-orchid .board-grid {
   border: 3px solid var(--board-bg);
   border-radius: 4px;
@@ -2653,8 +2645,6 @@ input[role='switch']:focus-visible {
 
 .theme-spectrum .board-cell,
 .theme-meadow .board-cell,
-.theme-meadowClear .board-cell,
-.theme-meadowRelief .board-cell,
 .theme-orchid .board-cell {
   border-radius: 2px;
   box-shadow: none;
@@ -2662,8 +2652,6 @@ input[role='switch']:focus-visible {
 
 .theme-spectrum .ball-contrast,
 .theme-meadow .ball-contrast,
-.theme-meadowClear .ball-contrast,
-.theme-meadowRelief .ball-contrast,
 .theme-orchid .ball-contrast {
   border: 3px solid var(--board-bg);
   box-shadow: none;
@@ -2671,38 +2659,20 @@ input[role='switch']:focus-visible {
 
 .theme-spectrum .ball-contrast::after,
 .theme-meadow .ball-contrast::after,
-.theme-meadowClear .ball-contrast::after,
-.theme-meadowRelief .ball-contrast::after,
 .theme-orchid .ball-contrast::after { content: none; }
 
-/* Meadow, clearer: red is a true red and the purple ball is a deep violet, so the two no longer read alike. */
-.theme-meadowClear .ball-contrast.color-red,
-.theme-meadowRelief .ball-contrast.color-red { background-color: #f0261b; }
-.theme-meadowClear .ball-contrast.color-magenta,
-.theme-meadowRelief .ball-contrast.color-magenta { background-color: #7c3aed; }
-
-/* Meadow relief: the same colours with a soft highlight and a quiet shade, nothing glossy. */
-.theme-meadowRelief .ball-contrast {
-  background-image:
-    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.34) 0, rgba(255, 255, 255, 0) 50%),
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.16) 100%);
-  box-shadow: 0 1px 1px rgba(32, 44, 36, 0.2), 0 3px 4px -2px rgba(32, 44, 36, 0.3);
-}
+/* Meadow: red is a true red and the purple ball a deep violet, so the two cannot be mixed up. */
+.theme-meadow .ball-contrast.color-red { background-color: #f0261b; }
+.theme-meadow .ball-contrast.color-magenta { background-color: #7c3aed; }
 
 .theme-spectrum .board-cell:focus-visible,
 .theme-meadow .board-cell:focus-visible,
-.theme-meadowClear .board-cell:focus-visible,
-.theme-meadowRelief .board-cell:focus-visible,
 .theme-orchid .board-cell:focus-visible,
 .theme-spectrum .ctrl-btn:focus-visible,
 .theme-meadow .ctrl-btn:focus-visible,
-.theme-meadowClear .ctrl-btn:focus-visible,
-.theme-meadowRelief .ctrl-btn:focus-visible,
 .theme-orchid .ctrl-btn:focus-visible,
 .theme-spectrum .modal-btn:focus-visible,
 .theme-meadow .modal-btn:focus-visible,
-.theme-meadowClear .modal-btn:focus-visible,
-.theme-meadowRelief .modal-btn:focus-visible,
 .theme-orchid .modal-btn:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;

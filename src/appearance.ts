@@ -56,7 +56,7 @@ export const BALL_COLORS: readonly BallColor[] = ['red', 'green', 'blue', 'cyan'
 /** Themes by collection, in the order of the picker. Every theme is in exactly one. */
 export const THEME_FAMILIES: readonly { id: string; themes: readonly Theme[] }[] = [
   { id: 'modern', themes: ['modern', 'light', 'material', 'ocean', 'paper'] },
-  { id: 'vivid', themes: ['clear', 'clearNight', 'spectrum', 'meadow', 'meadowClear', 'meadowRelief', 'orchid'] },
+  { id: 'vivid', themes: ['clear', 'clearNight', 'spectrum', 'meadow', 'orchid'] },
   { id: 'neon', themes: ['neon', 'synthwave', 'retro98'] },
   { id: 'mono', themes: ['gameboy', 'terminal', 'contrast'] },
   { id: 'retro', themes: ['lines98', 'lines98plus', 'colorlines92'] },
@@ -209,6 +209,12 @@ export function sanitizeLookStore(raw: unknown): LookStore {
     const overrides = sanitizeOverrides(r[theme]);
     if (Object.keys(overrides).length > 0) out[theme] = overrides;
   }
+  // Meadow Relief was folded into Meadow: its soft depth is now a studio choice, kept for those who had the old theme.
+  if (!out.meadow && (typeof r.meadowRelief === 'object' && r.meadowRelief !== null)) {
+    out.meadow = { ...sanitizeOverrides(r.meadowRelief), volume: 'soft' };
+  } else if (!out.meadow && Object.keys(sanitizeOverrides(r.meadowClear)).length > 0) {
+    out.meadow = sanitizeOverrides(r.meadowClear);
+  }
   return out;
 }
 
@@ -222,10 +228,6 @@ export function themeDefaults(theme: Theme): Look {
       return { ...base, volume: 'glossy', palette: 'vivid' };
     case 'contrast': case 'clear': case 'clearNight': case 'retro98': case 'spectrum': case 'meadow': case 'orchid':
       return { ...base, volume: 'flat', contrast: 'high', cells: 'square', grid: 'plain' };
-    case 'meadowClear':
-      return { ...base, volume: 'flat', contrast: 'high', cells: 'square', grid: 'plain' };
-    case 'meadowRelief':
-      return { ...base, volume: 'soft', contrast: 'high', cells: 'square', grid: 'plain' };
     case 'gameboy': case 'terminal':
       return { ...base, volume: 'flat', contrast: 'high', shapes: 'shapes', cells: 'square' };
     default:

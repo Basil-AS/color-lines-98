@@ -742,19 +742,19 @@ class GameStorageMigrationTest {
         assertEquals(CellStyle.GRID, paletteFor(AppTheme.RETRO98).cellStyle)
         assertEquals(BallStyle.SOLID, paletteFor(AppTheme.RETRO98).ballStyle)
 
-        listOf(AppTheme.SPECTRUM, AppTheme.MEADOW, AppTheme.ORCHID).forEach { theme ->
+        listOf(AppTheme.SPECTRUM, AppTheme.ORCHID).forEach { theme ->
             storage.theme = theme
             assertEquals(theme, GameStorage(context).theme)
             assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
             assertEquals(BallStyle.SOLID, paletteFor(theme).ballStyle)
         }
-        listOf(AppTheme.MEADOW_CLEAR, AppTheme.MEADOW_RELIEF).forEach { theme ->
-            storage.theme = theme
-            assertEquals(theme, GameStorage(context).theme)
-            assertEquals(CellStyle.GRID, paletteFor(theme).cellStyle)
-        }
-        assertEquals(BallStyle.SOLID_CLEAR, paletteFor(AppTheme.MEADOW_CLEAR).ballStyle)
-        assertEquals(BallStyle.RELIEF, paletteFor(AppTheme.MEADOW_RELIEF).ballStyle)
+        storage.theme = AppTheme.MEADOW
+        assertEquals(AppTheme.MEADOW, GameStorage(context).theme)
+        assertEquals(CellStyle.GRID, paletteFor(AppTheme.MEADOW).cellStyle)
+        assertEquals(BallStyle.SOLID_CLEAR, paletteFor(AppTheme.MEADOW).ballStyle)
+        // The two retired Meadow variants open as Meadow.
+        assertEquals(AppTheme.MEADOW, GameStorage.parseTheme("MEADOW_CLEAR"))
+        assertEquals(AppTheme.MEADOW, GameStorage.parseTheme("MEADOW_RELIEF"))
     }
 
     @Test

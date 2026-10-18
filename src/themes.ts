@@ -14,8 +14,6 @@ export const THEMES = [
   'retro98',
   'spectrum',
   'meadow',
-  'meadowClear',
-  'meadowRelief',
   'orchid',
   'custom',
   'lines98',
@@ -31,6 +29,9 @@ const LEGACY_THEMES: Record<string, Theme> = {
   classic98: 'lines98',
   retro92: 'colorlines92',
   clearnight: 'clearNight',
+  // Meadow Clear and Meadow Relief folded into Meadow: the clear colours are now Meadow's, relief is a studio choice.
+  meadowClear: 'meadow',
+  meadowRelief: 'meadow',
 };
 
 export function parseTheme(raw: string | null): Theme {
@@ -66,7 +67,7 @@ export function defaultSpawnPreview(theme: Theme): boolean {
 }
 
 /** Every look has its own voice; the two retro ones have theirs in samples and PC-speaker beeps. */
-export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night' | 'retro' | 'spectrum' | 'meadow' | 'meadowClear' | 'meadowRelief' | 'orchid' | 'studio';
+export type VoiceId = 'soft' | 'bell' | 'marimba' | 'arcade' | 'saw' | 'glass' | 'wood' | 'chip' | 'teletype' | 'beep' | 'clarity' | 'night' | 'retro' | 'spectrum' | 'meadow' | 'orchid' | 'studio';
 
 const VOICES: Record<Theme, VoiceId> = {
   modern: 'soft',
@@ -84,8 +85,6 @@ const VOICES: Record<Theme, VoiceId> = {
   retro98: 'retro',
   spectrum: 'spectrum',
   meadow: 'meadow',
-  meadowClear: 'meadowClear',
-  meadowRelief: 'meadowRelief',
   orchid: 'orchid',
   custom: 'studio',
   lines98: 'soft',
@@ -102,7 +101,7 @@ export function ballThemeClass(theme: Theme): string {
   if (theme === 'lines98' || theme === 'lines98plus') return '';
   if (theme === 'colorlines92') return 'ball-dos';
   if (theme === 'neon') return 'ball-neon';
-  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight' || theme === 'retro98' || theme === 'spectrum' || theme === 'meadow' || theme === 'meadowClear' || theme === 'meadowRelief' || theme === 'orchid') return 'ball-contrast';
+  if (theme === 'contrast' || theme === 'clear' || theme === 'clearNight' || theme === 'retro98' || theme === 'spectrum' || theme === 'meadow' || theme === 'orchid') return 'ball-contrast';
   if (theme === 'gameboy' || theme === 'terminal') return 'ball-contrast ball-symbols';
   if (theme === 'synthwave') return 'ball-neon ball-synth';
   return 'ball-modern';
