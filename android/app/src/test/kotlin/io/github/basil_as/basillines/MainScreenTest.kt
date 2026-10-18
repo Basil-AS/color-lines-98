@@ -402,6 +402,7 @@ class MainScreenTest {
         rule.onNodeWithContentDescription("Settings").performClick()
         rule.onNode(hasText("Look studio")).performScrollTo().performClick()
         rule.onNode(hasText("Builder")).performScrollTo().performClick()
+        rule.waitForIdle()
         rule.onNode(hasText("Use my look")).performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(AppTheme.CUSTOM, GameStorage(ApplicationProvider.getApplicationContext()).theme)

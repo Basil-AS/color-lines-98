@@ -174,22 +174,27 @@ private fun <T> ChoiceGroup(
     }
 }
 
+/** One colour of the builder: a swatch and its hex value; tapping it opens the hex field and the sliders. */
 @Composable
 private fun ColorRow(label: String, value: Int, onChange: (Int) -> Unit) {
     var open by rememberSaveable(label) { mutableStateOf(false) }
-    var text by remember(value) { mutableStateOf(Colors.hex(value)) }
     Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }.padding(vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Box(
                 Modifier
                     .size(36.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(value))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
-                    .clickable(role = Role.Button) { open = !open }
-                    .semantics { contentDescription = label }
             )
             Text(label, Modifier.weight(1f).padding(horizontal = 12.dp))
+            Text(Colors.hex(value), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        if (open) {
+            var text by remember(value) { mutableStateOf(Colors.hex(value)) }
             OutlinedTextField(
                 value = text,
                 onValueChange = { typed ->
@@ -197,10 +202,8 @@ private fun ColorRow(label: String, value: Int, onChange: (Int) -> Unit) {
                     Colors.argb(typed)?.let(onChange)
                 },
                 singleLine = true,
-                modifier = Modifier.width(128.dp)
+                modifier = Modifier.fillMaxWidth()
             )
-        }
-        if (open) {
             listOf("R" to Colors.red(value), "G" to Colors.green(value), "B" to Colors.blue(value)).forEachIndexed { index, (name, channel) ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(name, Modifier.width(20.dp))
@@ -276,7 +279,7 @@ private fun BuilderTab(
 
         Text(stringResource(R.string.share_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp))
         Text(stringResource(R.string.share_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedTextField(value = share, onValueChange = {}, readOnly = true, modifier = Modifier.fillMaxWidth().padding(top = 4.dp), minLines = 2, maxLines = 3)
+        Text(share, fontSize = 11.sp, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp))
         OutlinedButton(onClick = { clipboard.setText(AnnotatedString(share)); note = copied }) { Text(stringResource(R.string.share_copy)) }
         OutlinedTextField(
             value = pasted,
