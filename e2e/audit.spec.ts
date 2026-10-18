@@ -161,6 +161,7 @@ test.describe('look studio keeps balls inside their cells', () => {
     { ballSize: 'large', contrast: 'high', grid: 'none', cells: 'square', shapes: 'shapes', volume: 'flat' },
     { ballSize: 'compact', contrast: 'max', grid: 'dots', cells: 'rounded', shapes: 'off', volume: 'soft' },
     { ballSize: 'normal', contrast: 'normal', grid: 'checker', cells: 'round', shapes: 'digits', volume: 'soft' },
+    { ballSize: 'large', contrast: 'high', grid: 'checkerLines', cells: 'rounded', shapes: 'shapes', volume: 'glossy' },
   ];
   for (const theme of ['modern', 'clearNight', 'meadow', 'custom']) {
     for (const vp of [VIEWPORTS[0], VIEWPORTS[1], VIEWPORTS[4]]) {

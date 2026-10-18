@@ -115,6 +115,26 @@ class LookTest {
     }
 
     @Test
+    fun theCheckerGridWithLinesHasItsOwnId() {
+        assertEquals("checkerLines", GridStyle.CHECKER_LINES.id)
+        val o = LookOverrides(grid = GridStyle.CHECKER_LINES)
+        assertEquals(o, LookStore.overridesFrom(Json.parse(Json.write(LookStore.overridesTo(o)))))
+        assertEquals(GridStyle.entries.size, GridStyle.entries.map { it.id }.toSet().size)
+    }
+
+    @Test
+    fun theHighlightAndShadeKeepTheHueOfTheBall() {
+        for ((_, base) in LookPalettes.SETS.getValue(PaletteId.VIVID)) {
+            val t = LookPalettes.tone(base)
+            // Lighter and darker, but not washed out to white or sunk to black.
+            assertTrue(Colors.luminance(t.hi) > Colors.luminance(base))
+            assertTrue(Colors.luminance(t.lo) < Colors.luminance(base))
+            assertTrue(Colors.luminance(t.hi) < 0.95)
+            assertTrue(Colors.luminance(t.lo) > 0.002)
+        }
+    }
+
+    @Test
     fun theStoreSurvivesAJsonRoundTrip() {
         val store = mapOf("modern" to LookOverrides(Volume.FLAT, RingLevel.MAX, ShapeSet.DIGITS, PaletteId.DISTINCT, BallSize.LARGE, GridStyle.CHECKER, CellShape.ROUND))
         val text = Json.write(LookStore.storeTo(store))

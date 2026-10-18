@@ -193,6 +193,7 @@
     <string name="look_grid_thin">Thin</string>
     <string name="look_grid_bold">Bold</string>
     <string name="look_grid_checker">Checker</string>
+    <string name="look_grid_checkerLines">Checker + lines</string>
     <string name="look_grid_dots">Dots</string>
     <string name="look_cells">Cells</string>
     <string name="look_cells_square">Square</string>
@@ -215,6 +216,7 @@
     <string name="builder_cell">Cell</string>
     <string name="builder_accent">Accent</string>
     <string name="builder_balls">Ball colours</string>
+    <string name="builder_colors">Colours</string>
     <string name="builder_use">Use my look</string>
     <string name="builder_active">Your look is active.</string>
     <string name="builder_warnSimilar">%1$s and %2$s look alike: change one of them.</string>

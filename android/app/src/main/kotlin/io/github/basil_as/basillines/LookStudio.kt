@@ -11,15 +11,24 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.material3.Surface
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
@@ -97,14 +106,14 @@ private fun visionFilter(vision: Vision): ColorFilter? = when (vision) {
 
 /** A small live board drawn by the real styles: seven balls, a marker for the next ball and a reachable cell. */
 @Composable
-private fun LookPreview(theme: AppTheme, overrides: LookOverrides, custom: CustomTheme, vision: Vision) {
+private fun LookPreview(theme: AppTheme, overrides: LookOverrides, custom: CustomTheme, vision: Vision, modifier: Modifier = Modifier) {
     val palette = resolvePalette(theme, overrides, custom)
     val sprites = rememberSprites(palette)
     val measurer = rememberTextMeasurer()
     val filter = visionFilter(vision)
     val label = stringResource(R.string.look_preview)
     Canvas(
-        Modifier
+        modifier
             .fillMaxWidth()
             .aspectRatio(3.5f)
             .clip(RoundedCornerShape(8.dp))
@@ -133,100 +142,123 @@ private fun LookPreview(theme: AppTheme, overrides: LookOverrides, custom: Custo
     }
 }
 
+/** One parameter: its name, what the theme does when nothing is chosen, and the options as chips. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun <T> ChoiceGroup(
     titleKey: String,
-    hintKey: String?,
     options: List<T>,
     current: T?,
     effective: T,
     idOf: (T) -> String,
-    onPick: (T?) -> Unit,
+    onPick: (T) -> Unit,
     dots: ((T) -> List<Int>)? = null
 ) {
-    Column(Modifier.padding(top = 12.dp)) {
-        Text(lookText(titleKey), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(
-                selected = current == null,
-                onClick = { onPick(null) },
-                label = { Text(lookText("look_followTheme") + " · " + lookText("${titleKey}_${idOf(effective)}")) },
-                modifier = Modifier.semantics { role = Role.RadioButton }
-            )
+    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(lookText(titleKey), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            if (current == null) {
+                Text(
+                    "  ·  " + lookText("look_followTheme"),
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             options.forEach { option ->
                 FilterChip(
-                    selected = current == option,
+                    selected = effective == option,
                     onClick = { onPick(option) },
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             dots?.invoke(option)?.forEach { c ->
-                                Box(Modifier.padding(end = 2.dp).size(9.dp).clip(RoundedCornerShape(50)).background(Color(c)))
+                                Box(Modifier.padding(end = 2.dp).size(8.dp).clip(RoundedCornerShape(50)).background(Color(c)))
                             }
-                            Text(lookText("${titleKey}_${idOf(option)}"))
+                            Text(lookText("${titleKey}_${idOf(option)}"), fontSize = 13.sp)
                         }
                     },
                     modifier = Modifier.semantics { role = Role.RadioButton }
                 )
             }
         }
-        if (hintKey != null) Text(lookText(hintKey), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 
-/** One colour of the builder: a swatch and its hex value; tapping it opens the hex field and the sliders. */
+/** The colours of the custom theme the builder edits, by name. */
+private enum class Slot(val key: String) {
+    PAGE("builder_page"), BOARD("builder_board"), CELL("builder_cell"), ACCENT("builder_accent"),
+    RED("color_red"), GREEN("color_green"), BLUE("color_blue"), CYAN("color_cyan"), MAGENTA("color_magenta"), YELLOW("color_yellow"), BROWN("color_brown")
+}
+
+private fun CustomTheme.colorOf(slot: Slot): Int = when (slot) {
+    Slot.PAGE -> page
+    Slot.BOARD -> board
+    Slot.CELL -> cell
+    Slot.ACCENT -> accent
+    Slot.RED -> balls.getValue(BallColor.RED)
+    Slot.GREEN -> balls.getValue(BallColor.GREEN)
+    Slot.BLUE -> balls.getValue(BallColor.BLUE)
+    Slot.CYAN -> balls.getValue(BallColor.CYAN)
+    Slot.MAGENTA -> balls.getValue(BallColor.MAGENTA)
+    Slot.YELLOW -> balls.getValue(BallColor.YELLOW)
+    Slot.BROWN -> balls.getValue(BallColor.BROWN)
+}
+
+private fun CustomTheme.withColor(slot: Slot, color: Int): CustomTheme = when (slot) {
+    Slot.PAGE -> copy(page = color)
+    Slot.BOARD -> copy(board = color)
+    Slot.CELL -> copy(cell = color)
+    Slot.ACCENT -> copy(accent = color)
+    Slot.RED -> copy(balls = balls + (BallColor.RED to color))
+    Slot.GREEN -> copy(balls = balls + (BallColor.GREEN to color))
+    Slot.BLUE -> copy(balls = balls + (BallColor.BLUE to color))
+    Slot.CYAN -> copy(balls = balls + (BallColor.CYAN to color))
+    Slot.MAGENTA -> copy(balls = balls + (BallColor.MAGENTA to color))
+    Slot.YELLOW -> copy(balls = balls + (BallColor.YELLOW to color))
+    Slot.BROWN -> copy(balls = balls + (BallColor.BROWN to color))
+}
+
+/** One editor for the colour picked from the tiles: its value and three sliders. */
 @Composable
-private fun ColorRow(label: String, value: Int, onChange: (Int) -> Unit) {
-    var open by rememberSaveable(label) { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Row(
-            Modifier.fillMaxWidth().clickable(role = Role.Button) { open = !open }.padding(vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+private fun ColorEditor(label: String, value: Int, onChange: (Int) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(top = 8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier
-                    .size(36.dp)
+                    .size(32.dp)
                     .clip(RoundedCornerShape(8.dp))
                     .background(Color(value))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
             )
-            Text(label, Modifier.weight(1f).padding(horizontal = 12.dp))
+            Text(label, Modifier.padding(start = 10.dp).weight(1f), fontWeight = FontWeight.SemiBold)
             Text(Colors.hex(value), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (open) {
-            var text by remember(value) { mutableStateOf(Colors.hex(value)) }
-            OutlinedTextField(
-                value = text,
-                onValueChange = { typed ->
-                    text = typed
-                    Colors.argb(typed)?.let(onChange)
-                },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            listOf("R" to Colors.red(value), "G" to Colors.green(value), "B" to Colors.blue(value)).forEachIndexed { index, (name, channel) ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(name, Modifier.width(20.dp))
-                    Slider(
-                        value = channel.toFloat(),
-                        onValueChange = { v ->
-                            val n = v.toInt()
-                            onChange(
-                                when (index) {
-                                    0 -> Colors.rgb(n, Colors.green(value), Colors.blue(value))
-                                    1 -> Colors.rgb(Colors.red(value), n, Colors.blue(value))
-                                    else -> Colors.rgb(Colors.red(value), Colors.green(value), n)
-                                }
-                            )
-                        },
-                        valueRange = 0f..255f
-                    )
-                }
+        listOf("R" to Colors.red(value), "G" to Colors.green(value), "B" to Colors.blue(value)).forEachIndexed { index, (name, channel) ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name, Modifier.width(18.dp), fontSize = 12.sp)
+                Slider(
+                    value = channel.toFloat(),
+                    onValueChange = { v ->
+                        val n = v.toInt()
+                        onChange(
+                            when (index) {
+                                0 -> Colors.rgb(n, Colors.green(value), Colors.blue(value))
+                                1 -> Colors.rgb(Colors.red(value), n, Colors.blue(value))
+                                else -> Colors.rgb(Colors.red(value), Colors.green(value), n)
+                            }
+                        )
+                    },
+                    valueRange = 0f..255f,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(channel.toString(), Modifier.width(30.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
         }
     }
 }
 
+/** The builder: surface and colours as tiles with one editor, warnings, the code to share. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BuilderTab(
@@ -234,65 +266,79 @@ private fun BuilderTab(
     overrides: LookOverrides,
     custom: CustomTheme,
     onCustom: (CustomTheme) -> Unit,
-    onUseCustom: () -> Unit,
     onApplyShare: (LookShare) -> Unit
 ) {
     val clipboard = LocalClipboardManager.current
     var note by remember { mutableStateOf("") }
+    var picked by rememberSaveable { mutableStateOf(Slot.PAGE) }
     val badCode = stringResource(R.string.share_bad)
     val applied = stringResource(R.string.share_applied)
     val copied = stringResource(R.string.share_copied)
     val warnings = ballWarnings(custom.balls, custom.cell)
 
-    Column(Modifier.padding(top = 8.dp)) {
-        Text(stringResource(R.string.builder_intro), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(stringResource(R.string.builder_start), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
+        Text(stringResource(R.string.builder_start), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 4.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             OutlinedButton(onClick = { onCustom(CustomTheme.preset(false)) }) { Text(stringResource(R.string.builder_startLight)) }
             OutlinedButton(onClick = { onCustom(CustomTheme.preset(true)) }) { Text(stringResource(R.string.builder_startDark)) }
         }
-        Text(stringResource(R.string.builder_mode), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-        Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(stringResource(R.string.builder_mode), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             FilterChip(selected = !custom.dark, onClick = { onCustom(custom.copy(dark = false)) }, label = { Text(stringResource(R.string.builder_startLight)) }, modifier = Modifier.semantics { role = Role.RadioButton })
             FilterChip(selected = custom.dark, onClick = { onCustom(custom.copy(dark = true)) }, label = { Text(stringResource(R.string.builder_startDark)) }, modifier = Modifier.semantics { role = Role.RadioButton })
         }
-        ColorRow(stringResource(R.string.builder_page), custom.page) { onCustom(custom.copy(page = it)) }
-        ColorRow(stringResource(R.string.builder_board), custom.board) { onCustom(custom.copy(board = it)) }
-        ColorRow(stringResource(R.string.builder_cell), custom.cell) { onCustom(custom.copy(cell = it)) }
-        ColorRow(stringResource(R.string.builder_accent), custom.accent) { onCustom(custom.copy(accent = it)) }
-        Text(stringResource(R.string.builder_balls), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-        BallColor.entries.forEach { ball ->
-            ColorRow(colorLabel(ball), custom.balls.getValue(ball)) { onCustom(custom.copy(balls = custom.balls + (ball to it))) }
+        Text(stringResource(R.string.builder_colors), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
+        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Slot.entries.forEach { slot ->
+                FilterChip(
+                    selected = picked == slot,
+                    onClick = { picked = slot },
+                    label = { Text(lookText(slot.key), fontSize = 13.sp) },
+                    leadingIcon = {
+                        Box(
+                            Modifier
+                                .size(14.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(Color(custom.colorOf(slot)))
+                                .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
+                        )
+                    },
+                    modifier = Modifier.semantics { role = Role.RadioButton }
+                )
+            }
         }
+        ColorEditor(lookText(picked.key), custom.colorOf(picked)) { onCustom(custom.withColor(picked, it)) }
+
         warnings.similar.forEach { (a, b) ->
             Text(stringResource(R.string.builder_warnSimilar, colorLabel(a), colorLabel(b)), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         }
         warnings.faint.forEach { c ->
             Text(stringResource(R.string.builder_warnCell, colorLabel(c)), color = MaterialTheme.colorScheme.error, fontSize = 12.sp)
         }
-        if (warnings.isClean) Text(stringResource(R.string.builder_good), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        if (warnings.isClean) Text(stringResource(R.string.builder_good), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 4.dp))
 
-        Button(onClick = onUseCustom, enabled = theme != AppTheme.CUSTOM, modifier = Modifier.fillMaxWidth().padding(top = 12.dp)) {
-            Text(stringResource(if (theme == AppTheme.CUSTOM) R.string.builder_active else R.string.builder_use))
+        Text(stringResource(R.string.share_title), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 12.dp))
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            OutlinedButton(onClick = { clipboard.setText(AnnotatedString(LookCode.encode(LookShare(theme.webId, overrides, custom)))); note = copied }) { Text(stringResource(R.string.share_copy)) }
+            // The code is read from the clipboard: nobody types four hundred characters on a phone.
+            OutlinedButton(
+                onClick = {
+                    val decoded = clipboard.getText()?.text?.let { LookCode.decode(it) }
+                    if (decoded == null) note = badCode else { onApplyShare(decoded); note = applied }
+                }
+            ) { Text(stringResource(R.string.share_apply)) }
         }
-
-        Text(stringResource(R.string.share_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 16.dp))
-        Text(stringResource(R.string.share_hint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        OutlinedButton(onClick = { clipboard.setText(AnnotatedString(LookCode.encode(LookShare(theme.webId, overrides, custom)))); note = copied }) { Text(stringResource(R.string.share_copy)) }
-        // The code is read from the clipboard: nobody types four hundred characters on a phone.
-        OutlinedButton(
-            onClick = {
-                val decoded = clipboard.getText()?.text?.let { LookCode.decode(it) }
-                if (decoded == null) note = badCode else { onApplyShare(decoded); note = applied }
-            }
-        ) { Text(stringResource(R.string.share_apply)) }
         if (note.isNotEmpty()) Text(note, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
     }
 }
 
 private enum class StudioTab(val key: String) { BALLS("settings_tab_balls"), BOARD("settings_tab_board"), BUILDER("settings_tab_builder") }
 
-/** Depth, colours, rings, markers, size and grid for the current theme, and the builder for a look of your own. */
+/**
+ * Depth, colours, rings, markers, size and grid for the current theme, and the builder for a look of your own.
+ * It fills the screen: the preview stays pinned at the top while the parameters scroll under it, and the buttons
+ * stay at the bottom.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LookStudioDialog(
@@ -311,13 +357,12 @@ fun LookStudioDialog(
     val studio = LookSpec.isStudioTheme(id)
     val effective = LookSpec.effective(id, overrides)
 
-    AlertDialog(
-        onDismissRequest = onClose,
-        title = { Text(stringResource(R.string.look_studio)) },
-        text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
-                LookPreview(theme, overrides, custom, vision)
-                FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
+            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 14.dp)) {
+                Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
+                LookPreview(theme, overrides, custom, vision, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Vision.entries.forEach { v ->
                         FilterChip(
                             selected = vision == v,
@@ -327,7 +372,7 @@ fun LookStudioDialog(
                         )
                     }
                 }
-                FlowRow(Modifier.fillMaxWidth().padding(top = 8.dp).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     StudioTab.entries.forEach { t ->
                         FilterChip(
                             selected = tab == t,
@@ -337,29 +382,37 @@ fun LookStudioDialog(
                         )
                     }
                 }
-                if (tab == StudioTab.BUILDER) {
-                    BuilderTab(theme, overrides, custom, onCustom, onUseCustom, onApplyShare)
-                } else if (!studio) {
-                    Text(stringResource(R.string.look_retroNote), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-                } else if (tab == StudioTab.BALLS) {
-                    ChoiceGroup("look_palette", "look_paletteHint", PaletteId.entries.toList(), overrides.palette, effective.palette, { it.id }, { onOverrides(overrides.copy(palette = it)) }) {
-                        if (it == PaletteId.CUSTOM) emptyList() else BallColor.entries.map { c -> LookPalettes.SETS.getValue(it).getValue(c) }
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                    if (tab == StudioTab.BUILDER) {
+                        BuilderTab(theme, overrides, custom, onCustom, onApplyShare)
+                    } else if (!studio) {
+                        Text(stringResource(R.string.look_retroNote), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
+                    } else if (tab == StudioTab.BALLS) {
+                        ChoiceGroup("look_palette", PaletteId.entries.toList(), overrides.palette, effective.palette, { it.id }, { onOverrides(overrides.copy(palette = it)) }) {
+                            if (it == PaletteId.CUSTOM) emptyList() else BallColor.entries.map { c -> LookPalettes.SETS.getValue(it).getValue(c) }
+                        }
+                        ChoiceGroup("look_volume", Volume.entries.toList(), overrides.volume, effective.volume, { it.id }, { onOverrides(overrides.copy(volume = it)) })
+                        ChoiceGroup("look_contrast", RingLevel.entries.toList(), overrides.ring, effective.ring, { it.id }, { onOverrides(overrides.copy(ring = it)) })
+                        ChoiceGroup("look_shapes", ShapeSet.entries.toList(), overrides.shapes, effective.shapes, { it.id }, { onOverrides(overrides.copy(shapes = it)) })
+                        ChoiceGroup("look_ballSize", BallSize.entries.toList(), overrides.ballSize, effective.ballSize, { it.id }, { onOverrides(overrides.copy(ballSize = it)) })
+                    } else {
+                        ChoiceGroup("look_grid", GridStyle.entries.toList(), overrides.grid, effective.grid, { it.id }, { onOverrides(overrides.copy(grid = it)) })
+                        ChoiceGroup("look_cells", CellShape.entries.toList(), overrides.cells, effective.cells, { it.id }, { onOverrides(overrides.copy(cells = it)) })
                     }
-                    ChoiceGroup("look_volume", null, Volume.entries.toList(), overrides.volume, effective.volume, { it.id }, { onOverrides(overrides.copy(volume = it)) })
-                    ChoiceGroup("look_contrast", "look_contrastHint", RingLevel.entries.toList(), overrides.ring, effective.ring, { it.id }, { onOverrides(overrides.copy(ring = it)) })
-                    ChoiceGroup("look_shapes", "look_shapesHint", ShapeSet.entries.toList(), overrides.shapes, effective.shapes, { it.id }, { onOverrides(overrides.copy(shapes = it)) })
-                    ChoiceGroup("look_ballSize", null, BallSize.entries.toList(), overrides.ballSize, effective.ballSize, { it.id }, { onOverrides(overrides.copy(ballSize = it)) })
-                } else {
-                    ChoiceGroup("look_grid", null, GridStyle.entries.toList(), overrides.grid, effective.grid, { it.id }, { onOverrides(overrides.copy(grid = it)) })
-                    ChoiceGroup("look_cells", null, CellShape.entries.toList(), overrides.cells, effective.cells, { it.id }, { onOverrides(overrides.copy(cells = it)) })
                 }
-                if (tab != StudioTab.BUILDER && studio) {
-                    TextButton(onClick = { onOverrides(LookOverrides()) }, enabled = !overrides.isEmpty, modifier = Modifier.padding(top = 8.dp)) {
-                        Text(stringResource(R.string.look_reset))
+                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (tab == StudioTab.BUILDER) {
+                        Button(onClick = onUseCustom, enabled = theme != AppTheme.CUSTOM, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(if (theme == AppTheme.CUSTOM) R.string.builder_active else R.string.builder_use))
+                        }
+                    } else {
+                        TextButton(onClick = { onOverrides(LookOverrides()) }, enabled = studio && !overrides.isEmpty, modifier = Modifier.weight(1f)) {
+                            Text(stringResource(R.string.look_reset))
+                        }
                     }
+                    Button(onClick = onClose) { Text(stringResource(R.string.btn_close)) }
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
-    )
+        }
+    }
 }

@@ -635,8 +635,7 @@ body {
 }
 
 .ball-preview.ball-modern {
-  box-shadow: inset -1px -1px 3px rgba(0, 0, 0, 0.5), inset 1px 1px 2px rgba(255, 255, 255, 0.6),
-    0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 @keyframes previewIn {
@@ -667,17 +666,16 @@ body {
 }
 
 .ball-modern {
-  box-shadow: inset -3px -3px 8px rgba(0, 0, 0, 0.5), inset 3px 3px 6px rgba(255, 255, 255, 0.6),
-    0 4px 8px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 1px 1.5px rgba(0, 0, 0, 0.28), 0 4px 7px -3px rgba(0, 0, 0, 0.45);
 }
 
-.ball-modern.color-red { background: radial-gradient(circle at 35% 30%, #ff8a80, #e53935 60%, #b71c1c); }
-.ball-modern.color-green { background: radial-gradient(circle at 35% 30%, #b9f6ca, #43a047 60%, #1b5e20); }
-.ball-modern.color-blue { background: radial-gradient(circle at 35% 30%, #82b1ff, #1e88e5 60%, #0d47a1); }
-.ball-modern.color-cyan { background: radial-gradient(circle at 35% 30%, #84ffff, #00acc1 60%, #006064); }
-.ball-modern.color-magenta { background: radial-gradient(circle at 35% 30%, #ea80fc, #8e24aa 60%, #4a148c); }
-.ball-modern.color-yellow { background: radial-gradient(circle at 35% 30%, #ffff8d, #fdd835 60%, #f57f17); }
-.ball-modern.color-brown { background: radial-gradient(circle at 35% 30%, #d7ccc8, #6d4c41 60%, #3e2723); }
+.ball-modern.color-red { background: radial-gradient(circle at 34% 26%, #ee7c7a 0%, #e53935 54%, #9c2724 112%); }
+.ball-modern.color-green { background: radial-gradient(circle at 34% 26%, #83c086 0%, #43a047 54%, #2e6d30 112%); }
+.ball-modern.color-blue { background: radial-gradient(circle at 34% 26%, #6ab0ee 0%, #1e88e5 54%, #145c9c 112%); }
+.ball-modern.color-cyan { background: radial-gradient(circle at 34% 26%, #57c8d6 0%, #00acc1 54%, #007583 112%); }
+.ball-modern.color-magenta { background: radial-gradient(circle at 34% 26%, #b46ec7 0%, #8e24aa 54%, #611874 112%); }
+.ball-modern.color-yellow { background: radial-gradient(circle at 34% 26%, #fee57a 0%, #fdd835 54%, #ac9324 112%); }
+.ball-modern.color-brown { background: radial-gradient(circle at 34% 26%, #9f8982 0%, #6d4c41 54%, #4a342c 112%); }
 
 /* Sprites taken from Lines 98. */
 .ball-classic {
@@ -2686,9 +2684,9 @@ input[role='switch']:focus-visible {
 /* Meadow relief: the same colours with a soft highlight and a quiet shade, nothing glossy. */
 .theme-meadowRelief .ball-contrast {
   background-image:
-    radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.5) 0, rgba(255, 255, 255, 0) 45%),
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.2) 100%);
-  box-shadow: 0 2px 3px rgba(32, 44, 36, 0.28);
+    radial-gradient(circle at 34% 26%, rgba(255, 255, 255, 0.34) 0, rgba(255, 255, 255, 0) 50%),
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.16) 100%);
+  box-shadow: 0 1px 1px rgba(32, 44, 36, 0.2), 0 3px 4px -2px rgba(32, 44, 36, 0.3);
 }
 
 .theme-spectrum .board-cell:focus-visible,
@@ -3236,23 +3234,38 @@ body[data-studio='1'] .ball[class*='color-'] {
   box-shadow: none;
 }
 
+/*
+ * Depth. A lit ball keeps its own hue: the highlight and the shade are the colour itself, lighter and darker, never
+ * white and black. Soft is a satin finish; Glossy adds a small crisp highlight and light bouncing back from below.
+ */
 body[data-studio='1'][data-volume='soft'] .ball[class*='color-'] {
-  background-color: var(--b);
-  background-image: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.5) 0, rgba(255, 255, 255, 0) 45%),
-    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0) 55%, rgba(0, 0, 0, 0.22) 100%);
-  box-shadow: 0 2px 3px rgba(0, 0, 0, 0.28);
+  background: radial-gradient(circle at 36% 28%, var(--b-hi) 0%, var(--b) 58%, var(--b-lo) 118%);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 3px 5px -2px rgba(0, 0, 0, 0.32);
 }
 
 body[data-studio='1'][data-volume='glossy'] .ball[class*='color-'] {
-  background: radial-gradient(circle at 35% 30%, var(--b-hi), var(--b) 60%, var(--b-lo));
-  box-shadow: inset -3px -3px 8px rgba(0, 0, 0, 0.35), inset 3px 3px 6px rgba(255, 255, 255, 0.4), 0 4px 8px rgba(0, 0, 0, 0.35);
+  background:
+    radial-gradient(circle at 50% 120%, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0) 45%),
+    radial-gradient(circle at 34% 26%, var(--b-hi) 0%, var(--b) 54%, var(--b-lo) 112%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14), 0 1px 1.5px rgba(0, 0, 0, 0.28), 0 4px 7px -3px rgba(0, 0, 0, 0.45);
+}
+
+body[data-studio='1'][data-volume='glossy'] .ball[class*='color-']:not(.ball-preview):not(.ball-mini)::before,
+.ball-modern:not(.ball-preview):not(.ball-mini)::before {
+  content: '';
+  position: absolute;
+  left: 19%;
+  top: 10%;
+  width: 38%;
+  height: 24%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 45%, rgba(255, 255, 255, 0.62) 0%, rgba(255, 255, 255, 0) 72%);
+  transform: rotate(-30deg);
+  pointer-events: none;
 }
 
 body[data-studio='1'][data-volume='glossy'] .ball.ball-preview,
-body[data-studio='1'][data-volume='glossy'] .ball.ball-mini {
-  box-shadow: inset -1px -1px 3px rgba(0, 0, 0, 0.35), inset 1px 1px 2px rgba(255, 255, 255, 0.4);
-}
-
+body[data-studio='1'][data-volume='glossy'] .ball.ball-mini,
 body[data-studio='1'][data-volume='soft'] .ball.ball-preview,
 body[data-studio='1'][data-volume='soft'] .ball.ball-mini {
   box-shadow: none;
@@ -3325,6 +3338,9 @@ body[data-grid='bold'] .board-grid { gap: 5px; padding: 5px; }
 body[data-grid='checker'] .board-grid { gap: 0; padding: 0; }
 body[data-grid='checker'] .board-cell { box-shadow: none; }
 body[data-grid='checker'] .board-cell:nth-child(even):not(:hover) { background: var(--cell-alt); }
+body[data-grid='checkerLines'] .board-grid { gap: 2px; padding: 2px; }
+body[data-grid='checkerLines'] .board-cell { box-shadow: none; }
+body[data-grid='checkerLines'] .board-cell:nth-child(even):not(:hover) { background: var(--cell-alt); }
 body[data-grid='dots'] .board-grid { gap: 0; padding: 0; }
 body[data-grid='dots'] .board-cell {
   box-shadow: none;
@@ -3348,11 +3364,22 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 /* ---- Settings tabs and the look studio ---- */
+/* Tabs and the live preview stay at the top while the options scroll under them. */
+.settings-head {
+  position: sticky;
+  top: -24px;
+  z-index: 3;
+  margin: 0 -24px;
+  padding: 24px 24px 10px;
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--panel-border);
+}
+
 .settings-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
-  margin-top: 12px;
+  margin-top: 4px;
 }
 
 .settings-tab {
@@ -3386,7 +3413,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 .look-preview {
-  margin-top: 12px;
+  margin-top: 8px;
 }
 
 .look-preview .look-preview-grid {
@@ -3403,7 +3430,23 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 .look-group {
-  margin-top: 14px;
+  margin-top: 12px;
+}
+
+.look-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.look-head .look-label {
+  margin-bottom: 0;
+}
+
+.look-caption {
+  font-size: 0.75rem;
+  color: var(--text-muted);
 }
 
 .look-label {
@@ -3426,8 +3469,8 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   align-items: flex-start;
   justify-content: center;
   gap: 2px;
-  min-height: 40px;
-  padding: 6px 12px;
+  min-height: 36px;
+  padding: 4px 11px;
   font: inherit;
   font-size: 0.85rem;
   color: var(--text-main);
@@ -3447,16 +3490,6 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   color: var(--on-accent);
   border-color: var(--accent);
   font-weight: 700;
-}
-
-.chip-sub {
-  font-size: 0.7rem;
-  font-weight: 400;
-  color: var(--text-muted);
-}
-
-.chip.active .chip-sub {
-  color: inherit;
 }
 
 .chip-dots {
@@ -3542,7 +3575,23 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 
 .vision-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 
-.vision-chips { margin-top: 8px; }
+.vision-chips {
+  margin-top: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.vision-chips .chip {
+  flex: none;
+}
+
+/* On a low screen the options need the room more than the preview does. */
+@media (max-height: 520px) {
+  .settings-head {
+    position: static;
+  }
+}
 
 .chip-small {
   min-height: 32px;

@@ -65,15 +65,16 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
   return (
     <Dialog titleId="settings-title" title={t('settings.title')} onClose={props.onClose}>
-      <div className="settings-tabs" role="group" aria-label={t('settings.tabs')}>
-        {TABS.map((id) => (
-          <button type="button" key={id} className={`settings-tab ${tab === id ? 'active' : ''}`} aria-pressed={tab === id} onClick={() => setTab(id)}>
-            {t(`settings.tab.${id}` as MessageKey)}
-          </button>
-        ))}
+      <div className="settings-head">
+        <div className="settings-tabs" role="group" aria-label={t('settings.tabs')}>
+          {TABS.map((id) => (
+            <button type="button" key={id} className={`settings-tab ${tab === id ? 'active' : ''}`} aria-pressed={tab === id} onClick={() => setTab(id)}>
+              {t(`settings.tab.${id}` as MessageKey)}
+            </button>
+          ))}
+        </div>
+        {showPreview && <LookPreview lang={lang} theme={theme} />}
       </div>
-
-      {showPreview && <LookPreview lang={lang} theme={theme} />}
 
       {tab === 'themes' && (
         <div className="settings-section">

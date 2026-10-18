@@ -13,7 +13,7 @@ enum class RingLevel(val id: String) { NORMAL("normal"), HIGH("high"), MAX("max"
 enum class ShapeSet(val id: String) { OFF("off"), SHAPES("shapes"), DIGITS("digits") }
 enum class PaletteId(val id: String) { CLASSIC("classic"), VIVID("vivid"), DISTINCT("distinct"), SOFT("soft"), CUSTOM("custom") }
 enum class BallSize(val id: String, val scale: Float) { COMPACT("compact", 0.68f), NORMAL("normal", 0.82f), LARGE("large", 0.94f) }
-enum class GridStyle(val id: String) { PLAIN("plain"), NONE("none"), THIN("thin"), BOLD("bold"), CHECKER("checker"), DOTS("dots") }
+enum class GridStyle(val id: String) { PLAIN("plain"), NONE("none"), THIN("thin"), BOLD("bold"), CHECKER("checker"), CHECKER_LINES("checkerLines"), DOTS("dots") }
 enum class CellShape(val id: String) { SQUARE("square"), ROUNDED("rounded"), ROUND("round") }
 
 data class Look(
@@ -175,7 +175,8 @@ object LookPalettes {
         PaletteId.SOFT to colors("#e0675f", "#6fb97a", "#6f9de0", "#6cc7d6", "#a98bd6", "#eed26a", "#a98467")
     )
 
-    fun tone(base: Int): BallTone = BallTone(base, Colors.mix(base, Colors.WHITE, 0.55f), Colors.mix(base, Colors.BLACK, 0.5f), Colors.inkOn(base))
+    /** Highlight and shade stay close to the colour itself, so a ball looks lit rather than whitened or dirtied. */
+    fun tone(base: Int): BallTone = BallTone(base, Colors.mix(base, Colors.WHITE, 0.34f), Colors.mix(base, Colors.BLACK, 0.32f), Colors.inkOn(base))
 
     fun tones(palette: PaletteId, custom: Map<BallColor, Int>): Map<BallColor, BallTone> {
         val set = if (palette == PaletteId.CUSTOM) custom else SETS.getValue(palette)

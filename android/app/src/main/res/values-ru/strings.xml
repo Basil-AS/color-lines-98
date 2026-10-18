@@ -193,6 +193,7 @@
     <string name="look_grid_thin">Тонкая</string>
     <string name="look_grid_bold">Жирная</string>
     <string name="look_grid_checker">Шахматная</string>
+    <string name="look_grid_checkerLines">Шахматная с линиями</string>
     <string name="look_grid_dots">Точки</string>
     <string name="look_cells">Клетки</string>
     <string name="look_cells_square">Квадратные</string>
@@ -215,6 +216,7 @@
     <string name="builder_cell">Клетка</string>
     <string name="builder_accent">Акцент</string>
     <string name="builder_balls">Цвета шариков</string>
+    <string name="builder_colors">Цвета</string>
     <string name="builder_use">Включить мой стиль</string>
     <string name="builder_active">Ваш стиль включён.</string>
     <string name="builder_warnSimilar">%1$s и %2$s похожи: измените один из цветов.</string>
