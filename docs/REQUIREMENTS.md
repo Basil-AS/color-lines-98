@@ -19,7 +19,7 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 | 11 | App icon, favicon | done | adaptive Android icon, PNG/SVG for the site and PWA |
 | 12 | Android: insets under system bars | verified by tests | `safeDrawing`, edge-to-edge; **not run on a device** |
 | 13 | The New button on Android must not keep the old board | verified | test `aMoveSpawnsBallsAndNewGameReplacesTheWholeBoard` |
-| 14 | A light modern theme | done | "Modern light" on web and Android |
+| 14 | A light modern theme | done | "Modern" in day shade (Settings → Day / night) on web and Android |
 | 15 | Settings are remembered (web and app) | verified | theme, language, sound, preview marks, name, NEXT |
 | 16 | All themes on the phone | done | 12 looks on Android |
 | 17 | Looks that repeat the originals Color Lines (1992) and Lines 98 | done | the 1992 screen from `lines.lib`; Lines 98: LED panel, board, menu |

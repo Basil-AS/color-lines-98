@@ -34,8 +34,11 @@ and a native Android app, sharing one rule set.
   of your own (surface, page, board, cell and accent colours, seven ball colours, with warnings for colours that look alike).
   A *look code* (`CL3:...`) carries a look to another device, web and Android read each other's codes, and backups keep it.
   The original games keep their artwork.
+- **Day / night** (web and Android): in Settings → Themes, *Auto* (follows the device, the default), *Day* or *Night*. *Modern* and
+  *Clear* have a real light and dark sheet; the other looks are recoloured from their accent, boards keep their colours.
+  Hand-made and original looks (custom, Game Boy, terminal, Lines 98, Color Lines 1992) keep their own colours.
 - **Themes in collections** (web and Android), each with its own sound voice, remembered between launches:
-  - *Modern dark*, *Modern light*, *Material*, *Neon*, *Synthwave*, *Ocean* and *Paper*: different colours, board and
+  - *Modern*, *Material*, *Neon*, *Synthwave*, *Ocean* and *Paper*: different colours, board and
     instrument (soft sine, bell, marimba, arcade square, saw, glass, wood block);
   - *Game Boy (1989)* (four greens, chip sound) and *Amber terminal* (phosphor orange, teletype beeps), both shape-coded;
   - *High contrast*: white outlines, every colour also has its own shape;
