@@ -12,7 +12,8 @@ import type { EffectsLevel } from './effects';
 import { compactHistory, expandHistory, sanitizeHistory } from './stats';
 import type { GameRecord } from './stats';
 
-import { parseTheme } from './themes';
+import { parseColorScheme, parseTheme, schemeOfLegacyTheme } from './themes';
+import type { ColorScheme } from './themes';
 import { DEFAULT_CUSTOM, sanitizeCustom, sanitizeLookStore } from './appearance';
 import type { CustomTheme, LookStore } from './appearance';
 import type { Theme } from './themes';
@@ -21,6 +22,7 @@ export { THEMES } from './themes';
 export type { Theme } from './themes';
 
 const THEME_KEY = 'colorlines_theme';
+const SCHEME_KEY = 'colorlines_scheme';
 const BEST_KEY = 'colorlines_best_score';
 const GAME_KEY = 'colorlines_game';
 const HISTORY_KEY = 'colorlines_history';
@@ -65,6 +67,15 @@ export function loadTheme(): Theme {
 
 export function saveTheme(theme: Theme): void {
   write(THEME_KEY, theme);
+}
+
+/** Day, night or follow the device; a player who had picked the old light or night look keeps that. */
+export function loadColorScheme(): ColorScheme {
+  return parseColorScheme(read(SCHEME_KEY)) ?? schemeOfLegacyTheme(read(THEME_KEY)) ?? 'auto';
+}
+
+export function saveColorScheme(scheme: ColorScheme): void {
+  write(SCHEME_KEY, scheme);
 }
 
 export function loadBestScore(): number {

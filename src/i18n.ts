@@ -27,7 +27,7 @@ const en = {
   'btn.close': 'Close',
 
   'theme.group': 'Theme',
-  'theme.modern': 'Modern dark',
+  'theme.modern': 'Modern',
 
   'lang.label': 'Language',
   'lang.auto': 'Auto',
@@ -119,12 +119,15 @@ const en = {
   'settings.sound': 'Sound effects',
   'settings.preview': 'Show where new balls will appear',
 
-  'theme.light': 'Modern light',
   'theme.material': 'Material',
   'theme.neon': 'Neon',
   'theme.contrast': 'High contrast',
   'theme.clear': 'Clear',
-  'theme.clearNight': 'Clear night',
+  'scheme.title': 'Day / night',
+  'scheme.auto': 'Auto (system)',
+  'scheme.day': 'Day',
+  'scheme.night': 'Night',
+  'scheme.fixedHint': 'This look keeps its own colours by day and by night.',
   'theme.retro98': 'Retro 98',
   'theme.spectrum': 'Spectrum',
   'theme.meadow': 'Meadow',
@@ -608,7 +611,7 @@ const ru: Dictionary = {
   'btn.close': 'Закрыть',
 
   'theme.group': 'Тема',
-  'theme.modern': 'Современная тёмная',
+  'theme.modern': 'Современная',
 
   'lang.label': 'Язык',
   'lang.auto': 'Авто',
@@ -700,12 +703,15 @@ const ru: Dictionary = {
   'settings.sound': 'Звуковые эффекты',
   'settings.preview': 'Показывать, где появятся новые шары',
 
-  'theme.light': 'Современная светлая',
   'theme.material': 'Material',
   'theme.neon': 'Неон',
   'theme.contrast': 'Высокий контраст',
   'theme.clear': 'Ясная',
-  'theme.clearNight': 'Ясная ночь',
+  'scheme.title': 'День / ночь',
+  'scheme.auto': 'Авто (как в системе)',
+  'scheme.day': 'День',
+  'scheme.night': 'Ночь',
+  'scheme.fixedHint': 'У этого вида свои цвета и днём, и ночью.',
   'theme.retro98': 'Ретро 98',
   'theme.spectrum': 'Спектр',
   'theme.meadow': 'Луг',

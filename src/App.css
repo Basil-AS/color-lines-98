@@ -949,7 +949,6 @@ body {
 }
 
 .swatch-modern { background: radial-gradient(circle at 25% 50%, #ff8a80 0 9px, transparent 10px), radial-gradient(circle at 50% 50%, #82b1ff 0 9px, transparent 10px), radial-gradient(circle at 75% 50%, #b9f6ca 0 9px, transparent 10px), #1e1e24; border-radius: 6px; }
-.swatch-light { background: radial-gradient(circle at 25% 50%, #e53935 0 9px, transparent 10px), radial-gradient(circle at 50% 50%, #1e88e5 0 9px, transparent 10px), radial-gradient(circle at 75% 50%, #43a047 0 9px, transparent 10px), #f3f5fb; border-radius: 6px; }
 .swatch-lines98 { background: radial-gradient(circle at 25% 60%, #e53935 0 8px, transparent 9px), radial-gradient(circle at 50% 60%, #1e88e5 0 8px, transparent 9px), radial-gradient(circle at 75% 60%, #43a047 0 8px, transparent 9px), linear-gradient(#000080 0 9px, #c0c0c0 9px); }
 .swatch-colorlines92 { background: radial-gradient(circle at 25% 50%, #aa0000 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #0000aa 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #00aa00 0 8px, transparent 9px), #aaaaaa; }
 
@@ -2430,7 +2429,6 @@ input[role='switch']:focus-visible {
 .swatch-gameboy { background: radial-gradient(circle at 25% 50%, #0f380f 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #306230 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #8bac0f 0 8px, transparent 9px), #9bbc0f; border: 2px solid #0f380f; }
 .swatch-terminal { background: radial-gradient(circle at 25% 50%, #ffb000 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #b37a00 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #ffcc33 0 8px, transparent 9px), #120900; border: 1px solid #ffb000; }
 .swatch-clear { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f5f3ec; border: 1px solid #d4cebe; border-radius: 6px; }
-.swatch-clearNight { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #161b22; border: 1px solid #30363d; border-radius: 6px; }
 .swatch-retro98 { background: radial-gradient(circle at 25% 50%, #f04438 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #2fb344 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #3b82f6 0 8px, transparent 9px), #4b2a63; border: 1px solid #ffd166; border-radius: 6px; }
 .swatch-spectrum { background: radial-gradient(circle at 25% 50%, #ff3b30 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #5aa9ff 0 8px, transparent 9px), #f1eadc; border: 2px solid #46515c; }
 .swatch-meadow { background: radial-gradient(circle at 25% 50%, #f0261b 0 8px, transparent 9px), radial-gradient(circle at 50% 50%, #34c759 0 8px, transparent 9px), radial-gradient(circle at 75% 50%, #7c3aed 0 8px, transparent 9px), #e5e9df; border: 2px solid #405a49; }
@@ -2601,9 +2599,9 @@ input[role='switch']:focus-visible {
   color-scheme: light;
   --panel-shadow: 0 8px 24px rgba(32, 38, 44, 0.1);
   --text-main: #252b31;
-  --text-muted: #59636d;
+  --text-muted: #4c565f;
   --on-accent: #ffffff;
-  --stat-label: #59636d;
+  --stat-label: #4c565f;
   --stat-value: #252b31;
   --title-color: #252b31;
   --radius: 9px;
@@ -3593,4 +3591,85 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 .modal-content .stat-value {
   white-space: nowrap;
   font-size: clamp(1rem, 5.2vw, 1.3rem);
+}
+
+/* ==========================================================================
+   Day / night: a look drawn in the other shade is recoloured from its own accent (the script also tunes the accent itself, since a custom property cannot refer to its own earlier value). Modern and Clear have sheets of
+   their own for it (.theme-light, .theme-clearNight); the boards keep the look's colours.
+   ========================================================================== */
+.shade-night {
+  color-scheme: dark;
+  --page-bg: color-mix(in srgb, var(--accent) 8%, #0d1016);
+  --panel-bg: color-mix(in srgb, var(--accent) 8%, #181b22);
+  --panel-border: color-mix(in srgb, var(--accent) 16%, #343a46);
+  --panel-shadow: 0 16px 40px rgba(0, 0, 0, 0.6);
+  --text-main: #eef1f6;
+  --text-muted: #a3abb8;
+  --cell-bg: color-mix(in srgb, var(--accent) 8%, #20242d);
+  --cell-hover: color-mix(in srgb, var(--accent) 14%, #2a2f3a);
+  --stat-bg: color-mix(in srgb, var(--accent) 8%, #14171d);
+  --stat-label: #a3abb8;
+  --stat-value: #ffffff;
+  --title-color: #eef1f6;
+  --ctrl-bg: color-mix(in srgb, var(--accent) 10%, #262b35);
+  --ctrl-hover: color-mix(in srgb, var(--accent) 18%, #313744);
+  --input-bg: color-mix(in srgb, var(--accent) 8%, #20242d);
+  --card-bg: color-mix(in srgb, var(--accent) 8%, #1c1f27);
+  --danger: #ff6b66;
+}
+
+.shade-day {
+  color-scheme: light;
+  --page-bg: color-mix(in srgb, var(--accent) 7%, #f2f3f6);
+  --panel-bg: color-mix(in srgb, var(--accent) 3%, #ffffff);
+  --panel-border: color-mix(in srgb, var(--accent) 18%, #d3d6de);
+  --panel-shadow: 0 16px 40px rgba(38, 50, 90, 0.16);
+  --text-main: #1b1e27;
+  --text-muted: #565b6a;
+  --cell-bg: color-mix(in srgb, var(--accent) 5%, #f7f8fb);
+  --cell-hover: color-mix(in srgb, var(--accent) 12%, #e9ecf4);
+  --stat-bg: color-mix(in srgb, var(--accent) 7%, #eef0f6);
+  --stat-label: #565b6a;
+  --stat-value: #1b1e27;
+  --title-color: #1b1e27;
+  --ctrl-bg: color-mix(in srgb, var(--accent) 8%, #eceff6);
+  --ctrl-hover: color-mix(in srgb, var(--accent) 16%, #dde2ef);
+  --input-bg: color-mix(in srgb, var(--accent) 5%, #f4f5fa);
+  --card-bg: color-mix(in srgb, var(--accent) 5%, #f3f5fa);
+  --danger: #c62828;
+}
+
+
+.shade-night.theme-material { --accent: #cfbcff; }
+.shade-night.theme-paper { --accent: #e8a46b; }
+.shade-night.theme-spectrum { --accent: #8fb2e8; }
+.shade-night.theme-meadow { --accent: #8ed4a0; }
+.shade-night.theme-orchid { --accent: #cba6e6; }
+.shade-night.theme-lines98plus { --accent: #8fb4ff; }
+.shade-day.theme-neon { --accent: #00727c; }
+.shade-day.theme-synthwave { --accent: #b3126f; }
+.shade-day.theme-ocean { --accent: #0a7f6b; }
+.shade-day.theme-contrast { --accent: #0b3d91; }
+.shade-day.theme-retro98 { --accent: #7a4f00; }
+.shade-night { --on-accent: #10131a; --cell-reachable-dot: var(--accent); --accent-glow: color-mix(in srgb, var(--accent) 35%, transparent); }
+.shade-day { --on-accent: #ffffff; --cell-reachable-dot: var(--accent); --accent-glow: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+/* The three-way day/night choice is wider than a phone has room for next to its title: it goes under it. */
+.settings-scheme {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 0;
+  cursor: default;
+}
+
+.settings-scheme .segmented {
+  display: flex;
+}
+
+.settings-scheme .segment {
+  flex: 1 1 0;
+  min-width: 0;
+  padding-inline: 6px;
 }

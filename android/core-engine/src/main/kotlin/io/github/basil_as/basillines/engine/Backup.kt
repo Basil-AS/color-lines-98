@@ -13,7 +13,9 @@ data class BackupSettings(
     val vibration: Boolean? = null,
     /** Choices from the look studio, per theme id, and the custom theme's colours; both are already sanitised. */
     val looks: Map<String, LookOverrides>? = null,
-    val custom: CustomTheme? = null
+    val custom: CustomTheme? = null,
+    /** "auto" (follow the system), "day" or "night". */
+    val scheme: String? = null
 )
 
 data class Backup(
@@ -65,6 +67,7 @@ object Backups {
             "hall" to b.hall.map { mapOf("name" to it.name, "score" to it.score, "at" to it.at) },
             "settings" to buildMap<String, Any?> {
                 b.settings.theme?.let { put("theme", it) }
+                b.settings.scheme?.let { put("scheme", it) }
                 b.settings.language?.let { put("language", it) }
                 b.settings.playerName?.let { put("playerName", it) }
                 b.settings.soundEnabled?.let { put("soundEnabled", it) }
@@ -147,6 +150,7 @@ object Backups {
         val o = raw as? Map<*, *> ?: return BackupSettings()
         return BackupSettings(
             theme = (o["theme"] as? String)?.takeIf { it.length <= 20 },
+            scheme = (o["scheme"] as? String)?.takeIf { it == "auto" || it == "day" || it == "night" },
             language = (o["language"] as? String)?.takeIf { it == "auto" || it == "en" || it == "ru" },
             playerName = (o["playerName"] as? String)?.take(Hall.NAME_LIMIT),
             soundEnabled = o["soundEnabled"] as? Boolean,

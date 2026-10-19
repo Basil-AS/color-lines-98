@@ -55,8 +55,8 @@ export const BALL_COLORS: readonly BallColor[] = ['red', 'green', 'blue', 'cyan'
 
 /** Themes by collection, in the order of the picker. Every theme is in exactly one. */
 export const THEME_FAMILIES: readonly { id: string; themes: readonly Theme[] }[] = [
-  { id: 'modern', themes: ['modern', 'light', 'material', 'ocean', 'paper'] },
-  { id: 'vivid', themes: ['clear', 'clearNight', 'spectrum', 'meadow', 'orchid'] },
+  { id: 'modern', themes: ['modern', 'material', 'ocean', 'paper'] },
+  { id: 'vivid', themes: ['clear', 'spectrum', 'meadow', 'orchid'] },
   { id: 'neon', themes: ['neon', 'synthwave', 'retro98'] },
   { id: 'mono', themes: ['gameboy', 'terminal', 'contrast'] },
   { id: 'retro', themes: ['lines98', 'lines98plus', 'colorlines92'] },
@@ -209,12 +209,18 @@ export function sanitizeLookStore(raw: unknown): LookStore {
     const overrides = sanitizeOverrides(r[theme]);
     if (Object.keys(overrides).length > 0) out[theme] = overrides;
   }
-  // Choices kept for the meadow looks that were folded into Meadow: the relief look is the soft depth, and the
-  // choices already made on Meadow itself win.
-  for (const legacy of ['meadowClear', 'meadowRelief'] as const) {
+  // Choices kept for the looks that were folded into another one: the relief meadow is the soft depth, light and
+  // night are what the day/night switch makes of Modern and Clear. The choices already made on the target win.
+  const folded: [string, Theme, LookOverrides][] = [
+    ['meadowClear', 'meadow', {}],
+    ['meadowRelief', 'meadow', { volume: 'soft' }],
+    ['light', 'modern', {}],
+    ['clearNight', 'clear', {}],
+  ];
+  for (const [legacy, target, extra] of folded) {
     if (r[legacy] === undefined) continue;
-    const merged: LookOverrides = { ...(legacy === 'meadowRelief' ? { volume: 'soft' as const } : {}), ...sanitizeOverrides(r[legacy]), ...(out.meadow ?? {}) };
-    if (Object.keys(merged).length > 0) out.meadow = merged;
+    const merged: LookOverrides = { ...extra, ...sanitizeOverrides(r[legacy]), ...(out[target] ?? {}) };
+    if (Object.keys(merged).length > 0) out[target] = merged;
   }
   return out;
 }
@@ -223,11 +229,11 @@ export function sanitizeLookStore(raw: unknown): LookStore {
 export function themeDefaults(theme: Theme): Look {
   const base: Look = { volume: 'soft', contrast: 'normal', shapes: 'off', palette: 'vivid', ballSize: 'normal', grid: 'plain', cells: 'rounded' };
   switch (theme) {
-    case 'modern': case 'material': case 'ocean': case 'paper': case 'light':
+    case 'modern': case 'material': case 'ocean': case 'paper':
       return { ...base, volume: 'glossy', palette: 'classic' };
     case 'neon': case 'synthwave':
       return { ...base, volume: 'glossy', palette: 'vivid' };
-    case 'contrast': case 'clear': case 'clearNight': case 'retro98': case 'spectrum': case 'meadow': case 'orchid':
+    case 'contrast': case 'clear': case 'retro98': case 'spectrum': case 'meadow': case 'orchid':
       return { ...base, volume: 'flat', contrast: 'high', cells: 'square', grid: 'plain' };
     case 'gameboy': case 'terminal':
       return { ...base, volume: 'flat', contrast: 'high', shapes: 'shapes', cells: 'square' };

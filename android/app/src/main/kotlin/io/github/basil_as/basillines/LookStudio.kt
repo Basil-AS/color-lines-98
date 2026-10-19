@@ -108,8 +108,8 @@ private fun visionFilter(vision: Vision): ColorFilter? = when (vision) {
 
 /** A small live board drawn by the real styles: seven balls, a marker for the next ball and a reachable cell. */
 @Composable
-private fun LookPreview(theme: AppTheme, overrides: LookOverrides, custom: CustomTheme, vision: Vision, modifier: Modifier = Modifier) {
-    val palette = resolvePalette(theme, overrides, custom)
+private fun LookPreview(theme: AppTheme, overrides: LookOverrides, custom: CustomTheme, vision: Vision, night: Boolean, modifier: Modifier = Modifier) {
+    val palette = resolvePalette(theme, overrides, custom, night)
     val sprites = rememberSprites(palette)
     val measurer = rememberTextMeasurer()
     val filter = visionFilter(vision)
@@ -348,6 +348,7 @@ fun LookStudioDialog(
     theme: AppTheme,
     overrides: LookOverrides,
     custom: CustomTheme,
+    night: Boolean,
     onOverrides: (LookOverrides) -> Unit,
     onCustom: (CustomTheme) -> Unit,
     onUseCustom: () -> Unit,
@@ -367,7 +368,7 @@ fun LookStudioDialog(
                 // On a low screen (landscape) the preview and tabs scroll with the options, so the buttons below stay on screen.
                 val compact = LocalConfiguration.current.screenHeightDp < 620
                 val header: @Composable ColumnScope.() -> Unit = {
-                    LookPreview(theme, overrides, custom, vision, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
+                    LookPreview(theme, overrides, custom, vision, night, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Vision.entries.forEach { v ->
                             FilterChip(

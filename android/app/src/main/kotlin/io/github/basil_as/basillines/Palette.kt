@@ -47,7 +47,7 @@ private val Modern = Palette(
     dark = true, cellStyle = CellStyle.ROUNDED, ballStyle = BallStyle.GLOSSY, windowTitleBar = false
 )
 
-private val Light = Palette(
+private val ModernDay = Palette(
     background = Color(0xFFE9ECF5), panel = Color(0xFFFFFFFF), chip = Color(0xFFEEF0F8),
     boardBackground = Color(0xFFDFE3F0), cell = Color(0xFFF7F8FC),
     text = Color(0xFF191B26), textMuted = Color(0xFF55596B),
@@ -299,10 +299,11 @@ fun customPalette(custom: io.github.basil_as.basillines.engine.CustomTheme): Pal
 fun resolvePalette(
     theme: AppTheme,
     overrides: io.github.basil_as.basillines.engine.LookOverrides?,
-    custom: io.github.basil_as.basillines.engine.CustomTheme
+    custom: io.github.basil_as.basillines.engine.CustomTheme,
+    night: Boolean? = null
 ): Palette {
     val id = theme.webId
-    val base = if (theme == AppTheme.CUSTOM) customPalette(custom) else paletteFor(theme)
+    val base = if (theme == AppTheme.CUSTOM) customPalette(custom) else paletteFor(theme, night)
     if (!io.github.basil_as.basillines.engine.LookSpec.isStudioTheme(id)) return base
     val chosen = overrides ?: io.github.basil_as.basillines.engine.LookOverrides()
     val tones = if (io.github.basil_as.basillines.engine.LookSpec.studioActive(id, chosen)) {
@@ -311,9 +312,20 @@ fun resolvePalette(
     return base.copy(look = io.github.basil_as.basillines.engine.LookSpec.effective(id, chosen), overrides = chosen, tones = tones)
 }
 
-fun paletteFor(theme: AppTheme): Palette = when (theme) {
+/** The palette of a look; [night] picks its night or day form, null keeps the form the look was made in. */
+fun paletteFor(theme: AppTheme, night: Boolean? = null): Palette {
+    val own = theme.nativeNight
+    if (night == null || own == null || night == own) return nativePalette(theme)
+    // Two looks have a hand-made other form; the rest are derived from their own palette.
+    return when (theme) {
+        AppTheme.MODERN -> ModernDay
+        AppTheme.CLEAR -> ClearNight
+        else -> flipped(nativePalette(theme), night)
+    }
+}
+
+private fun nativePalette(theme: AppTheme): Palette = when (theme) {
     AppTheme.MODERN -> Modern
-    AppTheme.LIGHT -> Light
     AppTheme.MATERIAL -> Material
     AppTheme.NEON -> Neon
     AppTheme.SYNTHWAVE -> Synthwave
@@ -323,7 +335,6 @@ fun paletteFor(theme: AppTheme): Palette = when (theme) {
     AppTheme.TERMINAL -> Terminal
     AppTheme.CONTRAST -> Contrast
     AppTheme.CLEAR -> Clear
-    AppTheme.CLEAR_NIGHT -> ClearNight
     AppTheme.RETRO98 -> Retro98
     AppTheme.SPECTRUM -> Spectrum
     AppTheme.MEADOW -> Meadow

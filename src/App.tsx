@@ -57,6 +57,7 @@ import {
   loadVibration,
   loadSpawnPreview,
   loadTheme,
+  loadColorScheme,
   loadLooks,
   loadCustomTheme,
   saveBestScore,
@@ -73,6 +74,7 @@ import {
   saveVibration,
   saveSpawnPreview,
   saveTheme,
+  saveColorScheme,
   saveLooks,
   saveCustomTheme,
 } from './storage';
@@ -83,7 +85,8 @@ import { addRecord, isNewRecord, recordFromEngine, summarize } from './stats';
 import type { GameRecord } from './stats';
 import { applyGame, applyGoalBonus, awardAchievements, currentStreak, dayKey, levelInfo, rebuildProgress, xpOf } from './progress';
 import type { Progress } from './progress';
-import { ballThemeClass, defaultSpawnPreview, soundProfile, soundVoice, usesSprites } from './themes';
+import { ballThemeClass, defaultSpawnPreview, resolveShade, shadeStyle, themeClasses, soundProfile, soundVoice, usesSprites } from './themes';
+import type { ColorScheme, Shade } from './themes';
 import { BoardFx, travelMs } from './effects';
 import type { EffectsLevel, MoveFx } from './effects';
 import { haptic, setHapticsEnabled } from './haptics';
@@ -129,7 +132,6 @@ function applyDocumentLanguage(lang: Language): void {
 
 const THEME_COLORS: Record<Theme, string> = {
   modern: '#121217',
-  light: '#e9ecf5',
   material: '#fef7ff',
   neon: '#07060f',
   synthwave: '#140a2e',
@@ -139,7 +141,6 @@ const THEME_COLORS: Record<Theme, string> = {
   terminal: '#120900',
   contrast: '#000000',
   clear: '#f5f3ec',
-  clearNight: '#161b22',
   retro98: '#4b2a63',
   spectrum: '#f1eadc',
   meadow: '#e5e9df',
@@ -150,9 +151,29 @@ const THEME_COLORS: Record<Theme, string> = {
   colorlines92: '#000000',
 };
 
-function applyDocumentTheme(theme: Theme, custom: CustomTheme): void {
-  document.body.className = `theme-${theme}`;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'custom' ? custom.page : THEME_COLORS[theme]);
+const SHADE_PAGE: Record<Shade, string> = { night: '#0d1016', day: '#eef0f4' };
+/** The browser bar colour of a look that has a sheet of its own for the shade. */
+const SHEET_COLORS: Record<string, string> = { light: '#e9ecf5', clearNight: '#161b22' };
+
+function applyDocumentTheme(theme: Theme, custom: CustomTheme, shade: Shade): void {
+  const { css, flip } = shadeStyle(theme, shade);
+  document.body.className = themeClasses(theme, shade);
+  const color = theme === 'custom' ? custom.page : flip ? SHADE_PAGE[flip] : (SHEET_COLORS[css] ?? THEME_COLORS[theme]);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+}
+
+/** Whether the device asks for dark colours, kept live so Auto follows the system without a reload. */
+function useSystemDark(): boolean {
+  const query = () => (typeof window.matchMedia === 'function' ? window.matchMedia('(prefers-color-scheme: dark)') : null);
+  const [dark, setDark] = useState(() => query()?.matches ?? false);
+  useEffect(() => {
+    const mq = query();
+    if (!mq) return;
+    const on = (e: MediaQueryListEvent) => setDark(e.matches);
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, []);
+  return dark;
 }
 
 function withRecord(history: readonly GameRecord[], engine: GameEngine, completed: boolean) {
@@ -194,6 +215,9 @@ export default function App() {
   const [newGameMode, setNewGameMode] = useState<ModeId | null>(null);
   const [version, setVersion] = useState(0); // Bumped after every engine mutation to re-render
   const [theme, setTheme] = useState<Theme>(loadTheme);
+  const [scheme, setScheme] = useState<ColorScheme>(loadColorScheme);
+  const systemDark = useSystemDark();
+  const shade = resolveShade(scheme, systemDark);
   const [looks, setLooks] = useState<LookStore>(loadLooks);
   const [custom, setCustom] = useState<CustomTheme>(loadCustomTheme);
   const [langPref, setLangPref] = useState<LanguagePref>(loadLanguagePref);
@@ -358,6 +382,11 @@ export default function App() {
     saveLooks(next);
     if (share.custom) changeCustom(share.custom);
     changeTheme(share.theme);
+  };
+
+  const changeScheme = (next: ColorScheme) => {
+    setScheme(next);
+    saveColorScheme(next);
   };
 
   const changeTheme = (newTheme: Theme) => {
@@ -725,7 +754,7 @@ export default function App() {
       ledger,
       progress,
       hall,
-      settings: { theme, looks, custom, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode, effects: effectsLevel, vibration },
+      settings: { theme, scheme, looks, custom, language: langPref, playerName, soundEnabled, spawnPreview: spawnStored, showNext, mode: engine.mode, effects: effectsLevel, vibration },
     });
     downloadText(`color-lines-backup-${stamp}.json`, JSON.stringify(backup, null, 1), 'application/json');
   };
@@ -753,6 +782,7 @@ export default function App() {
         setTheme(s.theme);
         saveTheme(s.theme);
       }
+      if (s.scheme) changeScheme(s.scheme);
       if (s.looks) {
         setLooks(s.looks);
         saveLooks(s.looks);
@@ -785,9 +815,9 @@ export default function App() {
   };
 
   useEffect(() => {
-    applyDocumentTheme(theme, custom);
+    applyDocumentTheme(theme, custom, shade);
     applyLook(theme, looks[theme], custom);
-  }, [theme, looks, custom]);
+  }, [theme, looks, custom, shade]);
 
   // The installed app's "New game" shortcut opens the dialog (it never restarts on its own).
   useEffect(() => {
@@ -1114,6 +1144,8 @@ export default function App() {
           lang={lang}
           theme={theme}
           onTheme={changeTheme}
+          scheme={scheme}
+          onScheme={changeScheme}
           looks={looks[theme]}
           onLook={changeLook}
           onResetLook={resetLook}
@@ -1263,7 +1295,7 @@ export default function App() {
 
   if (dos) {
     return (
-      <div className={`app-container theme-${theme} has-side`}>
+      <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
         {tutorialBanner}
         {dosView}
         {sidePanel}
@@ -1273,7 +1305,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app-container theme-${theme} has-side`}>
+    <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
       <div className="game-window">
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}

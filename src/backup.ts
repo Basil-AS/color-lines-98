@@ -13,8 +13,8 @@ import { isModeId } from './engine/modes';
 import type { ModeId } from './engine/modes';
 import { sanitizeCustom, sanitizeLookStore } from './appearance';
 import type { CustomTheme, LookStore } from './appearance';
-import { knownTheme } from './themes';
-import type { Theme } from './themes';
+import { knownTheme, parseColorScheme, schemeOfLegacyTheme } from './themes';
+import type { ColorScheme, Theme } from './themes';
 
 /** A file with everything worth moving between devices; the same format is written by the web app and by Android. */
 export const BACKUP_FORMAT = 'color-lines-backup';
@@ -24,6 +24,8 @@ export const BACKUP_MAX_BYTES = 64 * 1024 * 1024;
 
 export interface BackupSettings {
   theme?: Theme;
+  /** Day, night or follow the device. */
+  scheme?: ColorScheme;
   language?: 'auto' | 'en' | 'ru';
   playerName?: string;
   soundEnabled?: boolean;
@@ -61,6 +63,8 @@ function sanitizeSettings(raw: unknown): BackupSettings {
   const out: BackupSettings = {};
   const theme = knownTheme(r.theme);
   if (theme !== null) out.theme = theme;
+  const scheme = parseColorScheme(r.scheme) ?? schemeOfLegacyTheme(r.theme);
+  if (scheme !== null) out.scheme = scheme;
   if (r.language === 'auto' || r.language === 'en' || r.language === 'ru') out.language = r.language;
   if (typeof r.playerName === 'string') out.playerName = r.playerName.slice(0, 12);
   if (typeof r.soundEnabled === 'boolean') out.soundEnabled = r.soundEnabled;

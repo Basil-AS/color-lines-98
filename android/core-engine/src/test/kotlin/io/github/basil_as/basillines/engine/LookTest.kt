@@ -191,4 +191,28 @@ class LookTest {
         val code = "CL3:" + java.util.Base64.getEncoder().encodeToString(body.toByteArray())
         assertEquals(LookShare("modern", LookOverrides(volume = Volume.FLAT), null), LookCode.decode(code))
     }
+
+    @Test
+    fun theLightModernAndClearNightAreSchemesOfModernAndClear() {
+        assertEquals("modern", LookSpec.canonicalTheme("light"))
+        assertEquals("clear", LookSpec.canonicalTheme("clearNight"))
+        assertEquals("day", LookSpec.schemeOfRenamed("light"))
+        assertEquals("night", LookSpec.schemeOfRenamed("clearNight"))
+        assertNull(LookSpec.schemeOfRenamed("modern"))
+        assertFalse("light" in LookSpec.THEME_IDS)
+        assertFalse("clearNight" in LookSpec.THEME_IDS)
+        // What was chosen on the old looks moves to the new ones, and choices made on those win.
+        val store = LookStore.storeFrom(
+            mapOf(
+                "light" to mapOf("volume" to "flat", "grid" to "dots"),
+                "modern" to mapOf("volume" to "glossy"),
+                "clearNight" to mapOf("ring" to "high")
+            )
+        )
+        assertEquals(LookOverrides(volume = Volume.GLOSSY, grid = GridStyle.DOTS), store["modern"])
+        assertEquals(LookOverrides(ring = RingLevel.HIGH), store["clear"])
+        val body = "{\"theme\":\"clearNight\",\"look\":{\"volume\":\"flat\"}}"
+        val code = "CL3:" + java.util.Base64.getEncoder().encodeToString(body.toByteArray())
+        assertEquals(LookShare("clear", LookOverrides(volume = Volume.FLAT), null), LookCode.decode(code))
+    }
 }

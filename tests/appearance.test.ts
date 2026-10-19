@@ -195,7 +195,7 @@ describe('applying a look to the page', () => {
     expect(el.getAttribute('data-studio')).toBe('1');
     expect(el.getAttribute('data-grid')).toBe('thin');
     expect(el.style.getPropertyValue('--bs-red')).toBe('#e53935');
-    applyLook('light', undefined, DEFAULT_CUSTOM, el);
+    applyLook('material', undefined, DEFAULT_CUSTOM, el);
     expect(el.hasAttribute('data-studio')).toBe(false);
     expect(el.hasAttribute('data-grid')).toBe(false);
     expect(el.style.getPropertyValue('--bs-red')).toBe('');
@@ -257,5 +257,19 @@ describe('the three meadow looks became one', () => {
   it('reads a look code made on the old relief look', () => {
     const body = btoa(JSON.stringify({ theme: 'meadowRelief', look: {} }));
     expect(decodeLook(`CL3:${body}`)).toEqual({ theme: 'meadow', look: { volume: 'soft' }, custom: undefined });
+  });
+});
+
+describe('light and night folded into Modern and Clear', () => {
+  it('moves the choices made on the old looks to the looks that replaced them, keeping the newer ones', () => {
+    const store = sanitizeLookStore({ light: { grid: 'thin', volume: 'flat' }, modern: { grid: 'bold' }, clearNight: { cells: 'round' } });
+    expect(store).toEqual({ modern: { grid: 'bold', volume: 'flat' }, clear: { cells: 'round' } });
+  });
+
+  it('reads old share codes and names', () => {
+    expect(knownTheme('light')).toBe('modern');
+    expect(knownTheme('clearNight')).toBe('clear');
+    expect(parseTheme('clearnight')).toBe('clear');
+    expect(decodeLook(encodeLook({ theme: 'modern', look: { grid: 'thin' } }))?.theme).toBe('modern');
   });
 });
