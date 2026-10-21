@@ -366,7 +366,8 @@ fun LookStudioDialog(
             Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 14.dp)) {
                 Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
                 // On a low screen (landscape) the preview and tabs scroll with the options, so the buttons below stay on screen.
-                val compact = LocalConfiguration.current.screenHeightDp < 620
+                val config = LocalConfiguration.current
+                val compact = config.screenHeightDp < 760 || config.fontScale > 1.1f
                 val header: @Composable ColumnScope.() -> Unit = {
                     LookPreview(theme, overrides, custom, vision, night, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -379,7 +380,7 @@ fun LookStudioDialog(
                             )
                         }
                     }
-                    Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StudioTab.entries.forEach { t ->
                             FilterChip(
                                 selected = tab == t,

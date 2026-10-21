@@ -23,6 +23,8 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -270,6 +272,7 @@ fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
 }
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun SettingsDialog(
     theme: AppTheme,
     onTheme: (AppTheme) -> Unit,
@@ -321,7 +324,7 @@ fun SettingsDialog(
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
                 Text(stringResource(R.string.scheme_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(DayNight.AUTO to R.string.scheme_auto, DayNight.DAY to R.string.scheme_day, DayNight.NIGHT to R.string.scheme_night).forEach { (value, name) ->
                         androidx.compose.material3.FilterChip(
                             selected = scheme == value,
@@ -387,7 +390,7 @@ fun SettingsDialog(
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
                 Text(stringResource(R.string.settings_effects), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
-                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(EffectsLevel.OFF to R.string.effects_off, EffectsLevel.CALM to R.string.effects_calm, EffectsLevel.FULL to R.string.effects_full).forEach { (level, name) ->
                         androidx.compose.material3.FilterChip(
                             selected = effects == level,
@@ -1046,6 +1049,7 @@ internal fun tutorialText(id: StepId, retry: Boolean): Int = when {
 }
 
 /** The coach card over the bottom of the screen; the board and the score panel stay visible and playable. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun TutorialBanner(
     palette: Palette,
@@ -1075,7 +1079,7 @@ fun TutorialBanner(
                 Text(stringResource(R.string.tutorial_progress, step, total), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(text, fontSize = 14.sp, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (showContinue) Button(onClick = onContinue) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue)) }
                 if (!last) TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
             }
