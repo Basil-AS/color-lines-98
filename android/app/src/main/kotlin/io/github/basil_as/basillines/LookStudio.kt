@@ -23,6 +23,11 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.unit.Dp
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -156,9 +161,9 @@ private fun <T> ChoiceGroup(
     onPick: (T) -> Unit,
     dots: ((T) -> List<Int>)? = null
 ) {
-    Column(Modifier.fillMaxWidth().padding(top = 10.dp)) {
+    Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(lookText(titleKey), fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+            Text(lookText(titleKey), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             if (current == null) {
                 Text(
                     "  ·  " + lookText("look_followTheme"),
@@ -167,7 +172,7 @@ private fun <T> ChoiceGroup(
                 )
             }
         }
-        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             options.forEach { option ->
                 FilterChip(
                     selected = effective == option,
@@ -175,7 +180,7 @@ private fun <T> ChoiceGroup(
                     label = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             dots?.invoke(option)?.forEach { c ->
-                                Box(Modifier.padding(end = 2.dp).size(8.dp).clip(RoundedCornerShape(50)).background(Color(c)))
+                                Box(Modifier.padding(end = 1.dp).size(6.dp).clip(RoundedCornerShape(50)).background(Color(c)))
                             }
                             Text(lookText("${titleKey}_${idOf(option)}"), fontSize = 13.sp)
                         }
@@ -342,7 +347,7 @@ private enum class StudioTab(val key: String) { BALLS("settings_tab_balls"), BOA
  * It fills the screen: the preview stays pinned at the top while the parameters scroll under it, and the buttons
  * stay at the bottom.
  */
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun LookStudioDialog(
     theme: AppTheme,
@@ -363,13 +368,25 @@ fun LookStudioDialog(
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 14.dp)) {
-                Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleLarge, modifier = Modifier.padding(top = 10.dp, bottom = 8.dp))
-                // On a low screen (landscape) the preview and tabs scroll with the options, so the buttons below stay on screen.
-                val config = LocalConfiguration.current
-                val compact = config.screenHeightDp < 760 || config.fontScale > 1.1f
-                val header: @Composable ColumnScope.() -> Unit = {
-                    LookPreview(theme, overrides, custom, vision, night, Modifier.widthIn(max = 460.dp).align(Alignment.CenterHorizontally))
+            // Chips are 32 dp tall here instead of the 48 dp touch area, so the whole studio fits on a phone.
+            CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+                Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp)) {
+                    // The buttons are in the header: nothing the player needs sits under the system bars.
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        if (tab == StudioTab.BUILDER) {
+                            Button(onClick = onUseCustom, enabled = theme != AppTheme.CUSTOM) {
+                                Text(stringResource(if (theme == AppTheme.CUSTOM) R.string.builder_active else R.string.builder_use), fontSize = 13.sp)
+                            }
+                        } else {
+                            TextButton(onClick = { onOverrides(LookOverrides()) }, enabled = studio && !overrides.isEmpty) {
+                                Text(stringResource(R.string.look_reset), fontSize = 13.sp)
+                            }
+                        }
+                        Spacer(Modifier.width(4.dp))
+                        Button(onClick = onClose) { Text(stringResource(R.string.btn_close), fontSize = 13.sp) }
+                    }
+                    LookPreview(theme, overrides, custom, vision, Modifier.widthIn(max = 320.dp).align(Alignment.CenterHorizontally).padding(top = 6.dp))
                     Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Vision.entries.forEach { v ->
                             FilterChip(
@@ -380,7 +397,7 @@ fun LookStudioDialog(
                             )
                         }
                     }
-                    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Row(Modifier.fillMaxWidth().selectableGroup().padding(top = 2.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StudioTab.entries.forEach { t ->
                             FilterChip(
                                 selected = tab == t,
@@ -390,38 +407,24 @@ fun LookStudioDialog(
                             )
                         }
                     }
-                }
-                if (!compact) header()
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                    if (compact) header()
-                    if (tab == StudioTab.BUILDER) {
-                        BuilderTab(theme, overrides, custom, onCustom, onApplyShare)
-                    } else if (!studio) {
-                        Text(stringResource(R.string.look_retroNote), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-                    } else if (tab == StudioTab.BALLS) {
-                        ChoiceGroup("look_palette", PaletteId.entries.toList(), overrides.palette, effective.palette, { it.id }, { onOverrides(overrides.copy(palette = it)) }) {
-                            if (it == PaletteId.CUSTOM) emptyList() else BallColor.entries.map { c -> LookPalettes.SETS.getValue(it).getValue(c) }
-                        }
-                        ChoiceGroup("look_volume", Volume.entries.toList(), overrides.volume, effective.volume, { it.id }, { onOverrides(overrides.copy(volume = it)) })
-                        ChoiceGroup("look_contrast", RingLevel.entries.toList(), overrides.ring, effective.ring, { it.id }, { onOverrides(overrides.copy(ring = it)) })
-                        ChoiceGroup("look_shapes", ShapeSet.entries.toList(), overrides.shapes, effective.shapes, { it.id }, { onOverrides(overrides.copy(shapes = it)) })
-                        ChoiceGroup("look_ballSize", BallSize.entries.toList(), overrides.ballSize, effective.ballSize, { it.id }, { onOverrides(overrides.copy(ballSize = it)) })
-                    } else {
-                        ChoiceGroup("look_grid", GridStyle.entries.toList(), overrides.grid, effective.grid, { it.id }, { onOverrides(overrides.copy(grid = it)) })
-                        ChoiceGroup("look_cells", CellShape.entries.toList(), overrides.cells, effective.cells, { it.id }, { onOverrides(overrides.copy(cells = it)) })
-                    }
-                }
-                Row(Modifier.fillMaxWidth().padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (tab == StudioTab.BUILDER) {
-                        Button(onClick = onUseCustom, enabled = theme != AppTheme.CUSTOM, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(if (theme == AppTheme.CUSTOM) R.string.builder_active else R.string.builder_use))
-                        }
-                    } else {
-                        TextButton(onClick = { onOverrides(LookOverrides()) }, enabled = studio && !overrides.isEmpty, modifier = Modifier.weight(1f)) {
-                            Text(stringResource(R.string.look_reset))
+                    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
+                        if (tab == StudioTab.BUILDER) {
+                            BuilderTab(theme, overrides, custom, onCustom, onApplyShare)
+                        } else if (!studio) {
+                            Text(stringResource(R.string.look_retroNote), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
+                        } else if (tab == StudioTab.BALLS) {
+                            ChoiceGroup("look_palette", PaletteId.entries.toList(), overrides.palette, effective.palette, { it.id }, { onOverrides(overrides.copy(palette = it)) }) {
+                                if (it == PaletteId.CUSTOM) emptyList() else BallColor.entries.map { c -> LookPalettes.SETS.getValue(it).getValue(c) }
+                            }
+                            ChoiceGroup("look_volume", Volume.entries.toList(), overrides.volume, effective.volume, { it.id }, { onOverrides(overrides.copy(volume = it)) })
+                            ChoiceGroup("look_contrast", RingLevel.entries.toList(), overrides.ring, effective.ring, { it.id }, { onOverrides(overrides.copy(ring = it)) })
+                            ChoiceGroup("look_shapes", ShapeSet.entries.toList(), overrides.shapes, effective.shapes, { it.id }, { onOverrides(overrides.copy(shapes = it)) })
+                            ChoiceGroup("look_ballSize", BallSize.entries.toList(), overrides.ballSize, effective.ballSize, { it.id }, { onOverrides(overrides.copy(ballSize = it)) })
+                        } else {
+                            ChoiceGroup("look_grid", GridStyle.entries.toList(), overrides.grid, effective.grid, { it.id }, { onOverrides(overrides.copy(grid = it)) })
+                            ChoiceGroup("look_cells", CellShape.entries.toList(), overrides.cells, effective.cells, { it.id }, { onOverrides(overrides.copy(cells = it)) })
                         }
                     }
-                    Button(onClick = onClose) { Text(stringResource(R.string.btn_close)) }
                 }
             }
         }
