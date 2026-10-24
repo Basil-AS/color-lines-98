@@ -27,3 +27,7 @@ Preserved initially clean claude/day-night-mode. Fetched origin and tags, fast-f
 ## Follow-up — execute PRs
 
 User authorized PR execution. Merged #48, #49, #50, #51, #53. Created isolated branch codex/compatible-android-dependencies for a compatible replacement of #54/#55. Preserve SDK/AGP/Kotlin; update supported dependency lines and cap incompatible Dependabot proposals. Existing failing CI is regression evidence; replacement CI is required before merging.
+
+## 2026-10-25T01:35:27+04:00 — PR integration delivered
+
+Merged the five Actions update PRs and #58 after all checks passed on 48195d480319cd9fad3da8adac7c30eb1bdeab0f. Closed incompatible #54/#55 as superseded. Synchronized local main to 4f5bc4410d44322afa8fc202b2ad48784aabb109; zero open PRs confirmed. Prepared a documentation-only handoff checkpoint. CI evidence: 40134462744 (CI), 40134462749 (Android), 40134462756 (CodeQL), 40134462760 (web/e2e), all successful. Next: validate handoff PR and final main deployment.
