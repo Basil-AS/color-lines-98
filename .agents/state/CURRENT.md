@@ -1,8 +1,8 @@
 # Current agent state
 
-ACTIVE_TASK: .agents/tasks/20261018-1300-v3-look-studio
-STATUS: complete
-BRANCH: main
-LAST_VERIFIED_COMMIT: 775046f6c4c6534ebda4819a4144d0168ee5e1e6
-UPDATED_AT: 2026-10-18T17:00:00+03:00
-NEXT_ACTION: 3.2.1 (Android layout fixes: settings chips wrap, look studio scrolls on low screens) prepared in a PR; merging publishes the release. 3.2.0 shipped.
+ACTIVE_TASK: .agents/tasks/20261025-project-sync-pr-audit
+STATUS: wip
+BRANCH: codex/compatible-android-dependencies
+LAST_VERIFIED_COMMIT: 863a4073f059ed6892e90e9bb2a2d72dfa41763b
+UPDATED_AT: 2026-10-25T01:20:49+04:00
+NEXT_ACTION: Push compatible replacement for Android PRs #54/#55 and validate full CI before merge.
