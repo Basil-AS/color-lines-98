@@ -1,35 +1,34 @@
 # Handoff
 
 TASK_ID: 20261025-project-sync-pr-audit
-STATUS: wip
-BRANCH: codex/compatible-android-dependencies
-HEAD: 863a4073f059ed6892e90e9bb2a2d72dfa41763b
-LAST_VERIFIED_COMMIT: 863a4073f059ed6892e90e9bb2a2d72dfa41763b
-BASE_COMMIT: 863a4073f059ed6892e90e9bb2a2d72dfa41763b
-ACTIVE_SKILLS: cold-start-resume, verification-before-completion
+STATUS: complete
+BRANCH: codex/pr-integration-handoff
+BASE_COMMIT: 4f5bc4410d44322afa8fc202b2ad48784aabb109
+HEAD: documentation checkpoint on 4f5bc4410d44322afa8fc202b2ad48784aabb109
+LAST_VERIFIED_COMMIT: 48195d480319cd9fad3da8adac7c30eb1bdeab0f
+PR: https://github.com/Basil-AS/color-lines-98/pull/58 (merged)
 PROFILE: minimal
-TOOLS_USED: git, gh, python3, bundled node
-UPDATED_AT: 2026-10-25T01:20:49+04:00
+ACTIVE_SKILLS: systematic-debugging, verification-before-completion, task-handoff
+TOOLS_USED: git, gh, github connector, python3, bundled node, rtk
+UPDATED_AT: 2026-10-25T01:35:27+04:00
 
 ## Done
 
-Local main fast-forwarded to origin/main and release v3.2.2; all old branches preserved. All 57 PRs inventoried: 39 merged, 11 closed, 7 open. Five open CI-update PRs green; Android #54/#55 blocked by compatibility errors detailed in TASK.md. No unresolved review threads on open PRs. Main remote CI, release and deploy green.
+Merged #48/#49/#50/#51/#53. Replaced incompatible Android PRs with #58: Core 1.16.0, coroutines 1.11.0, Robolectric 4.17, Gradle 8.14.5; AGP 8.13.0, Kotlin 2.2.20 and SDK 35 retained. Added Dependabot compatibility bounds. #58 passed all CI checks and merged as 4f5bc4410d44322afa8fc202b2ad48784aabb109; #54/#55 closed as superseded. Old branches preserved; main synchronized.
 
 ## Verification evidence
 
-Local Android strings check, agent self-test and diff whitespace check passed. Remote CI exact HEAD: 1026 unit tests, 140 e2e tests, Android builds, typecheck/build successful; 2 lint warnings. Local full suites not run: npm/project dependencies, JDK and SDK missing.
+#58 head 48195d480319cd9fad3da8adac7c30eb1bdeab0f: CI 40134462744, Android 40134462749, CodeQL 40134462756 and web/e2e 40134462760 succeeded. Full Android tests, lint, debug build, web tests/build and browser tests passed remotely. Local agent self-test, state validation, string dictionary check and whitespace checks pass. Local full suites unavailable due to absent npm/JDK/SDK.
 
-## Uncommitted state
+## Uncommitted or running state
 
-Only this audit task directory and .agents/state/CURRENT.md. No application edits, commits, pushes, PR merges or branch deletions.
+Documentation-only handoff checkpoint. Application and dependency implementation merged. Final main CI/deploy may still be running; confirm before user-facing all-green claim.
+
+## Risks
+
+Newer Core/Kotlin/Gradle lines need a coordinated SDK/AGP migration. They were intentionally not forced into the current toolchain.
 
 ## Exact next action
 
-Report results to user. If dependency upgrades are requested, start an isolated task for coordinated Android compatibility fixes; do not merge #54/#55 unchanged.
-
-COMMAND: `git rev-list --left-right --count HEAD...origin/main`
-EXPECTED: 0 0; dependency PRs #54/#55 remain blocked until compatible upgrades are implemented.
-
-## PR execution follow-up
-
-#48/#49/#50/#51/#53 merged. Compatible Android replacement prepared; next push replacement PR and verify full CI before merge. User authorized completing PR integration.
+COMMAND: `gh pr list --state open && gh run list --branch main --limit 12`
+EXPECTED: merge the documentation handoff after green checks, then confirm no open PRs, successful main CI/Pages and synchronized clean main.
