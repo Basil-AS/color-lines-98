@@ -33,6 +33,10 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      - uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
+
       - name: Install the Android compile SDK
         run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
 
