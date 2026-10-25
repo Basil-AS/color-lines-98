@@ -229,7 +229,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var theme by remember { mutableStateOf(storage.theme) }
     var looks by remember { mutableStateOf(storage.looks) }
     var custom by remember { mutableStateOf(storage.customTheme) }
-    var engine by remember { mutableStateOf(storage.loadGame() ?: Modes.createEngine(storage.mode, dayKey())) }
+    var engine by remember {
+        mutableStateOf(storage.loadGame() ?: Modes.createEngine(storage.mode, dayKey()).also(storage::saveGame))
+    }
     var hint by remember { mutableStateOf<Hint?>(null) }
     var hintsLeft by remember { mutableIntStateOf(HINTS_PER_GAME) }
     var pickedMode by remember { mutableStateOf(storage.mode) }

@@ -3847,6 +3847,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
     max-width: none;
     overflow-y: auto;
     overflow-x: hidden;
+    contain: layout paint;
     grid-template-columns: var(--play-size) minmax(0, 1fr);
     grid-template-rows: auto auto 1fr;
     grid-template-areas: 'board header' 'board mode' 'board footer';
@@ -4062,7 +4063,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   }
 
   .theme-lines98plus .game-title {
-    font-size: 1rem;
+    display: none;
   }
 
   .theme-lines98plus .hud-stats {

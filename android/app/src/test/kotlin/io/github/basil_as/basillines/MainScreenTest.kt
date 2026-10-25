@@ -150,6 +150,20 @@ class MainScreenTest {
     }
 
     @Test
+    fun freshBoardAndPreviewSurviveRecreationBeforeTheFirstMove() {
+        fun cells() = rule.onAllNodes(ballCell or emptyCell).fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.ContentDescription].first() }.sorted()
+        fun next() = rule.onNodeWithContentDescription("Next balls:", substring = true)
+            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription].first()
+        val before = cells()
+        val beforeNext = next()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+        assertEquals(before, cells())
+        assertEquals(beforeNext, next())
+    }
+
+    @Test
     fun gameSurvivesActivityRecreation() {
         playOneMove()
         val before = ballCount()

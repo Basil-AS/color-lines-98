@@ -51,7 +51,10 @@ for (const theme of ['modern', 'lines98', 'lines98plus', 'colorlines92']) {
           expect(reachable, await action.getAttribute('aria-label') ?? await action.textContent() ?? '').toBe(true);
         }
         const after = await picture.boundingBox();
-        expect(after).toEqual(before);
+        for (const key of ['x', 'y', 'width', 'height'] as const) {
+          // Sticky layout can round a fractional font metric to the next device pixel.
+          expect(Math.abs(after![key] - before![key]), key).toBeLessThan(1);
+        }
         const goals = page.getByRole('button', { name: /^Цели/ }).first();
         await goals.click();
         await expect(page.getByRole('dialog')).toBeVisible();

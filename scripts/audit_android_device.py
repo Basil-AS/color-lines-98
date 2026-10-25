@@ -8,6 +8,7 @@ because Artemis's optional UI helper can install packages/change device settings
 import argparse
 import asyncio
 import io
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -63,8 +64,11 @@ async def audit(args):
         bitmap.save(output / f"{name}.png")
         (output / f"{name}.xml").write_text(xml)
         cells = [n for n in nodes if re.match(r"(?:Row \d+, column \d+|Ряд \d+, столбец \d+)", n.get("content-desc", ""))]
+        if args.matrix and len(cells) != 81:
+            raise RuntimeError(f"Expected the unobscured game board, found {len(cells)} labelled cells")
         report["captures"].append({"name": name, "pixels": bitmap.size,
-                                   "app_nodes": len(nodes), "labelled_cells": len(cells)})
+                                   "app_nodes": len(nodes), "labelled_cells": len(cells),
+                                   "board_fingerprint": hashlib.sha256("\n".join(sorted(", ".join(n.get("content-desc", "").split(", ")[:3]) for n in cells)).encode()).hexdigest()})
         (output / "report.json").write_text(json.dumps(report, indent=2))
 
     await driver.connect()
@@ -78,6 +82,9 @@ async def audit(args):
                     setting("font_scale", scale)
                     await asyncio.sleep(2)
                     await capture(f"{orientation}-font-{scale}")
+            signatures = {item["board_fingerprint"] for item in report["captures"]}
+            if len(signatures) != 1:
+                raise RuntimeError("Board changed during rotation/font changes without a game action")
         else:
             await capture(args.name)
     finally:

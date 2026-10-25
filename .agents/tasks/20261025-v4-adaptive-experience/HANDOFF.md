@@ -4,10 +4,10 @@ TASK_ID: 20261025-v4-adaptive-experience
 STATUS: wip
 BRANCH: codex/v4-adaptive-experience
 BASE_COMMIT: 1da4f981cb781553a1f8530682138e821208e838
-HEAD: 71ef13e9a4b80f91fcc9744655ad6aaaeabd12e0 plus ongoing v4 changes
+HEAD: e3ca4e7 (implementation744c49f plus CI provisioning fix)
 PR: https://github.com/Basil-AS/color-lines-98/pull/67 (draft)
 ACTIVE_SKILLS: subagent-driven-development, frontend-design, systematic-debugging, test-driven-development, verification-before-completion
-LAST_VERIFIED_COMMIT: 71ef13e9a4b80f91fcc9744655ad6aaaeabd12e0
+LAST_VERIFIED_COMMIT: 744c49f7e7e76d3200bb3c84a3b17c307567736b
 PROFILE: balanced
 TOOLS_USED: Gradle, npm, Playwright, Artemis AndroidAdbDriver, ADB
 UPDATED_AT: 2026-10-25
@@ -24,3 +24,6 @@ Next: verify AdaptiveGameScreenTest semantics/score/sticky actions fixes, full A
 
 COMMAND: `git status --short --branch`
 EXPECTED: v4 implementation changes on codex/v4-adaptive-experience; fresh full Android suite/build/lint green, web180browser/1026unit green. Reconcile/poll live captures before restart. Need final source checkpoint/push and signed CI candidate; physical Huawei currently disconnected.
+
+## Latest evidence
+Full source checkpoint744c49f pushed to PR67; CI setup fixe3ca4e7 now provisioning correctly. Signed manual Android CI run40196378487 live (tests finished, lint/build next; candidate job follows). API37tablet840×1280/1280×840 at160dpi also captured by Artemis,81labelledcells in all4poses; sizes/density restored. Fresh whole-branch independent review final_v4_review passes with no actionable defects, conditional release gates remain. Realphone absent in both native and isolated libusb ADB scans; isolated server5038 stopped. No reinstall/uninstall on realphone.
