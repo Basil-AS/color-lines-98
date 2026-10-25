@@ -1,5 +1,7 @@
 package io.github.basil_as.basillines
 
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.ui.graphics.Color
@@ -35,7 +37,14 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.window.Dialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +87,55 @@ import io.github.basil_as.basillines.engine.ProgressTracker
 import io.github.basil_as.basillines.engine.ScoringSystem
 import java.text.DateFormat
 import java.util.Date
+
+/** A bounded window with one scroll owner; short windows keep every action in the scroll flow. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SupportingDialog(
+    onDismissRequest: () -> Unit,
+    title: @Composable () -> Unit,
+    text: @Composable () -> Unit,
+    confirmButton: @Composable () -> Unit,
+    dismissButton: @Composable (() -> Unit)? = null
+) {
+    Dialog(onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        BoxWithConstraints(
+            Modifier.fillMaxSize().pointerInput(onDismissRequest) { detectTapGestures { onDismissRequest() } }
+                .windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            val scrollAll = maxHeight < 360.dp * LocalDensity.current.fontScale
+            Surface(
+                Modifier.widthIn(max = 640.dp).fillMaxWidth().heightIn(max = maxHeight)
+                    .pointerInput(Unit) { detectTapGestures { /* Keep panel taps inside the dialog. */ } },
+                shape = MaterialTheme.shapes.extraLarge,
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp
+            ) {
+                Column(
+                    Modifier.then(if (scrollAll) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    ProvideTextStyle(MaterialTheme.typography.headlineSmall) { title() }
+                    val body = if (scrollAll) Modifier else Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                    Box(body.fillMaxWidth()) {
+                        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
+                            ProvideTextStyle(MaterialTheme.typography.bodyMedium) { text() }
+                        }
+                    }
+                    FlowRow(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        dismissButton?.invoke()
+                        confirmButton()
+                    }
+                }
+            }
+        }
+    }
+}
 
 private val LEVEL_TITLES = listOf(
     R.string.level_title_novice, R.string.level_title_apprentice, R.string.level_title_skilled,
@@ -169,11 +227,11 @@ fun GameOverDialog(
     onClose: () -> Unit,
     goalXp: Int = 0
 ) {
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.gameover_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (goalXp > 0) Text(stringResource(R.string.goals_reached) + ": +" + goalXp + " XP", fontWeight = FontWeight.Bold)
                 if (newRecord) {
                     Text(
@@ -235,11 +293,11 @@ private fun AchievementRow(id: String, unlockedAt: Long?, showDate: Boolean = tr
 
 @Composable
 fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.help_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.help_objective))
                 Text(stringResource(R.string.help_scoring))
                 Column {
@@ -318,11 +376,11 @@ fun SettingsDialog(
             onClose = { studio = false }
         )
     }
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.settings_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.scheme_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(DayNight.AUTO to R.string.scheme_auto, DayNight.DAY to R.string.scheme_day, DayNight.NIGHT to R.string.scheme_night).forEach { (value, name) ->
@@ -353,11 +411,11 @@ fun SettingsDialog(
                     }
                 }
                 if (picking) {
-                    AlertDialog(
+                    SupportingDialog(
                         onDismissRequest = { picking = false },
                         title = { Text(stringResource(R.string.settings_themePick)) },
                         text = {
-                            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                 io.github.basil_as.basillines.engine.LookSpec.FAMILIES.forEach { (familyId, ids) ->
                                     Text(lookText("family_$familyId"), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 6.dp))
                                     ids.mapNotNull { id -> THEME_NAMES.firstOrNull { it.first.webId == id } }.chunked(2).forEach { pair ->
@@ -417,7 +475,7 @@ fun SettingsDialog(
                         Modifier
                             .fillMaxWidth()
                             .selectable(selected = language == value, role = Role.RadioButton, onClick = { onLanguage(value) })
-                            .height(48.dp),
+                            .heightIn(min = 48.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         RadioButton(selected = language == value, onClick = null)
@@ -443,7 +501,7 @@ private fun SwitchRow(label: String, checked: Boolean, onToggle: () -> Unit) {
         Modifier
             .fillMaxWidth()
             .toggleable(value = checked, role = Role.Switch, onValueChange = { onToggle() })
-            .height(56.dp),
+            .heightIn(min = 56.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -470,6 +528,7 @@ private fun TrendChart(values: List<Int>) {
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun StatsDialog(
     history: List<GameRecord>,
@@ -495,11 +554,11 @@ fun StatsDialog(
     val unlockedCount = ProgressTracker.ACHIEVEMENTS.count { it.id in progress.achievements }
     val shown = if (showAll) history.take(200) else history.take(10)
 
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.stats_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 val tabs = listOf(R.string.stats_tab_overview, R.string.stats_tab_career, R.string.stats_tab_mind, R.string.stats_tab_seasons, R.string.stats_tab_records, R.string.stats_tab_data)
                 androidx.compose.material3.ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp) {
                     tabs.forEachIndexed { i, name ->
@@ -519,7 +578,7 @@ fun StatsDialog(
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.4f))
                 ) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                             Text(stringResource(R.string.level_label, level.level), fontWeight = FontWeight.ExtraBold, fontSize = 18.sp)
                             Text(stringResource(title), color = MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Bold)
                         }
@@ -593,7 +652,7 @@ fun StatsDialog(
                     if (confirming) {
                         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text(stringResource(R.string.stats_confirmClear))
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 Button(onClick = { onClear(); confirming = false }) { Text(stringResource(R.string.stats_confirmYes)) }
                                 OutlinedButton(onClick = { confirming = false }) { Text(stringResource(R.string.stats_confirmNo)) }
                             }
@@ -656,10 +715,11 @@ private fun InsightsSection(history: List<GameRecord>, progress: Progress, level
     val hist = Insights.scoreHistogram(history, 50)
     val weekdays = Insights.weekdayActivity(history)
     val steps = Insights.recordProgression(history).takeLast(5)
-    val dateFormat = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
-    val weekdayNames = remember {
+    val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0]
+    val dateFormat = remember(locale) { DateFormat.getDateInstance(DateFormat.MEDIUM, locale) }
+    val weekdayNames = remember(locale) {
         // 2024-01-01 is a Monday.
-        (0 until 7).map { java.time.DayOfWeek.of(it + 1).getDisplayName(java.time.format.TextStyle.SHORT, java.util.Locale.getDefault()) }
+        (0 until 7).map { java.time.DayOfWeek.of(it + 1).getDisplayName(java.time.format.TextStyle.SHORT, locale) }
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -722,11 +782,11 @@ fun NewGameDialog(
     )
     // The mode is rarely changed: show the one that will be played and fold the list behind a button.
     var picking by rememberSaveable { mutableStateOf(false) }
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onKeep,
         title = { Text(stringResource(R.string.newgame_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState())) {
+            Column(Modifier.fillMaxWidth()) {
                 if (inProgress) {
                     Surface(
                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.14f),
@@ -831,6 +891,7 @@ internal fun ModeDots(mode: ModeId, modifier: Modifier = Modifier) {
 }
 
 /** A backup file was chosen: add it (nothing is lost) or replace everything here, which asks twice. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ImportDialog(
     games: Int,
@@ -846,11 +907,11 @@ fun ImportDialog(
     var understood by remember { mutableStateOf(false) }
     val fmt = remember { DateFormat.getDateInstance(DateFormat.MEDIUM) }
     fun day(ms: Long) = fmt.format(java.util.Date(ms))
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onCancel,
         title = { Text(stringResource(R.string.data_import)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.data_preview, if (exportedAt > 0) day(exportedAt) else "?", games.toString()), fontWeight = FontWeight.SemiBold)
                 if (first != null && last != null) Text(stringResource(R.string.data_range, day(first), day(last)), fontSize = 13.sp)
                 if (replacing) {
@@ -860,7 +921,7 @@ fun ImportDialog(
                         border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error)
                     ) { Text(stringResource(R.string.data_replaceWarning, currentGames.toString()), Modifier.padding(12.dp), fontWeight = FontWeight.SemiBold) }
                     Row(
-                        Modifier.fillMaxWidth().toggleable(value = understood, role = Role.Checkbox, onValueChange = { understood = it }).height(48.dp),
+                        Modifier.fillMaxWidth().toggleable(value = understood, role = Role.Checkbox, onValueChange = { understood = it }).heightIn(min = 48.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         androidx.compose.material3.Checkbox(checked = understood, onCheckedChange = null)
@@ -881,7 +942,7 @@ fun ImportDialog(
             }
         },
         dismissButton = {
-            Row {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!replacing) OutlinedButton(onClick = { replacing = true }) { Text(stringResource(R.string.data_replace)) }
                 TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
             }
@@ -904,11 +965,11 @@ internal fun goalNumber(v: Double): String = if (v == Math.floor(v)) v.toLong().
 /** Today's goals with progress; they are built from the player's own recent games so they stay fair. */
 @Composable
 fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress>, goalStreak: Int, onClose: () -> Unit) {
-    AlertDialog(
+    SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.goals_title)) },
         text = {
-            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(stringResource(R.string.goals_hint), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 for (p in progress) {
                     val title = stringResource(goalTitle(p.goal.type), goalNumber(p.goal.target))
@@ -954,7 +1015,7 @@ fun UpdateDialog(
     onLater: () -> Unit
 ) {
     val busy = stage is UpdateStage.Downloading
-    AlertDialog(
+    SupportingDialog(
         // Back or a tap outside while downloading stops the download; otherwise it is "later".
         onDismissRequest = if (busy) onCancel else onLater,
         title = { Text(stringResource(if (stage is UpdateStage.Ready || stage is UpdateStage.NeedPermission) R.string.update_readyTitle else R.string.update_title)) },

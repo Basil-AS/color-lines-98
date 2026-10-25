@@ -1,7 +1,6 @@
 package io.github.basil_as.basillines
 
 import android.content.Context
-import java.util.concurrent.RejectedExecutionException
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -103,7 +102,7 @@ class MainScreenTest {
         val afterMove = ballCount()
         assertTrue("a move adds three balls unless it clears a line", afterMove in 3..8)
 
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         confirmNewGame()
         rule.waitForIdle()
         assertEquals(5, ballCount())
@@ -113,7 +112,7 @@ class MainScreenTest {
     @Test
     fun theNewGameDialogCanAlwaysBeCancelled() {
         // Without a game in progress the dialog used to offer only "Start": there must be a way back.
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.onNode(hasText("Cancel")).assertIsDisplayed().performClick()
         rule.waitForIdle()
         assertEquals(0, rule.onAllNodes(hasText("Start", substring = true)).fetchSemanticsNodes().size)
@@ -122,7 +121,7 @@ class MainScreenTest {
         // With a move made the safe button keeps the game and the other one says what it does.
         playOneMove()
         val before = ballCount()
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.onNode(hasText("Keep playing")).performClick()
         rule.waitForIdle()
         assertEquals(before, ballCount())
@@ -130,12 +129,12 @@ class MainScreenTest {
 
     @Test
     fun theMindTabExplainsWhatItNeedsAndTheEffectsCanBeSwitched() {
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.onNode(hasText("Mind")).performClick()
         rule.onAllNodes(hasText("more games are needed", substring = true)).onFirst().assertExists()
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
 
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.onNode(hasText("Calm")).performScrollTo().performClick()
         rule.waitForIdle()
         val prefs = ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
@@ -151,6 +150,20 @@ class MainScreenTest {
     }
 
     @Test
+    fun freshBoardAndPreviewSurviveRecreationBeforeTheFirstMove() {
+        fun cells() = rule.onAllNodes(ballCell or emptyCell).fetchSemanticsNodes()
+            .map { it.config[SemanticsProperties.ContentDescription].first() }.sorted()
+        fun next() = rule.onNodeWithContentDescription("Next balls:", substring = true)
+            .fetchSemanticsNode().config[SemanticsProperties.ContentDescription].first()
+        val before = cells()
+        val beforeNext = next()
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
+        assertEquals(before, cells())
+        assertEquals(beforeNext, next())
+    }
+
+    @Test
     fun gameSurvivesActivityRecreation() {
         playOneMove()
         val before = ballCount()
@@ -161,21 +174,21 @@ class MainScreenTest {
 
     @Test
     fun statsAndHelpDialogsOpenAndClose() {
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.onAllNodes(hasText("No games yet", substring = true)).onFirst().assertIsDisplayed()
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
 
-        rule.onNodeWithContentDescription("Rules and info").performClick()
+        rule.clickGameAction("Rules and info")
         rule.onAllNodes(hasText("Rules & scoring")).onFirst().assertIsDisplayed()
     }
 
     @Test
     fun abandoningAGameWithMovesLandsInTheHistory() {
         playOneMove()
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         confirmNewGame()
         rule.waitForIdle()
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.onAllNodes(hasText("unfinished", ignoreCase = true)).onFirst().assertExists()
     }
 
@@ -188,7 +201,7 @@ class MainScreenTest {
 
     @Test
     fun thePreviewCanBeSwitchedOffAndIsRemembered() {
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.onNode(hasText("Show where new balls will appear")).performClick()
         rule.waitForIdle()
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
@@ -210,7 +223,7 @@ class MainScreenTest {
 
     @Test
     fun theLanguageCanBeSwitchedInsideTheGame() {
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.onNode(hasText("Русский")).performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(AppLanguage.RU, GameStorage(ApplicationProvider.getApplicationContext()).language)
@@ -223,7 +236,7 @@ class MainScreenTest {
     fun newGameWarnsAboutAGameInProgressAndKeepPlayingChangesNothing() {
         playOneMove()
         val before = ballCount()
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.waitForIdle()
         rule.onAllNodes(hasText("counted as unfinished", substring = true)).onFirst().assertIsDisplayed()
         rule.onNode(hasText("Keep playing")).performClick()
@@ -235,7 +248,7 @@ class MainScreenTest {
     @Test
     fun modesShowTheirColoursClockAndWhatASwitchDoes() {
         playOneMove()
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.waitForIdle()
         rule.onNode(hasText("Change mode")).performClick()
         rule.waitForIdle()
@@ -252,7 +265,7 @@ class MainScreenTest {
     @Test
     fun newGameDialogWithAGameInProgressFoldsTheModeListUntilChangeModeIsTapped() {
         playOneMove()
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.waitForIdle()
         rule.onNode(hasText("Change mode")).assertIsDisplayed()
         rule.onNode(hasText("Blitz")).assertDoesNotExist()
@@ -270,7 +283,7 @@ class MainScreenTest {
 
     @Test
     fun theHelpExplainsTheModes() {
-        rule.onNodeWithContentDescription("Rules and info").performClick()
+        rule.clickGameAction("Rules and info")
         rule.waitForIdle()
         rule.onNode(hasText("Game modes")).performScrollTo().assertExists()
         rule.onNode(hasText("Easy: only 5 colours", substring = true)).performScrollTo().assertExists()
@@ -279,7 +292,7 @@ class MainScreenTest {
 
     @Test
     fun theStatisticsHaveFiveTabsWithLongTermContent() {
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.waitForIdle()
         for (tab in listOf("Overview", "Career", "Seasons", "Records", "Data")) rule.onNode(hasText(tab)).assertExists()
         rule.onNode(hasText("Career")).performClick()
@@ -326,7 +339,7 @@ class MainScreenTest {
 
     @Test
     fun settingsShowTheVersionAndTheUpdateControls() {
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.waitForIdle()
         rule.onNode(hasText("Version", substring = true)).performScrollTo().assertExists()
         rule.onNode(hasText("Check for updates automatically")).performScrollTo().assertExists()
@@ -339,7 +352,7 @@ class MainScreenTest {
     @Test
     fun theAutomaticCheckIsOnByDefaultAndCanBeSwitchedOff() {
         assertTrue(GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck)
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.onNode(hasText("Check for updates automatically")).performScrollTo().performClick()
         rule.waitForIdle()
         assertTrue(!GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck)
@@ -348,7 +361,7 @@ class MainScreenTest {
 
     @Test
     fun aFreshGameHasNoWarning() {
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.waitForIdle()
         assertTrue(rule.onAllNodes(hasText("counted as unfinished", substring = true)).fetchSemanticsNodes().isEmpty())
         rule.onNode(hasText("Start", substring = true)).assertIsDisplayed()
@@ -356,7 +369,7 @@ class MainScreenTest {
 
     @Test
     fun theModeChosenIsUsedAndRemembered() {
-        rule.onNodeWithContentDescription("New game").performClick()
+        rule.clickGameAction("New game")
         rule.waitForIdle()
         rule.onNode(hasText("Change mode")).performClick()
         rule.waitForIdle()
@@ -377,7 +390,7 @@ class MainScreenTest {
 
     @Test
     fun theLookStudioChangesTheBallsAndTheBoardAndCanBeReset() {
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.onNode(hasText("Look studio")).performScrollTo().performClick()
         rule.onNode(hasText("Flat")).performScrollTo().performClick()
         rule.onNode(hasText("Digits")).performScrollTo().performClick()
@@ -403,7 +416,7 @@ class MainScreenTest {
 
     @Test
     fun theBuilderSwitchesToTheCustomTheme() {
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         rule.onNode(hasText("Look studio")).performScrollTo().performClick()
         rule.onNode(hasText("Builder")).performClick()
         rule.waitForIdle()
@@ -414,7 +427,7 @@ class MainScreenTest {
 
     @Test
     fun switchingTheThemeIsRemembered() {
-        rule.onNodeWithContentDescription("Settings").performClick()
+        rule.clickGameAction("Settings")
         // The themes are folded behind one row until it is tapped.
         assertEquals(0, rule.onAllNodes(hasText("Material")).fetchSemanticsNodes().size)
         rule.onNode(hasText("Change")).performScrollTo().performClick()
@@ -438,16 +451,16 @@ class MainScreenTest {
     @Test
     fun everyThemeShowsTheBoardAndCanBePlayed() {
         // Playing through each theme recreates the activity many times; keep this UI test focused on board/game behavior.
-        rule.onNodeWithContentDescription("Mute sound").performClick()
+        rule.clickGameAction("Mute sound")
         for (theme in AppTheme.entries) {
             GameStorage(ApplicationProvider.getApplicationContext()).theme = theme
-            recreateActivityWithRetry()
+            recreateActivity()
             if (theme != AppTheme.COLORLINES_92) rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
             when (theme) {
                 AppTheme.COLORLINES_92 -> rule.onNodeWithContentDescription("F4: Restart").performClick()
                 // Lines 98 has a text menu like the Windows original instead of icon buttons.
                 AppTheme.LINES_98 -> rule.onNode(hasText("New game")).performClick()
-                else -> rule.onNodeWithContentDescription("New game").performClick()
+                else -> rule.clickGameAction("New game")
             }
             rule.waitForIdle()
             confirmNewGame()
@@ -457,32 +470,22 @@ class MainScreenTest {
         }
     }
 
-    private fun recreateActivityWithRetry() {
-        var lastFailure: RejectedExecutionException? = null
-        repeat(3) {
-            try {
-                rule.activityRule.scenario.recreate()
-                rule.waitForIdle()
-                return
-            } catch (failure: RejectedExecutionException) {
-                lastFailure = failure
-                Thread.sleep(100)
-            }
-        }
-        throw lastFailure ?: error("Activity recreation failed without an exception")
+    private fun recreateActivity() {
+        rule.activityRule.scenario.recreate()
+        rule.waitForIdle()
     }
 
     @Test
     fun statisticsStartAtLevelOneWithAllAchievementsLocked() {
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.onAllNodes(hasText("Level 1")).onFirst().assertIsDisplayed()
         assertTrue(rule.onAllNodes(hasText("locked")).fetchSemanticsNodes().size == 23)
     }
 
     @Test
     fun soundToggleChangesItsLabel() {
-        rule.onNodeWithContentDescription("Mute sound").performClick()
-        rule.onNodeWithContentDescription("Unmute sound").assertIsDisplayed()
+        rule.clickGameAction("Mute sound")
+        rule.gameAction("Unmute sound").assertIsDisplayed()
     }
 }
 
@@ -497,8 +500,8 @@ class RussianScreenTest {
     @Test
     fun usesTheSystemLanguage() {
         rule.onNodeWithContentDescription("Игровое поле").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Новая игра").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Статистика").performClick()
+        rule.onNodeWithContentDescription("Игра").assertIsDisplayed()
+        rule.clickGameAction("Статистика", "Игра")
         rule.onAllNodes(hasText("Пока нет партий", substring = true)).onFirst().assertIsDisplayed()
     }
 }
@@ -514,7 +517,7 @@ class LandscapeAndSmallScreenTest {
     @Config(qualifiers = "en-rUS-w891dp-h411dp-land")
     fun landscapeShowsTheBoardAndControls() {
         rule.onNodeWithContentDescription("Game board").assertIsDisplayed()
-        rule.onNodeWithContentDescription("New game").assertIsDisplayed()
+        rule.gameAction("New game").assertIsDisplayed()
     }
 
     @Test
@@ -1008,7 +1011,7 @@ class AnalysisTest {
     @Test
     fun showsTheTrendEfficiencyAndCharts() {
         seedHistory(25)
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.waitForIdle()
         rule.onAllNodes(hasText("Analysis")).onFirst().assertExists()
         rule.onAllNodes(hasText("better than the 10 before", substring = true)).onFirst().assertExists()
@@ -1019,7 +1022,7 @@ class AnalysisTest {
     @Test
     fun asksForMoreGamesWhileTheHistoryIsShort() {
         seedHistory(3)
-        rule.onNodeWithContentDescription("Statistics").performClick()
+        rule.clickGameAction("Statistics")
         rule.waitForIdle()
         rule.onAllNodes(hasText("Finish 17 more games", substring = true)).onFirst().assertExists()
     }

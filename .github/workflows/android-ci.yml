@@ -15,6 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  signed-candidate:
+    if: github.event_name == 'workflow_dispatch'
+    needs: check-and-build
+    uses: ./.github/workflows/android-candidate.yml
+    secrets: inherit
+
   check-and-build:
     runs-on: ubuntu-latest
     steps:
@@ -27,9 +33,16 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v6
 
+      - uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install the Android compile SDK
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+
       - name: Unit and UI tests (JVM)
         working-directory: android
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew :core-engine:test testDebugUnitTest
 
       - name: Android lint
         working-directory: android

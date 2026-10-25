@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
@@ -16,18 +19,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.LocalMinimumInteractiveComponentSize
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -43,7 +40,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,7 +59,6 @@ import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -97,7 +92,7 @@ import io.github.basil_as.basillines.engine.colors
 internal fun lookText(name: String): String {
     val context = LocalContext.current
     val id = context.resources.getIdentifier(name, "string", context.packageName)
-    return if (id != 0) context.getString(id) else name
+    return if (id != 0) androidx.compose.ui.res.stringResource(id) else name
 }
 
 /** Colour-vision simulations (Vienot matrices), so a look can be checked for balls that merge. */
@@ -162,11 +157,11 @@ private fun <T> ChoiceGroup(
     dots: ((T) -> List<Int>)? = null
 ) {
     Column(Modifier.fillMaxWidth().padding(top = 6.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(lookText(titleKey), fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
             if (current == null) {
                 Text(
-                    "  ·  " + lookText("look_followTheme"),
+                    "· " + lookText("look_followTheme"),
                     fontSize = 12.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -185,7 +180,7 @@ private fun <T> ChoiceGroup(
                             Text(lookText("${titleKey}_${idOf(option)}"), fontSize = 13.sp)
                         }
                     },
-                    modifier = Modifier.semantics { role = Role.RadioButton }
+                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton }
                 )
             }
         }
@@ -243,7 +238,7 @@ private fun ColorEditor(label: String, value: Int, onChange: (Int) -> Unit) {
         }
         listOf("R" to Colors.red(value), "G" to Colors.green(value), "B" to Colors.blue(value)).forEachIndexed { index, (name, channel) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(name, Modifier.width(18.dp), fontSize = 12.sp)
+                Text(name, Modifier.widthIn(min = 18.dp), fontSize = 12.sp)
                 Slider(
                     value = channel.toFloat(),
                     onValueChange = { v ->
@@ -257,9 +252,9 @@ private fun ColorEditor(label: String, value: Int, onChange: (Int) -> Unit) {
                         )
                     },
                     valueRange = 0f..255f,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f).semantics { contentDescription = "$label $name" }
                 )
-                Text(channel.toString(), Modifier.width(30.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text(channel.toString(), Modifier.widthIn(min = 30.dp), fontSize = 12.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
         }
     }
@@ -292,8 +287,8 @@ private fun BuilderTab(
         }
         Text(stringResource(R.string.builder_mode), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
         FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            FilterChip(selected = !custom.dark, onClick = { onCustom(custom.copy(dark = false)) }, label = { Text(stringResource(R.string.builder_startLight)) }, modifier = Modifier.semantics { role = Role.RadioButton })
-            FilterChip(selected = custom.dark, onClick = { onCustom(custom.copy(dark = true)) }, label = { Text(stringResource(R.string.builder_startDark)) }, modifier = Modifier.semantics { role = Role.RadioButton })
+            FilterChip(selected = !custom.dark, onClick = { onCustom(custom.copy(dark = false)) }, label = { Text(stringResource(R.string.builder_startLight)) }, modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton })
+            FilterChip(selected = custom.dark, onClick = { onCustom(custom.copy(dark = true)) }, label = { Text(stringResource(R.string.builder_startDark)) }, modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton })
         }
         Text(stringResource(R.string.builder_colors), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(top = 8.dp))
         FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -311,7 +306,7 @@ private fun BuilderTab(
                                 .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(50))
                         )
                     },
-                    modifier = Modifier.semantics { role = Role.RadioButton }
+                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton }
                 )
             }
         }
@@ -344,10 +339,9 @@ private enum class StudioTab(val key: String) { BALLS("settings_tab_balls"), BOA
 
 /**
  * Depth, colours, rings, markers, size and grid for the current theme, and the builder for a look of your own.
- * It fills the screen: the preview stays pinned at the top while the parameters scroll under it, and the buttons
- * stay at the bottom.
+ * The close action stays visible; preview, editing and sharing use the available safe height.
  */
-@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun LookStudioDialog(
     theme: AppTheme,
@@ -366,74 +360,71 @@ fun LookStudioDialog(
     val studio = LookSpec.isStudioTheme(id)
     val effective = LookSpec.effective(id, overrides)
 
-    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
-          // Chips are 32 dp tall here instead of the 48 dp touch area, so the whole studio fits on a phone.
-          CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
-            Column(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp)) {
-                // The buttons are in the header: nothing the player needs sits under the system bars.
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                    if (tab == StudioTab.BUILDER) {
-                        Button(onClick = onUseCustom, enabled = theme != AppTheme.CUSTOM) {
-                            Text(stringResource(if (theme == AppTheme.CUSTOM) R.string.builder_active else R.string.builder_use), fontSize = 13.sp)
+            BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp)) {
+                val compact = maxHeight < 640.dp * LocalDensity.current.fontScale
+                Column(Modifier.fillMaxSize()) {
+                    // Dismissal stays in the safe header while editing actions can scroll.
+                    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(stringResource(R.string.look_studio), style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        Button(onClick = onClose) { Text(stringResource(R.string.btn_close), fontSize = 13.sp) }
+                    }
+                    // The preview joins the editor when the remaining safe height is short.
+                    val header: @Composable ColumnScope.() -> Unit = {
+                        LookPreview(theme, overrides, custom, vision, night, Modifier.widthIn(max = 320.dp).align(Alignment.CenterHorizontally).padding(top = 6.dp))
+                        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            Vision.entries.forEach { v ->
+                                FilterChip(
+                                    selected = vision == v,
+                                    onClick = { vision = v },
+                                    label = { Text(lookText("look_vision_${v.id}"), fontSize = 12.sp) },
+                                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton }
+                                )
+                            }
                         }
-                    } else {
-                        TextButton(onClick = { onOverrides(LookOverrides()) }, enabled = studio && !overrides.isEmpty) {
-                            Text(stringResource(R.string.look_reset), fontSize = 13.sp)
+                        FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            StudioTab.entries.forEach { t ->
+                                FilterChip(
+                                    selected = tab == t,
+                                    onClick = { tab = t },
+                                    label = { Text(lookText(t.key)) },
+                                    modifier = Modifier.heightIn(min = 48.dp).semantics { role = Role.RadioButton }
+                                )
+                            }
                         }
                     }
-                    Spacer(Modifier.width(4.dp))
-                    Button(onClick = onClose) { Text(stringResource(R.string.btn_close), fontSize = 13.sp) }
-                }
-                // On a low screen (landscape) the preview and tabs scroll with the options, so the buttons below stay on screen.
-                val config = LocalConfiguration.current
-                val compact = config.screenHeightDp < 640 || config.fontScale > 1.15f
-                val header: @Composable ColumnScope.() -> Unit = {
-                    LookPreview(theme, overrides, custom, vision, night, Modifier.widthIn(max = 320.dp).align(Alignment.CenterHorizontally).padding(top = 6.dp))
-                    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).selectableGroup().padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        Vision.entries.forEach { v ->
-                            FilterChip(
-                                selected = vision == v,
-                                onClick = { vision = v },
-                                label = { Text(lookText("look_vision_${v.id}"), fontSize = 12.sp) },
-                                modifier = Modifier.semantics { role = Role.RadioButton }
-                            )
+                    if (!compact) header()
+                    Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
+                        if (compact) header()
+                        if (tab == StudioTab.BUILDER) {
+                            Button(onClick = onUseCustom, enabled = theme != AppTheme.CUSTOM, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                Text(stringResource(if (theme == AppTheme.CUSTOM) R.string.builder_active else R.string.builder_use))
+                            }
+                        } else {
+                            OutlinedButton(onClick = { onOverrides(LookOverrides()) }, enabled = studio && !overrides.isEmpty, modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                                Text(stringResource(R.string.look_reset))
+                            }
                         }
-                    }
-                    FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        StudioTab.entries.forEach { t ->
-                            FilterChip(
-                                selected = tab == t,
-                                onClick = { tab = t },
-                                label = { Text(lookText(t.key)) },
-                                modifier = Modifier.semantics { role = Role.RadioButton }
-                            )
+                        if (tab == StudioTab.BUILDER) {
+                            BuilderTab(theme, overrides, custom, onCustom, onApplyShare)
+                        } else if (!studio) {
+                            Text(stringResource(R.string.look_retroNote), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
+                        } else if (tab == StudioTab.BALLS) {
+                            ChoiceGroup("look_palette", PaletteId.entries.toList(), overrides.palette, effective.palette, { it.id }, { onOverrides(overrides.copy(palette = it)) }) {
+                                if (it == PaletteId.CUSTOM) emptyList() else BallColor.entries.map { c -> LookPalettes.SETS.getValue(it).getValue(c) }
+                            }
+                            ChoiceGroup("look_volume", Volume.entries.toList(), overrides.volume, effective.volume, { it.id }, { onOverrides(overrides.copy(volume = it)) })
+                            ChoiceGroup("look_contrast", RingLevel.entries.toList(), overrides.ring, effective.ring, { it.id }, { onOverrides(overrides.copy(ring = it)) })
+                            ChoiceGroup("look_shapes", ShapeSet.entries.toList(), overrides.shapes, effective.shapes, { it.id }, { onOverrides(overrides.copy(shapes = it)) })
+                            ChoiceGroup("look_ballSize", BallSize.entries.toList(), overrides.ballSize, effective.ballSize, { it.id }, { onOverrides(overrides.copy(ballSize = it)) })
+                        } else {
+                            ChoiceGroup("look_grid", GridStyle.entries.toList(), overrides.grid, effective.grid, { it.id }, { onOverrides(overrides.copy(grid = it)) })
+                            ChoiceGroup("look_cells", CellShape.entries.toList(), overrides.cells, effective.cells, { it.id }, { onOverrides(overrides.copy(cells = it)) })
                         }
-                    }
-                }
-                if (!compact) header()
-                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 16.dp)) {
-                    if (compact) header()
-                    if (tab == StudioTab.BUILDER) {
-                        BuilderTab(theme, overrides, custom, onCustom, onApplyShare)
-                    } else if (!studio) {
-                        Text(stringResource(R.string.look_retroNote), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 12.dp))
-                    } else if (tab == StudioTab.BALLS) {
-                        ChoiceGroup("look_palette", PaletteId.entries.toList(), overrides.palette, effective.palette, { it.id }, { onOverrides(overrides.copy(palette = it)) }) {
-                            if (it == PaletteId.CUSTOM) emptyList() else BallColor.entries.map { c -> LookPalettes.SETS.getValue(it).getValue(c) }
-                        }
-                        ChoiceGroup("look_volume", Volume.entries.toList(), overrides.volume, effective.volume, { it.id }, { onOverrides(overrides.copy(volume = it)) })
-                        ChoiceGroup("look_contrast", RingLevel.entries.toList(), overrides.ring, effective.ring, { it.id }, { onOverrides(overrides.copy(ring = it)) })
-                        ChoiceGroup("look_shapes", ShapeSet.entries.toList(), overrides.shapes, effective.shapes, { it.id }, { onOverrides(overrides.copy(shapes = it)) })
-                        ChoiceGroup("look_ballSize", BallSize.entries.toList(), overrides.ballSize, effective.ballSize, { it.id }, { onOverrides(overrides.copy(ballSize = it)) })
-                    } else {
-                        ChoiceGroup("look_grid", GridStyle.entries.toList(), overrides.grid, effective.grid, { it.id }, { onOverrides(overrides.copy(grid = it)) })
-                        ChoiceGroup("look_cells", CellShape.entries.toList(), overrides.cells, effective.cells, { it.id }, { onOverrides(overrides.copy(cells = it)) })
                     }
                 }
             }
-          }
         }
     }
 }

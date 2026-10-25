@@ -36,6 +36,14 @@ jobs:
           distribution: 'temurin'
       - if: matrix.language == 'java-kotlin'
         uses: gradle/actions/setup-gradle@v6
+      - uses: android-actions/setup-android@v4
+        if: matrix.language == 'java-kotlin'
+        with:
+          log-accepted-android-sdk-licenses: false
+
+      - name: Install the Android compile SDK
+        if: matrix.language == 'java-kotlin'
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
       - if: matrix.language == 'java-kotlin'
         working-directory: android
         run: ./gradlew assembleDebug -x lint

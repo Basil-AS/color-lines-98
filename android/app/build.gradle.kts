@@ -1,19 +1,18 @@
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
 }
 
 android {
     namespace = "io.github.basil_as.basillines"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "io.github.basil_as.basillines"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 22
-        versionName = "3.2.2"
+        targetSdk = 37
+        versionCode = 23
+        versionName = "4.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -51,7 +50,11 @@ android {
     testOptions {
         unitTests.isIncludeAndroidResources = true
         // Unit tests never touch the network: the update check answers "failed" at once.
-        unitTests.all { it.systemProperty("colorlines.offline", "true") }
+        unitTests.all {
+            it.systemProperty("colorlines.offline", "true")
+            // Robolectric's API 36+ FileDescriptor bridge accesses this JDK 21 interface.
+            it.jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
+        }
     }
 }
 
@@ -64,7 +67,7 @@ kotlin {
 dependencies {
     implementation(project(":core-engine"))
 
-    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.core)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -80,6 +83,8 @@ dependencies {
     testImplementation(libs.androidx.test.core)
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.ui.test.junit4)
+    // Align the JVM runner too: older transitive Espresso reflects APIs removed in Android 37.
+    testImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))

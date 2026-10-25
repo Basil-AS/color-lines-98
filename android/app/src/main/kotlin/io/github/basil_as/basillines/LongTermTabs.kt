@@ -13,6 +13,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -56,9 +57,10 @@ private fun KeyValue(label: String, value: String) {
 }
 
 /** "September 2026" for a "YYYY-MM" key, in the language of the app. */
+@Composable
 private fun monthName(month: String): String {
     val (y, m) = month.split("-").map { it.toInt() }
-    return LocalDate.of(y, m, 1).month.getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()).replaceFirstChar { it.uppercase() } + " " + y
+    return LocalDate.of(y, m, 1).month.getDisplayName(TextStyle.FULL_STANDALONE, LocalConfiguration.current.locales[0]).replaceFirstChar { it.uppercase() } + " " + y
 }
 
 private fun tierName(t: Careers.Tier): Int = when (t) {
@@ -229,7 +231,7 @@ private fun findingText(f: Finding): String = when (f.id) {
     FindingId.GROWTH -> stringResource(R.string.mind_f_growth, f.a.toInt().toString(), f.b.toInt().toString(), f.c.toInt().toString())
     FindingId.WEEKDAY -> stringResource(
         R.string.mind_f_weekday,
-        java.time.DayOfWeek.of(f.a.toInt() + 1).getDisplayName(TextStyle.FULL_STANDALONE, Locale.getDefault()).replaceFirstChar { it.uppercase() },
+        java.time.DayOfWeek.of(f.a.toInt() + 1).getDisplayName(TextStyle.FULL_STANDALONE, LocalConfiguration.current.locales[0]).replaceFirstChar { it.uppercase() },
         "+" + f.b.toInt()
     )
 }
@@ -269,7 +271,7 @@ fun MindTab(history: List<GameRecord>) {
         BarChart(report.byHour.map { it.index }, report.byHour.map { if (it.hour % 3 == 0) it.hour.toString() else "" }, stringResource(R.string.mind_hours))
 
         Subtitle(stringResource(R.string.mind_weekdays))
-        BarChart(report.byWeekday.map { it.index }, (1..7).map { java.time.DayOfWeek.of(it).getDisplayName(TextStyle.SHORT, Locale.getDefault()) }, stringResource(R.string.mind_weekdays))
+        BarChart(report.byWeekday.map { it.index }, (1..7).map { java.time.DayOfWeek.of(it).getDisplayName(TextStyle.SHORT, LocalConfiguration.current.locales[0]) }, stringResource(R.string.mind_weekdays))
 
         Subtitle(stringResource(R.string.mind_sittings))
         Muted(stringResource(R.string.mind_sittingsHint))
