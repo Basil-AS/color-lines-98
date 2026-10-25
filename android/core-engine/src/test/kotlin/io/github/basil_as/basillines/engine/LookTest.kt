@@ -206,7 +206,7 @@ class LookTest {
             mapOf(
                 "light" to mapOf("volume" to "flat", "grid" to "dots"),
                 "modern" to mapOf("volume" to "glossy"),
-                "clearNight" to mapOf("ring" to "high")
+                "clearNight" to mapOf("contrast" to "high")
             )
         )
         assertEquals(LookOverrides(volume = Volume.GLOSSY, grid = GridStyle.DOTS), store["modern"])

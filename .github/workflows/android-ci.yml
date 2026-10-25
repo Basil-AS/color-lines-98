@@ -29,7 +29,7 @@ jobs:
 
       - name: Unit and UI tests (JVM)
         working-directory: android
-        run: ./gradlew testDebugUnitTest
+        run: ./gradlew :core-engine:test testDebugUnitTest
 
       - name: Android lint
         working-directory: android
