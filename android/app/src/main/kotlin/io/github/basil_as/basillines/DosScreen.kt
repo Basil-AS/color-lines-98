@@ -1,5 +1,9 @@
 package io.github.basil_as.basillines
 
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalDensity
 import android.graphics.Paint
 import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
@@ -379,26 +383,30 @@ fun DosLayout(
             val side = ((maxWidth - boardW - toolsW - margin * 2 - gap * 3) / 2).coerceAtLeast(96.dp)
             val ledW = minOf(side, 118.dp)
             val ledH = ledW * Regions.LED_KING.heightPerWidth()
-            val captionH = 24.dp
+            val density = LocalDensity.current
+            var kingCaptionH by remember { mutableStateOf(24.dp) }
+            var playerCaptionH by remember { mutableStateOf(24.dp) }
+            var modeH by remember { mutableStateOf(48.dp) }
+            var measuredKeysH by remember { mutableStateOf(100.dp) }
             val nextH = side * Regions.NEXT_BAR.heightPerWidth()
-            val keysH = 48.dp * 2 + 4.dp
-            val leftFixed = ledH + captionH + nextH + 30.dp + gap * 3
-            val rightFixed = ledH + captionH + keysH + gap * 3
+            val keysH = maxOf(100.dp, measuredKeysH)
+            val leftFixed = ledH + kingCaptionH + nextH + modeH + gap * 4
+            val rightFixed = ledH + playerCaptionH + keysH + gap * 3
             val heroW = minOf(side, (maxHeight - margin * 2 - maxOf(leftFixed, rightFixed)) / Regions.KING_FULL.heightPerWidth()).coerceAtLeast(40.dp)
             Row(Modifier.fillMaxSize().padding(margin), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(gap, Alignment.CenterHorizontally)) {
-                Column(Modifier.width(side).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)) {
+                Column(Modifier.width(side).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)) {
                     SceneRegion(Regions.LED_KING, state, clock, bitmaps, Modifier.width(ledW))
                     SceneRegion(Regions.KING_FULL, state, clock, bitmaps, Modifier.width(heroW))
-                    Caption(kingName)
+                    Box(Modifier.onSizeChanged { kingCaptionH = with(density) { it.height.toDp() } }) { Caption(kingName) }
                     SceneRegion(Regions.NEXT_BAR, state, clock, bitmaps, Modifier.width(side))
-                    modeBar()
+                    Box(Modifier.onSizeChanged { modeH = with(density) { it.height.toDp() } }) { modeBar() }
                 }
                 Board(Modifier.width(boardW))
-                Column(Modifier.width(side).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)) {
+                Column(Modifier.width(side).fillMaxHeight().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(gap, Alignment.CenterVertically)) {
                     SceneRegion(Regions.LED_PLAYER, state, clock, bitmaps, Modifier.width(ledW))
                     SceneRegion(Regions.PRETENDER_FULL, state, clock, bitmaps, Modifier.width(heroW))
-                    Caption(pretenderName)
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Box(Modifier.onSizeChanged { playerCaptionH = with(density) { it.height.toDp() } }) { Caption(pretenderName) }
+                    Row(Modifier.onSizeChanged { measuredKeysH = with(density) { it.height.toDp() } }, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { Key(DosButton.HELP, Modifier); Key(DosButton.NEXT, Modifier) }
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) { Key(DosButton.SOUND, Modifier); Key(DosButton.RESTART, Modifier) }
                     }

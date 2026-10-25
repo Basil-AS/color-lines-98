@@ -263,6 +263,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     var combo by remember { mutableIntStateOf(0) }
     var dangerWarned by remember { mutableStateOf(false) }
     var dosWindow by remember { mutableStateOf(DosWindow.NONE) }
+    androidx.activity.compose.BackHandler(enabled = theme == AppTheme.COLORLINES_92 && dosWindow != DosWindow.NONE) {
+        dosWindow = DosWindow.NONE
+    }
     var effects by remember { mutableStateOf<List<DosEffect>>(emptyList()) }
     var coronationStart by remember { mutableStateOf<Long?>(if (engine.score > Hall.kingOf(storage.hall).score) Long.MIN_VALUE / 2 else null) }
     var dialog by remember { mutableStateOf(Dialog.NONE) }
@@ -1284,13 +1287,14 @@ private fun HeaderCard(
 @Composable
 private fun ModeBar(palette: Palette, extras: GameExtras) {
     val clockText = extras.clock?.let { stringResource(R.string.mode_timeLeft, it) }
-    Row(
+    androidx.compose.foundation.layout.FlowRow(
         Modifier.fillMaxWidth().semantics(mergeDescendants = true) { contentDescription = listOfNotNull(extras.modeLabel, clockText).joinToString(", ") },
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.Center
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(extras.modeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textMuted)
+        Row(Modifier.align(Alignment.CenterVertically), verticalAlignment = Alignment.CenterVertically) {
+            Text(extras.modeLabel, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = palette.textMuted,
+                modifier = Modifier.weight(1f, fill = false))
             ModeDots(extras.mode, Modifier.padding(start = 8.dp))
         }
         if (extras.goalsLabel.isNotEmpty()) {
