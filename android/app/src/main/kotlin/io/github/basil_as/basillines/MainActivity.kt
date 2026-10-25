@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -756,85 +757,92 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
         ) else MaterialTheme.shapes
     ) {
-        Box(Modifier.fillMaxSize().background(palette.background)) {
-            if (theme == AppTheme.COLORLINES_92) {
-                DosGameScreen(
-                    snapshot = snapshot,
-                    score = score,
-                    kingScore = Hall.kingOf(hall).score,
-                    nextColors = nextColors,
-                    showNext = showNext,
-                    soundEnabled = soundEnabled,
-                    effects = effects,
-                    coronationStart = if (tut != null) null else coronationStart,
-                    // The dethroned king keeps his name and record; the crowned pretender is the player.
-                    kingName = Hall.kingOf(hall).name,
-                    pretenderName = if (tut == null && coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
-                    window = dosWindow,
-                    hall = hall,
-                    canUndo = canUndo,
-                    onCellTap = ::onCellTap,
-                    onButton = { button ->
-                        when (button) {
-                            DosButton.HELP -> dosWindow = if (dosWindow == DosWindow.HELP) DosWindow.NONE else DosWindow.HELP
-                            DosButton.SOUND -> {
-                                soundEnabled = !soundEnabled
-                                soundManager.isEnabled = soundEnabled
-                            }
-                            DosButton.NEXT -> {
-                                showNext = !showNext
-                                storage.showNext = showNext
-                            }
-                            DosButton.RESTART -> onNewGame()
-                        }
-                    },
-                    onCloseWindow = { dosWindow = DosWindow.NONE },
-                    onUndo = ::onUndo,
-                    onTopTen = { dosWindow = if (dosWindow == DosWindow.TOP_TEN) DosWindow.NONE else DosWindow.TOP_TEN },
-                    onStats = {
-                        statsNow = System.currentTimeMillis()
-                        dialog = Dialog.STATS
-                    },
-                    onSettings = { dialog = Dialog.SETTINGS },
-                    extras = extras
-                )
-            } else GameScreen(
-                palette = palette,
-                score = score,
-                best = maxOf(score, bestScore),
-                nextColors = nextColors,
-                canUndo = canUndo,
-                soundEnabled = soundEnabled,
-                snapshot = snapshot,
-                onCellTap = ::onCellTap,
-                onUndo = ::onUndo,
-                onNewGame = ::onNewGame,
-                onStats = {
-                    statsNow = System.currentTimeMillis()
-                    dialog = Dialog.STATS
-                },
-                onSettings = { dialog = Dialog.SETTINGS },
-                onHelp = { dialog = Dialog.HELP },
-                onToggleSound = {
-                    soundEnabled = !soundEnabled
-                    soundManager.isEnabled = soundEnabled
-                },
-                extras = extras
-            )
-            tut?.let { run ->
-                val step = TUTORIAL_STEPS[run.step]
-                val last = run.step == TUTORIAL_STEPS.lastIndex
-                TutorialBanner(
-                    palette = palette,
-                    step = run.step + 1,
-                    total = TUTORIAL_STEPS.size,
-                    text = stringResource(tutorialText(step.id, run.retry)),
-                    showContinue = step.info,
-                    last = last,
-                    onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
-                    onSkip = ::endTutorial,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
+        BoxWithConstraints(Modifier.fillMaxSize().background(palette.background)) {
+            val tutorialMaxHeight = maxHeight * 0.4f
+            Column(Modifier.fillMaxSize()) {
+                // Reserve actual space for training instructions: they must never cover a required cell.
+                Box(Modifier.weight(1f).fillMaxWidth()) {
+                    if (theme == AppTheme.COLORLINES_92 && tut == null) {
+                        DosGameScreen(
+                            snapshot = snapshot,
+                            score = score,
+                            kingScore = Hall.kingOf(hall).score,
+                            nextColors = nextColors,
+                            showNext = showNext,
+                            soundEnabled = soundEnabled,
+                            effects = effects,
+                            coronationStart = if (tut != null) null else coronationStart,
+                            // The dethroned king keeps his name and record; the crowned pretender is the player.
+                            kingName = Hall.kingOf(hall).name,
+                            pretenderName = if (tut == null && coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
+                            window = dosWindow,
+                            hall = hall,
+                            canUndo = canUndo,
+                            onCellTap = ::onCellTap,
+                            onButton = { button ->
+                                when (button) {
+                                    DosButton.HELP -> dosWindow = if (dosWindow == DosWindow.HELP) DosWindow.NONE else DosWindow.HELP
+                                    DosButton.SOUND -> {
+                                        soundEnabled = !soundEnabled
+                                        soundManager.isEnabled = soundEnabled
+                                    }
+                                    DosButton.NEXT -> {
+                                        showNext = !showNext
+                                        storage.showNext = showNext
+                                    }
+                                    DosButton.RESTART -> onNewGame()
+                                }
+                            },
+                            onCloseWindow = { dosWindow = DosWindow.NONE },
+                            onUndo = ::onUndo,
+                            onTopTen = { dosWindow = if (dosWindow == DosWindow.TOP_TEN) DosWindow.NONE else DosWindow.TOP_TEN },
+                            onStats = {
+                                statsNow = System.currentTimeMillis()
+                                dialog = Dialog.STATS
+                            },
+                            onSettings = { dialog = Dialog.SETTINGS },
+                            extras = extras
+                        )
+                    } else GameScreen(
+                        palette = palette,
+                        score = score,
+                        best = maxOf(score, bestScore),
+                        nextColors = nextColors,
+                        canUndo = canUndo,
+                        soundEnabled = soundEnabled,
+                        snapshot = snapshot,
+                        onCellTap = ::onCellTap,
+                        onUndo = ::onUndo,
+                        onNewGame = ::onNewGame,
+                        onStats = {
+                            statsNow = System.currentTimeMillis()
+                            dialog = Dialog.STATS
+                        },
+                        onSettings = { dialog = Dialog.SETTINGS },
+                        onHelp = { dialog = Dialog.HELP },
+                        onToggleSound = {
+                            soundEnabled = !soundEnabled
+                            soundManager.isEnabled = soundEnabled
+                        },
+                        extras = extras,
+                        training = tut != null
+                    )
+                }
+                tut?.let { run ->
+                    val step = TUTORIAL_STEPS[run.step]
+                    val last = run.step == TUTORIAL_STEPS.lastIndex
+                    TutorialBanner(
+                        palette = palette,
+                        step = run.step + 1,
+                        total = TUTORIAL_STEPS.size,
+                        text = stringResource(tutorialText(step.id, run.retry)),
+                        showContinue = step.info,
+                        last = last,
+                        onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
+                        onSkip = ::endTutorial,
+                        modifier = Modifier.heightIn(max = tutorialMaxHeight).verticalScroll(rememberScrollState())
+                    )
+                }
             }
         }
 
@@ -1025,10 +1033,11 @@ private fun GameScreen(
     onSettings: () -> Unit,
     onHelp: () -> Unit,
     onToggleSound: () -> Unit,
-    extras: GameExtras = GameExtras()
+    extras: GameExtras = GameExtras(),
+    training: Boolean = false
 ) {
     // Original artwork keeps its own chrome; all modern looks retain their Palette and builder rendering.
-    if (palette.ballStyle != BallStyle.SPRITE && palette.ballStyle != BallStyle.DOS) {
+    if (training || (palette.ballStyle != BallStyle.SPRITE && palette.ballStyle != BallStyle.DOS)) {
         ModernGameScreen(
             palette, score, best, nextColors, canUndo, soundEnabled, snapshot,
             onCellTap, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras

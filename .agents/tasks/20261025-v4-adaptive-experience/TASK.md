@@ -3,11 +3,11 @@
 TASK_ID: 20261025-v4-adaptive-experience
 STATUS: wip
 AGENT: codex
-BRANCH: codex/v4-adaptive-experience
+BRANCH: codex/v4-tutorial-reachability
 BASE_REF: refs/remotes/origin/main
 BASE_COMMIT: 1da4f981cb781553a1f8530682138e821208e838
-LAST_CHECKPOINT_COMMIT: 1a3e6e0
-LAST_VERIFIED_COMMIT: -
+LAST_CHECKPOINT_COMMIT: 15e2bb05
+LAST_VERIFIED_COMMIT: 33cebf5
 PROFILE: balanced
 ACTIVE_SKILLS: cold-start-resume, brainstorming, safe-external-fetch
 TOOLS_USED: git, adb, python3, pinned Artemis source
@@ -58,73 +58,23 @@ Deliver redesigned adaptive Android and web UX, verified on real phone and size/
 
 - All theme identities, complete builder, storage formats and DOS/98 artwork/rules/sounds must remain compatible.
 
-## Assumptions
+## Current state (authoritative)
 
-| Assumption | Verification | Status |
-|---|---|---|
-| All theme and builder formats can remain unchanged | Rendering-only branch and engine format tests | verified baseline |
+PR67 merged as15e2bb05a43099040bf839b5cb955a7a64a10a4b after all required checks, independent reviews and signed33cebf5physical validation. All18themes and builder preserved; assets unchanged. Final modern/DOS/Windows98matrices passed onHuaweiAndroid10,81cellsstable and same fingerprint as3.2.2. Goals/stats/help/nativeBack and style-code roundtrip checked. Backup save picker opened/cancelled; automated tests cover full export/import and gameplay. Full suite at33cebf5:197core/137Android,1026webunit/180Chromium, lint/builds green.
 
-## Decisions
+Additional physical tutorial play found an actual blocker: landscape instructions overlay the required line destination. Release run40225026151 was cancelled before publication; Pages main deployment succeeded but will be refreshed by the correction. A touch-based regression fails atstep5 onAPI29/37. Follow-up branch codex/v4-tutorial-reachability reserves separate bounded scrolling space for the tutorial, leaving the game board unobscured. Full suite, independent review and new signed physical candidate required before merging the fix and restarting release4.0.0. No release4.0published yet.
 
-- User approved modern UI redesign; DOS/98 may receive compatible layout improvements only.
-- Draft PR67 exposes work in progress; no merge until complete verification.
-
-## Plan
-
-1. Reconcile repository and reproduce/understand the task.
-2. Implement the smallest correct change.
-3. Verify from targeted checks to broader checks.
-4. Review diff and prepare delivery/handoff.
-
-## Current state
-
-DONE:
-- Design approved, full plan written, task1 fixture and core CI gate committed.
-- Web responsive implementation:1026 unit and164 production browser tests pass; independent review pending.
-
-CURRENT:
-- Android adaptive screen and supporting/lifecycle tests; coordinated new toolchain compile.
-
-NEXT:
-- Resolve UI regressions, complete full Android verification, signed device candidate and release audit.
+NEXT_ACTION: Poll .agent-cache/v4-tutorial-full.log, verify corrected tutorial through actual emulator/phone touches, create reviewed follow-upPR, merge only greenCI, verify signed release assets/Pages/main and close task state.
 
 ## Verification
 
-| Command | Result | Commit |
-|---|---|---|
-| :core-engine:test |197 passed |71ef13e|
-| Web Vitest / production Playwright |1026 /164 passed |pending checkpoint|
+- Pure-engine197 +Android137 +lint/debug/release passed at33cebf5.
+- Web1026unit/180Chromium plus all required PR67CI passed.
+- Signedcandidate33cebf5run40223651992,artifact12610632193, projectcert5D3030E9363804C3F732D1A72BB683E1997F73D0454A1362C0FF5BF463271993.
+- ActualArtemis modern/DOS/98matrices: .agent-cache/v4-artemis-huawei-{33,dos33,win9833}/.
+- Corrected tutorial gesture test red onAPI29/37, fullruninprogress .agent-cache/v4-tutorial-full.log.
 
 ## Delivery
 
-PR: -
-MERGE_STATUS: not_started
-
-## Reconciled scope and current state
-
-Original 4.0 goal active; preceding goal turn completed PR synchronization work but did not implement 4.0. Current branch codex/v4-adaptive-experience starts at clean main 1da4f98. No other worktrees or hidden redesign found. Phone connected over USB and Wi-Fi (same Huawei Android 10 device). App 3.2.2 baseline screenshots saved; landscape rail and wrapping problems confirmed.
-
-Proposed design: docs/superpowers/specs/2026-10-25-v4-adaptive-experience-design.md. Design-direction question sent asynchronously; approval pending. No application code edited. Artemis pinned at 351ca8422f7b5b54e80a9c1ce03a222e02415b6b; archive SHA256 8ad92b1e4ee293d64767204e73e20cdce1263a3208122e4b5c2645ec7b29ab50, cached outside git. Local isolated pip installation running as exec session 92071, log .agent-cache/artemis-install.log.
-
-Next: inspect live installer session; review Artemis diagnostic entry points; wait for the user's design choice before implementation. Then produce implementation plan and run red/green layout regressions, implement full adaptive UX, verify device/size/accessibility matrix and publish 4.0 via green PR.
-
-## Preparation verified
-
-- Artemis installation completed, dependency check passes; source pin recorded in LOCK.json.
-- Artemis AndroidAdbDriver captured a real phone landscape screenshot; full agent doctor is limited by absent model credentials and scrcpy.
-- Stable portrait and landscape baselines plus UI hierarchy/metrics saved. Original device rotation preferences restored.
-- No application implementation yet; design approval is still pending.
-
-## Goal completion audit (pre-implementation)
-
-Adaptive layout, visual redesign, modern toolchain migration, full screen audits, Artemis user scenarios, size/API matrix, 4.0 version/release and physical-device validation of the new build: **not implemented / not verified**. Current artifacts prove baseline observation and local tooling only. Do not use baseline tests or driver connectivity as evidence that 4.0 is achieved. Saved-data compatibility has not been revalidated against redesign because no redesign exists yet.
-
-## Current state (authoritative)
-
-BLOCKED: user design confirmation required by brainstorming skill; pending through four goal turns. No 4.0 implementation exists. Preparation complete: pinned Artemis driver verified on phone, both orientation baselines captured, local web tests/typecheck/build pass, Android UI tests/lint/debug build pass. Pure-engine suite has one invalid-fixture failure (ring versus persisted contrast); production migration checked separately and behaves correctly. CI omits pure-engine test task. These two test/CI issues remain for implementation.
-
-Next user action: confirm proposed design, provide changes, or explicitly authorize proceeding with design choices without intermediate approvals. After response, retain full scope, write implementation plan, fix fixture/CI gate, then implement/validate/release 4.0.
-
-## Approval and execution supersede earlier blocker
-
-User approved the modern redesign and explicitly required all current themes, full theme builder and DOS/Lines 98 identity to remain intact. Execute full plan docs/superpowers/plans/2026-10-25-v4-adaptive-experience.md without further routine approval gates. Start with pure-engine fixture/CI and adaptive layout regressions.
+PR: https://github.com/Basil-AS/color-lines-98/pull/67
+MERGE_STATUS: merged; tutorial correction and release pending
