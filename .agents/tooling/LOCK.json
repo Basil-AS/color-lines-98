@@ -1,6 +1,56 @@
 {
   "schema_version": 1,
-  "updated_at": null,
-  "tools": {},
+  "updated_at": "2026-10-25",
+  "tools": {
+    "artemis": {
+      "repository": "https://github.com/google/artemis.git",
+      "commit": "351ca8422f7b5b54e80a9c1ce03a222e02415b6b",
+      "archive_sha256": "8ad92b1e4ee293d64767204e73e20cdce1263a3208122e4b5c2645ec7b29ab50",
+      "installation": "project-local ignored .agent-cache/artemis-venv",
+      "verified": "pip check; AndroidAdbDriver real-device 2400x1080 screenshot; no model API used",
+      "limitations": "Autonomous LLM tasks need configured model credentials; full doctor also reports missing scrcpy."
+    },
+    "v4_local_node": {
+      "runtime": "Codex bundled Node.js 24.22.1",
+      "package_manager": "npm 10.9.8",
+      "url": "https://registry.npmjs.org/npm/-/npm-10.9.8.tgz",
+      "sha256": "3e68f9b5fcaf1a94ba0e37e6a565c920b2be6bd98998c50970385d6a692af780",
+      "scope": "ignored project cache; no global installation"
+    },
+    "v4_local_jdk": {
+      "vendor": "Eclipse Temurin",
+      "version": "21.0.13+9",
+      "platform": "macOS aarch64",
+      "sha256": "bf036b35b071bfb2f54f2c0af8ee8d88afa95ee6eb3dce02c0f94cfc2524d04a",
+      "scope": "ignored project cache; java -version verified"
+    },
+    "v4_local_android_cli": {
+      "version": "1.0.16625370",
+      "archive": "commandlinetools-mac_arm64-16111833_latest.zip",
+      "sha256": "58da8f215781cc0208743e88b65ae259780c55e7eb40e50373d377cf369232d6",
+      "official_repository": "https://dl.google.com/android/repository/repository2-3.xml",
+      "official_sha1": "0ad03dc49bfacfd52c110b14104ea548b8a07e830",
+      "scope": "ignored project-local Android SDK; official checksum verified before execution"
+    },
+    "v4_gradle": {
+      "version": "9.8.2",
+      "url": "https://services.gradle.org/distributions/gradle-9.8.2-bin.zip",
+      "sha256": "21bd5da2de49b642904077f38c0efdc7778e92b3ed0889392dca61b97e389607",
+      "wrapper_jar_sha256": "3b8a25775a69158b5ad2b1d17a80a88dc7b40a352a73eb27d06c612a7ce68e98",
+      "scope": "wrapper generated twice using checked project-local Gradle distribution"
+    },
+    "v4_android_stack": {
+      "agp": "9.4.1",
+      "kotlin": "2.4.21",
+      "compose_bom": "2026.09.00",
+      "compile_sdk": 37,
+      "target_sdk": 37,
+      "min_sdk": 26,
+      "sdk_platform_package": "platforms;android-37.0",
+      "build_tools": "36.0.0",
+      "jdk": 21,
+      "compatibility": "Newest stable candidate; KGP vendor fully tested matrix ends at Gradle9.7.0/AGP9.3.1; project verification required. See docs/android-toolchain.md."
+    }
+  },
   "note": "Populate only after reviewing and pinning an exact release/tag/commit and relevant checksums."
 }

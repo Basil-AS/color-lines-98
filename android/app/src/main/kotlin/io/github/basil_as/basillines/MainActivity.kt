@@ -191,7 +191,7 @@ private const val HINTS_PER_GAME = 3
 private fun gameOverNow(engine: GameEngine) = engine.isGameOver
 
 /** What the HUD needs beyond the score: the mode (and its clock) and the hint button. */
-private data class GameExtras(
+internal data class GameExtras(
     val mode: ModeId = ModeId.CLASSIC,
     val modeLabel: String = "",
     val clock: String? = null,
@@ -220,6 +220,9 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     val context = LocalContext.current
     val haptics = remember { Haptics(context) }
     val handler = remember { android.os.Handler(android.os.Looper.getMainLooper()) }
+    DisposableEffect(handler) {
+        onDispose { handler.removeCallbacksAndMessages(null) }
+    }
 
     // The scheme is read before anything can overwrite the theme name it may be migrated from.
     var scheme by remember { mutableStateOf(storage.colorScheme) }
@@ -1019,6 +1022,14 @@ private fun GameScreen(
     onToggleSound: () -> Unit,
     extras: GameExtras = GameExtras()
 ) {
+    // Original artwork keeps its own chrome; all modern looks retain their Palette and builder rendering.
+    if (palette.ballStyle != BallStyle.SPRITE && palette.ballStyle != BallStyle.DOS) {
+        ModernGameScreen(
+            palette, score, best, nextColors, canUndo, soundEnabled, snapshot,
+            onCellTap, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras
+        )
+        return
+    }
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)) {
         val margin = if (maxWidth > maxHeight) 12.dp else 6.dp
         if (maxWidth > maxHeight) {

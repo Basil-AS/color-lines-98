@@ -137,6 +137,8 @@ body {
 }
 
 .app-container {
+  --safe-block: calc(max(12px, env(safe-area-inset-top)) + max(12px, env(safe-area-inset-bottom)));
+  --safe-inline: calc(max(12px, env(safe-area-inset-left)) + max(12px, env(safe-area-inset-right)));
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -3672,4 +3674,461 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   flex: 1 1 0;
   min-width: 0;
   padding-inline: 6px;
+}
+
+/* Adaptive modern game shell. Classic DOS and Lines 98 retain their own chrome. */
+.primary-controls,
+.secondary-controls {
+  display: contents;
+}
+
+.app-container.adaptive-game {
+  --rail-size: 280px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+}
+
+.adaptive-game .game-window {
+  width: 100%;
+  max-width: 54rem;
+  flex: none;
+  overflow: visible;
+}
+
+.adaptive-game .side-panel {
+  display: none;
+}
+
+.adaptive-game .tutorial-banner {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.adaptive-game .hud-header {
+  padding: 8px;
+  gap: 6px;
+  border-bottom: 0;
+}
+
+.adaptive-game .game-title {
+  font-size: 1.05rem;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  background: none;
+  -webkit-text-fill-color: currentColor;
+  color: var(--title-color);
+}
+
+.adaptive-game .hud-top-row {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.adaptive-game .hud-stats {
+  gap: 8px;
+  margin-inline-start: auto;
+}
+
+.adaptive-game .stat-box {
+  min-width: 52px;
+  padding: 2px 6px;
+  border: 0;
+  background: none;
+  text-align: end;
+}
+
+.adaptive-game .stat-label,
+.adaptive-game .next-balls-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.75rem;
+  line-height: 1.25;
+}
+
+.adaptive-game .stat-value {
+  font-size: 1.25rem;
+  line-height: 1.25;
+}
+
+.adaptive-game .hud-action-row {
+  gap: 6px;
+}
+
+.adaptive-game .next-balls-preview {
+  min-height: 44px;
+  padding: 4px 8px;
+  flex: 1;
+  justify-content: space-between;
+}
+
+.adaptive-game .controls-group {
+  display: contents;
+}
+
+.adaptive-game .primary-controls,
+.adaptive-game .secondary-controls {
+  display: flex;
+  gap: 6px;
+}
+
+.adaptive-game .secondary-controls {
+  width: 100%;
+}
+
+.adaptive-game .ctrl-btn {
+  min-height: 44px;
+}
+
+.adaptive-game .primary-controls .ctrl-btn {
+  width: 44px;
+  flex: none;
+}
+
+.adaptive-game .secondary-controls .ctrl-btn {
+  width: auto;
+  flex: 1;
+}
+
+.adaptive-game .mode-strip {
+  padding: 0 8px 6px;
+  gap: 4px;
+  border-bottom: 0;
+}
+
+.adaptive-game .strip-btn {
+  min-height: 36px;
+  padding: 4px 6px;
+}
+
+.adaptive-game .board-container {
+  padding: 0;
+  min-width: 0;
+}
+
+.adaptive-game .board-grid {
+  width: min(100%, max(0px, calc(100dvh - var(--safe-block) - var(--support-block, 240px) - var(--frame-block, 2px))));
+  max-width: none;
+}
+
+.adaptive-game .footer-row {
+  padding: 4px 8px;
+  gap: 4px;
+  border-top: 0;
+  font-size: 0.75rem;
+}
+
+.adaptive-game .footer-credit {
+  display: none;
+}
+
+.adaptive-game .footer-tools {
+  width: 100%;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.adaptive-game .footer-tools .ctrl-btn {
+  min-height: 36px;
+  padding: 4px;
+  gap: 4px;
+  font-size: 0.75rem;
+}
+
+/* A single supporting rail gives the square board the full usable height. */
+@media (min-width: 960px), (min-aspect-ratio: 29 / 20) and (min-width: 540px) {
+  .adaptive-game .game-window {
+    --play-size: min(calc(100dvh - var(--safe-block) - var(--frame-block, 2px)), calc(100vw - var(--safe-inline) - var(--rail-size) - var(--frame-inline, 2px)));
+    display: grid;
+    width: calc(var(--play-size) + var(--rail-size) + var(--frame-inline, 2px));
+    height: calc(var(--play-size) + var(--frame-block, 2px));
+    max-width: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    grid-template-columns: var(--play-size) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'board header' 'board mode' 'board footer';
+  }
+
+  .adaptive-game .board-container {
+    grid-area: board;
+    align-self: start;
+    position: sticky;
+    top: 0;
+  }
+
+  .adaptive-game .board-grid {
+    width: 100%;
+  }
+
+  .adaptive-game .hud-header {
+    grid-area: header;
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .adaptive-game .hud-top-row {
+    flex-wrap: wrap;
+    align-items: start;
+  }
+
+  .adaptive-game .game-title {
+    width: 100%;
+    font-size: 1.25rem;
+  }
+
+  .adaptive-game .hud-stats {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .adaptive-game .stat-box {
+    flex: 1;
+    text-align: start;
+  }
+
+  .adaptive-game .stat-value {
+    font-size: 1.75rem;
+  }
+
+  .adaptive-game .mode-strip {
+    grid-area: mode;
+    padding: 0 12px 12px;
+  }
+
+  .adaptive-game .footer-row {
+    grid-area: footer;
+    align-content: end;
+    padding: 12px;
+  }
+
+  .adaptive-game .footer-credit {
+    display: block;
+  }
+
+  .adaptive-game .footer-tools {
+    justify-content: flex-start;
+  }
+
+  .adaptive-game .tutorial-banner {
+    grid-area: tutorial;
+  }
+
+  .adaptive-game .game-window:has(> .tutorial-banner) {
+    grid-template-rows: auto auto auto 1fr;
+    grid-template-areas: 'tutorial header' 'board header' 'board mode' 'board footer';
+  }
+
+  .adaptive-game .game-window:has(> .tutorial-banner) .board-grid {
+    width: min(100%, max(0px, calc(100dvh - var(--safe-block) - var(--tutorial-block, 0px) - var(--frame-block, 2px))));
+  }
+}
+
+/* Short windows keep all actions in reach without shrinking the board. */
+@media (max-height: 440px) and (min-width: 540px) {
+  .adaptive-game .hud-header {
+    padding: 8px;
+    gap: 6px;
+  }
+
+  .adaptive-game .hud-top-row {
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .adaptive-game .game-title {
+    width: auto;
+    font-size: 1rem;
+  }
+
+  .adaptive-game .hud-stats {
+    width: auto;
+    gap: 4px;
+  }
+
+  .adaptive-game .stat-box {
+    padding: 0;
+    min-width: 44px;
+  }
+
+  .adaptive-game .stat-value {
+    font-size: 1.25rem;
+  }
+
+  .adaptive-game .mode-strip {
+    padding: 0 8px 4px;
+  }
+
+  .adaptive-game .mode-strip .color-dots {
+    display: none;
+  }
+
+  .adaptive-game .footer-row {
+    padding: 4px 8px;
+  }
+
+  .adaptive-game .footer-credit {
+    display: none;
+  }
+}
+
+/* The classic pictures and window furniture stay intact; only their short-window
+   allocation changes, so neither the artwork nor the last row falls offscreen. */
+@media (orientation: landscape) and (max-height: 560px) and (min-width: 540px) {
+  .app-container:is(.theme-lines98, .theme-lines98plus) .game-window {
+    --classic-square: min(calc(100dvh - var(--safe-block) - var(--classic-top, 50px) - var(--frame-block, 4px) - 16px), calc(100vw - var(--safe-inline) - var(--frame-inline, 4px) - 296px));
+    width: calc(var(--classic-square) + 296px + var(--frame-inline, 4px));
+    height: calc(100dvh - var(--safe-block));
+    max-width: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    contain: layout paint;
+    grid-template-columns: calc(var(--classic-square) + 16px) minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto 1fr;
+    grid-template-areas: 'title title' 'menu menu' 'board header' 'board mode' 'board footer';
+  }
+
+  .app-container.theme-lines98plus .game-window {
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'board header' 'board mode' 'board footer';
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus) .board-container {
+    padding: 8px;
+    align-self: start;
+    position: sticky;
+    top: var(--classic-top, 0px);
+  }
+
+  .theme-lines98 .win98-titlebar {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+  }
+
+  .theme-lines98 .win98-menubar {
+    position: sticky;
+    top: var(--classic-title, 0px);
+    z-index: 3;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus) .board-grid {
+    width: 100%;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus) .mode-strip {
+    grid-area: mode;
+    padding: 0 8px 4px;
+    gap: 4px;
+    border-bottom: 0;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus, .theme-colorlines92) .mode-strip .color-dots {
+    display: none;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus, .theme-colorlines92) .footer-row {
+    padding: 4px 8px;
+    align-content: end;
+    border-top: 0;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus, .theme-colorlines92) .footer-credit {
+    display: none;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus, .theme-colorlines92) .footer-tools {
+    gap: 6px;
+  }
+
+  .app-container:is(.theme-lines98, .theme-lines98plus, .theme-colorlines92) .footer-tools .ctrl-link {
+    min-height: 36px;
+    padding: 4px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+
+  .theme-lines98plus .hud-header {
+    padding: 8px;
+    gap: 6px;
+    border-bottom: 0;
+  }
+
+  .theme-lines98plus .hud-top-row {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .theme-lines98plus .game-title {
+    font-size: 1rem;
+  }
+
+  .theme-lines98plus .hud-stats {
+    gap: 4px;
+  }
+
+  .theme-lines98plus .stat-box {
+    min-width: 0;
+    padding: 2px 4px;
+  }
+
+  .theme-lines98plus .hud-action-row {
+    gap: 6px;
+  }
+
+  .theme-lines98plus .controls-group {
+    display: contents;
+  }
+
+  .theme-lines98plus .primary-controls,
+  .theme-lines98plus .secondary-controls {
+    display: flex;
+    gap: 6px;
+  }
+
+  .theme-lines98plus .secondary-controls {
+    width: 100%;
+  }
+
+  .theme-lines98plus .secondary-controls .ctrl-btn {
+    flex: 1;
+  }
+
+  .app-container.theme-colorlines92 .dos-window {
+    --dos-width: min(calc((100dvh - var(--safe-block) - 6px) * 4 / 3), calc(100vw - var(--safe-inline) - 266px));
+    width: calc(var(--dos-width) + 266px);
+    height: calc(var(--dos-width) * 3 / 4 + 6px);
+    max-width: none;
+    overflow-y: auto;
+    overflow-x: hidden;
+    grid-template-columns: var(--dos-width) minmax(0, 1fr);
+    grid-template-rows: auto auto 1fr;
+    grid-template-areas: 'screen mode' 'screen tools' 'screen footer';
+  }
+
+  .theme-colorlines92 .dos-screen {
+    grid-area: screen;
+    align-self: start;
+    position: sticky;
+    top: 0;
+  }
+
+  .theme-colorlines92 .dos-window .mode-strip {
+    grid-area: mode;
+    padding: 4px 8px;
+  }
+
+  .theme-colorlines92 .dos-tools {
+    grid-area: tools;
+    gap: 6px;
+    padding: 8px;
+  }
+}
+
+/* Long translated mode names wrap inside their rail at enlarged text sizes. */
+.game-window .mode-strip .strip-btn {
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }

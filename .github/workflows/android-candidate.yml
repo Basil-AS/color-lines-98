@@ -1,0 +1,54 @@
+name: Signed Android candidate
+
+# A manually requested candidate updates the installed app without publishing a release.
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-candidate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  candidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Install the Android compile SDK
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
+      - name: Restore the project signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          test -n "$KEYSTORE_B64" || { echo '::error::Project signing key is required'; exit 1; }
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/candidate.keystore"
+          echo "ANDROID_KEYSTORE_FILE=$RUNNER_TEMP/candidate.keystore" >> "$GITHUB_ENV"
+      - name: Verify and build the candidate
+        working-directory: android
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew :core-engine:test testDebugUnitTest lintRelease assembleRelease
+      - name: Verify the update signature
+        run: |
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner | sort -V | tail -1)"
+          GOT="$("$APKSIGNER" verify --print-certs android/app/build/outputs/apk/release/app-release.apk | sed -n 's/.*certificate SHA-256 digest: //p' | head -1 | tr 'a-f' 'A-F')"
+          WANT="$(sed -n 's/.*PROJECT_KEY_SHA256 = "\(.*\)".*/\1/p' android/core-engine/src/main/kotlin/io/github/basil_as/basillines/engine/Updates.kt)"
+          test -n "$GOT" && test "$GOT" = "$WANT"
+      - uses: actions/upload-artifact@v7
+        with:
+          name: ColorLines-signed-candidate
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 7
+      - name: Remove the temporary signing key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/candidate.keystore"

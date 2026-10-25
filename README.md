@@ -15,6 +15,7 @@ and a native Android app, sharing one rule set.
 
 ## Features
 
+- **Adaptive 4.0 interface:** a full-height board with one compact control panel in landscape, measured controls in portrait, and layouts that respect window size, safe areas and enlarged text. Secondary Android actions are in **Game**; all themes and the complete look studio remain available, including the original DOS and Windows98 artwork.
 - **Rules:** 9×9 board, 7 colours, 3 new balls per turn, lines of 5 or more clear (horizontal, vertical, diagonal),
   clearing a line is a free turn, scoring `2L² − 20L + 60`, undo.
 - **Spawn preview:** small balls show on the board where the next balls will appear (can be switched off).
@@ -126,6 +127,8 @@ cd android
 ./gradlew assembleDebug        # debug APK
 ./gradlew assembleRelease      # release APK (signed with the debug key unless you configure your own)
 ```
+
+The Android toolchain and compatibility notes are documented in [docs/android-toolchain.md](docs/android-toolchain.md). Device and accessibility coverage is recorded in [docs/v4-validation.md](docs/v4-validation.md).
 
 Android strings are generated from `src/i18n.ts`; after changing texts run
 `node --experimental-strip-types scripts/gen-android-strings.mjs` (CI runs it with `--check`).

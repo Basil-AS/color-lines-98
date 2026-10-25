@@ -15,6 +15,12 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  signed-candidate:
+    if: github.event_name == 'workflow_dispatch'
+    needs: check-and-build
+    uses: ./.github/workflows/android-candidate.yml
+    secrets: inherit
+
   check-and-build:
     runs-on: ubuntu-latest
     steps:
@@ -26,6 +32,9 @@ jobs:
           distribution: 'temurin'
 
       - uses: gradle/actions/setup-gradle@v6
+
+      - name: Install the Android compile SDK
+        run: sdkmanager 'platforms;android-37.0' 'build-tools;36.0.0'
 
       - name: Unit and UI tests (JVM)
         working-directory: android

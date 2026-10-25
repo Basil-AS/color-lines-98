@@ -6,14 +6,14 @@ AGENT: codex
 BRANCH: codex/v4-adaptive-experience
 BASE_REF: refs/remotes/origin/main
 BASE_COMMIT: 1da4f981cb781553a1f8530682138e821208e838
-LAST_CHECKPOINT_COMMIT: -
+LAST_CHECKPOINT_COMMIT: 1a3e6e0
 LAST_VERIFIED_COMMIT: -
 PROFILE: balanced
 ACTIVE_SKILLS: cold-start-resume, brainstorming, safe-external-fetch
 TOOLS_USED: git, adb, python3, pinned Artemis source
 CREATED_AT: 2026-10-25T02:00:16+04:00
 UPDATED_AT: 2026-10-25T02:00:16+04:00
-RELATED: -
+RELATED: https://github.com/Basil-AS/color-lines-98/pull/67
 
 ## Request
 
@@ -25,7 +25,7 @@ Deliver redesigned adaptive Android and web UX, verified on real phone and size/
 
 ## Definition of done
 
-- [ ] User-approved design and implementation plan cover the full 4.0 objective.
+- [x] User-approved design and implementation plan cover the full 4.0 objective.
 - [ ] Adaptive game layout maximizes board size for safe viewport constraints, including landscape, narrow windows and tablets.
 - [ ] Modern game HUD, controls, settings, appearance studio, statistics, goals, help and results use a coherent accessible visual system.
 - [ ] Classic-theme treatment follows the user's design choice; existing themes and customization remain available.
@@ -52,21 +52,22 @@ Deliver redesigned adaptive Android and web UX, verified on real phone and size/
 
 ### In scope
 
-- TODO
+- Full approved v4 plan in docs/superpowers/plans/2026-10-25-v4-adaptive-experience.md.
 
 ### Do not touch
 
-- TODO
+- All theme identities, complete builder, storage formats and DOS/98 artwork/rules/sounds must remain compatible.
 
 ## Assumptions
 
 | Assumption | Verification | Status |
 |---|---|---|
-| TODO | TODO | unknown |
+| All theme and builder formats can remain unchanged | Rendering-only branch and engine format tests | verified baseline |
 
 ## Decisions
 
-- TODO
+- User approved modern UI redesign; DOS/98 may receive compatible layout improvements only.
+- Draft PR67 exposes work in progress; no merge until complete verification.
 
 ## Plan
 
@@ -78,19 +79,21 @@ Deliver redesigned adaptive Android and web UX, verified on real phone and size/
 ## Current state
 
 DONE:
-- Task state created.
+- Design approved, full plan written, task1 fixture and core CI gate committed.
+- Web responsive implementation:1026 unit and164 production browser tests pass; independent review pending.
 
 CURRENT:
-- Understand the request and project.
+- Android adaptive screen and supporting/lifecycle tests; coordinated new toolchain compile.
 
 NEXT:
-- Inspect relevant code and define exact verification.
+- Resolve UI regressions, complete full Android verification, signed device candidate and release audit.
 
 ## Verification
 
 | Command | Result | Commit |
 |---|---|---|
-| TODO | not run | - |
+| :core-engine:test |197 passed |71ef13e|
+| Web Vitest / production Playwright |1026 /164 passed |pending checkpoint|
 
 ## Delivery
 

@@ -37,12 +37,12 @@
 
 **Interfaces:** `adaptiveGameLayout(width: Float, height: Float, fontScale: Float): AdaptiveGameLayout`; output arrangement, boardSize, panelWidth, gap and padding in safe-viewport dp. ModernGameScreen consumes the existing snapshot, Palette, callbacks and GameExtras; classic routes retain their existing rendering.
 
-- [ ] Add numeric regressions for 899x423 landscape (board fills short dimension minus padding), 320x640 portrait, 600x280 short landscape, 840x1280 tablet portrait, 1280x840 tablet landscape, font scale 2 and tiny multi-window sizes. Assert finite/nonnegative geometry and no viewport overflow over a width/height/font grid.
-- [ ] Run the targeted test before creating the policy; confirm failure for missing policy.
-- [ ] Implement policy using available safe constraints, not display orientation or a fixed percentage cap. Reserve a measured minimum supporting panel and favor the larger valid square.
-- [ ] Build quiet modern chrome using the selected Palette: strong score hierarchy, next balls, compact mode/goals, primary undo/hint, secondary actions and clearly labelled overflow. Use 48dp control targets, no unbounded text rows and no oversized symmetric cards. Board and controls remain reachable at large fonts.
-- [ ] Route modern themes through this shell; retain DOS and Windows classic renderers and all builder overrides. Move only necessary presentation data visibility; do not rewrite engine logic.
-- [ ] Add UI assertions for board bounds/size, mode/goals text and primary controls in both orientations; test all themes and builder state survival. Run numeric and Android UI tests, lint and debug build. Review screenshots before checkpoint.
+- [x] Add numeric regressions for 899x423 landscape (board fills short dimension minus padding), 320x640 portrait, 600x280 short landscape, 840x1280 tablet portrait, 1280x840 tablet landscape, font scale 2 and tiny multi-window sizes. Assert finite/nonnegative geometry and no viewport overflow over a width/height/font grid.
+- [x] Run the targeted test before creating the policy; confirm failure for missing policy.
+- [x] Implement policy using available safe constraints, not display orientation or a fixed percentage cap. Reserve a measured minimum supporting panel and favor the larger valid square.
+- [x] Build quiet modern chrome using the selected Palette: strong score hierarchy, next balls, compact mode/goals, primary undo/hint, secondary actions and clearly labelled overflow. Use 48dp control targets, no unbounded text rows and no oversized symmetric cards. Board and controls remain reachable at large fonts.
+- [x] Route modern themes through this shell; retain DOS and Windows classic renderers and all builder overrides. Move only necessary presentation data visibility; do not rewrite engine logic.
+- [x] Add UI assertions for board bounds/size, mode/goals text and primary controls in both orientations; test all themes and builder state survival. Run numeric and Android UI tests, lint and debug build. Review screenshots before checkpoint.
 
 ### Task 3: Coherent supporting screens and safe lifecycle
 
@@ -50,10 +50,10 @@
 
 **Interfaces:** existing dialog callbacks, LookSpec/LookOverrides/LookCode and GameStorage remain compatible.
 
-- [ ] Map each existing setting, look option, stats/goal/help/result/backup action to its redesigned location; add tests for any moved controls before edits.
-- [ ] Give dialogs consistent safe-inset-aware dismissal and primary actions; adapt studio preview/editor to short height and large fonts; keep all theme collections, builder switches, custom colors and code/backup round trips.
-- [ ] Reproduce delayed sound/executor work after activity destruction deterministically before touching lifecycle code. If reproduced, cancel callbacks and reject post-release work safely; cover recreation and release races with regressions.
-- [ ] Audit type scale, wrapping, contrast, focus/semantics and hit areas across modern themes. Retain authentic classic artwork and sounds. Run focused then full Android tests/lint/build and inspect real-device screenshots.
+- [x] Map each existing setting, look option, stats/goal/help/result/backup action to its redesigned location; add tests for any moved controls before edits.
+- [x] Give dialogs consistent safe-inset-aware dismissal and primary actions; adapt studio preview/editor to short height and large fonts; keep all theme collections, builder switches, custom colors and code/backup round trips.
+- [x] Reproduce delayed sound/executor work after activity destruction deterministically before touching lifecycle code. If reproduced, cancel callbacks and reject post-release work safely; cover recreation and release races with regressions.
+- [x] Audit type scale, wrapping, contrast, focus/semantics and hit areas across modern themes. Retain authentic classic artwork and sounds. Run focused then full Android tests/lint/build and inspect real-device screenshots.
 
 ### Task 4: Responsive web parity
 
@@ -61,9 +61,9 @@
 
 **Interfaces:** existing game/store/appearance formats and theme attributes are preserved; visual sizing follows the Android board-first intent.
 
-- [ ] Add browser regressions for board fit and control reachability at 320/360/411 widths, short landscape heights 280/320/400 and wide/tablet windows; preserve classic pixel/sprite checks.
-- [ ] Rework modern HUD/action composition and responsive constraints without changing DOS/Lines 98 selectors or replacing theme assets. Preserve all builder interactions and controls, keyboard navigation, reduced motion and screen-reader labels.
-- [ ] Run Vitest, lint, typecheck, build and full Playwright. Inspect representative screenshots, including every classic theme and custom builder output, before checkpoint.
+- [x] Add browser regressions for board fit and control reachability at 320/360/411 widths, short landscape heights 280/320/400 and wide/tablet windows; preserve classic pixel/sprite checks.
+- [x] Rework modern HUD/action composition and responsive constraints without changing DOS/Lines 98 selectors or replacing theme assets. Preserve all builder interactions and controls, keyboard navigation, reduced motion and screen-reader labels.
+- [x] Run Vitest, lint, typecheck, build and full Playwright. Inspect representative screenshots, including every classic theme and custom builder output, before checkpoint.
 
 ### Task 5: Coordinated modern Android toolchain
 
@@ -71,9 +71,9 @@
 
 **Interfaces:** app remains usable on minSdk 26 and the connected Android 10 phone; tests must cover system bars and back behavior on current Android as well.
 
-- [ ] Verify stable Kotlin/Compose/AGP/Gradle/SDK compatibility against official documentation before choosing versions; document the exact compatible set and migration requirements.
-- [ ] Migrate the build/plugins and adopt useful adaptive/window/inset/back APIs coherently; remove compatibility bounds only when the new supported set is verified. Do not bump libraries independently into a broken set.
-- [ ] Run pure-engine/UI tests, lint, debug/release builds and modern/minimum API or emulator checks. Verify real Android 10 compatibility and preserve storage formats.
+- [x] Verify stable Kotlin/Compose/AGP/Gradle/SDK compatibility against official documentation before choosing versions; document the exact compatible set and migration requirements.
+- [x] Migrate the build/plugins and adopt useful adaptive/window/inset/back APIs coherently; remove compatibility bounds only when the new supported set is verified. Do not bump libraries independently into a broken set.
+- [x] Run pure-engine/UI tests, lint, debug/release builds and modern/minimum API or emulator checks. Verify real Android 10 compatibility and preserve storage formats.
 
 ### Task 6: Artemis and device/size/accessibility release audit
 
@@ -91,6 +91,6 @@
 
 **Interfaces:** existing project-key release pipeline and Pages deployment.
 
-- [ ] Set 4.0.0 with Android versionCode greater than the last published value. Run complete web, pure-engine and Android/UI/lint/build validation and final theme/builder compatibility audit.
+- [x] Set 4.0.0 with Android versionCode greater than the last published value. Run complete web, pure-engine and Android/UI/lint/build validation and final theme/builder compatibility audit.
 - [ ] Request independent spec/code review; resolve findings, create PR with evidence and attach it to this chat. Merge only after green required checks.
 - [ ] Verify signed APK, web ZIP, checksums and installation/update on the phone, verify deployment and synchronize clean main. Update task/handoff with final evidence and completion audit against the original objective.

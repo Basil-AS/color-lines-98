@@ -69,3 +69,7 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 * **The original Windows Lines 98** ships in a closed installer; its look was taken from a screenshot, no assets.
 * **APK signing:** releases from 1.4.0 are signed with the project key (in repository secrets, a copy with the owner); 1.3 and older used the debug key and cannot be updated in place.
 * **DOS screen captions** stay English on purpose, like the original.
+
+## Version4.0
+
+Adaptive UI, theme/builder compatibility and current verification coverage: [v4-validation.md](v4-validation.md). Final signed-phone update remains in progress; historical verification notes above describe earlier releases.

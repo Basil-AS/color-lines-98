@@ -831,6 +831,33 @@ export default function App() {
 
   const dos = theme === 'colorlines92';
 
+  // Font size, translations and the tutorial all change the space around the board.
+  // Measure that chrome so a portrait board uses the actual remaining viewport.
+  useLayoutEffect(() => {
+    const gameWindow = boardRef.current?.parentElement;
+    if (!gameWindow || dos || typeof ResizeObserver === 'undefined') return;
+    const support = [...gameWindow.children].filter((node) =>
+      node.matches('.hud-header, .mode-strip, .footer-row, .tutorial-banner, .win98-titlebar, .win98-menubar'),
+    );
+    const measure = () => {
+      const frame = getComputedStyle(gameWindow);
+      gameWindow.style.setProperty('--frame-block', `${parseFloat(frame.borderTopWidth) + parseFloat(frame.borderBottomWidth)}px`);
+      gameWindow.style.setProperty('--frame-inline', `${parseFloat(frame.borderLeftWidth) + parseFloat(frame.borderRightWidth)}px`);
+      const height = support.reduce((total, node) => total + node.getBoundingClientRect().height, 0);
+      gameWindow.style.setProperty('--support-block', `${height}px`);
+      const tutorial = support.find((node) => node.matches('.tutorial-banner'));
+      gameWindow.style.setProperty('--tutorial-block', `${tutorial?.getBoundingClientRect().height ?? 0}px`);
+      const classicTop = support.filter((node) => node.matches('.win98-titlebar, .win98-menubar'));
+      gameWindow.style.setProperty('--classic-top', `${classicTop.reduce((total, node) => total + node.getBoundingClientRect().height, 0)}px`);
+      const classicTitle = support.find((node) => node.matches('.win98-titlebar'));
+      gameWindow.style.setProperty('--classic-title', `${classicTitle?.getBoundingClientRect().height ?? 0}px`);
+    };
+    const observer = new ResizeObserver(measure);
+    support.forEach((node) => observer.observe(node));
+    measure();
+    return () => observer.disconnect();
+  }, [dos, theme, tut]);
+
   // The living board: effects are drawn over the board element of every look except the 1992 picture.
   const themeRef = useRef(theme);
   themeRef.current = theme;
@@ -1013,6 +1040,7 @@ export default function App() {
       <button
         type="button"
         className="ctrl-btn ctrl-link"
+        title={t('install.button')}
         onClick={() => (install.kind === 'prompt' ? void install.install() : setShowInstallHelp(true))}
       >
         <MonitorDown size={16} aria-hidden="true" />
@@ -1305,7 +1333,7 @@ export default function App() {
   }
 
   return (
-    <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
+    <div className={`app-container ${themeClasses(theme, shade)} has-side${sprites ? '' : ' adaptive-game'}`}>
       <div className="game-window">
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
@@ -1437,76 +1465,80 @@ export default function App() {
             )}
 
             <div className="controls-group">
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={handleUndo}
-                disabled={tut !== null || !engine.canUndo}
-                title={t('btn.undo')}
-                aria-label={t('btn.undo')}
-              >
-                <Undo2 size={20} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={handleHint}
-                disabled={tut !== null || engine.isGameOver || hintsLeft <= 0}
-                title={hintTitle}
-                aria-label={hintTitle}
-              >
-                <Lightbulb size={20} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={handleNewGame}
-                title={t('btn.newGame')}
-                aria-label={t('btn.newGame')}
-              >
-                <RotateCcw size={20} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={openStats}
-                title={t('btn.stats')}
-                aria-label={t('btn.stats')}
-              >
-                <BarChart3 size={20} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={toggleSound}
-                title={soundEnabled ? t('btn.mute') : t('btn.unmute')}
-                aria-label={soundEnabled ? t('btn.mute') : t('btn.unmute')}
-                aria-pressed={!soundEnabled}
-              >
-                {soundEnabled ? (
-                  <Volume2 size={20} aria-hidden="true" />
-                ) : (
-                  <VolumeX size={20} aria-hidden="true" />
-                )}
-              </button>
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={() => setDialog('settings')}
-                title={t('btn.settings')}
-                aria-label={t('btn.settings')}
-              >
-                <Settings size={20} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="ctrl-btn"
-                onClick={() => setDialog('help')}
-                title={t('btn.help')}
-                aria-label={t('btn.help')}
-              >
-                <HelpCircle size={20} aria-hidden="true" />
-              </button>
+              <div className="primary-controls">
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={handleUndo}
+                  disabled={tut !== null || !engine.canUndo}
+                  title={t('btn.undo')}
+                  aria-label={t('btn.undo')}
+                >
+                  <Undo2 size={20} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={handleHint}
+                  disabled={tut !== null || engine.isGameOver || hintsLeft <= 0}
+                  title={hintTitle}
+                  aria-label={hintTitle}
+                >
+                  <Lightbulb size={20} aria-hidden="true" />
+                </button>
+              </div>
+              <div className="secondary-controls">
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={handleNewGame}
+                  title={t('btn.newGame')}
+                  aria-label={t('btn.newGame')}
+                >
+                  <RotateCcw size={20} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={openStats}
+                  title={t('btn.stats')}
+                  aria-label={t('btn.stats')}
+                >
+                  <BarChart3 size={20} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={toggleSound}
+                  title={soundEnabled ? t('btn.mute') : t('btn.unmute')}
+                  aria-label={soundEnabled ? t('btn.mute') : t('btn.unmute')}
+                  aria-pressed={!soundEnabled}
+                >
+                  {soundEnabled ? (
+                    <Volume2 size={20} aria-hidden="true" />
+                  ) : (
+                    <VolumeX size={20} aria-hidden="true" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={() => setDialog('settings')}
+                  title={t('btn.settings')}
+                  aria-label={t('btn.settings')}
+                >
+                  <Settings size={20} aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  className="ctrl-btn"
+                  onClick={() => setDialog('help')}
+                  title={t('btn.help')}
+                  aria-label={t('btn.help')}
+                >
+                  <HelpCircle size={20} aria-hidden="true" />
+                </button>
+              </div>
             </div>
           </div>
         </header>

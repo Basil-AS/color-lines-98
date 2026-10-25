@@ -58,7 +58,7 @@ class TutorialFlowTest {
     }
 
     private fun openHelp() {
-        rule.onNodeWithContentDescription("Rules and info").performClick()
+        rule.clickGameAction("Rules and info")
         rule.waitForIdle()
     }
 
