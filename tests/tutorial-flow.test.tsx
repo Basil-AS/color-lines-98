@@ -264,7 +264,7 @@ describe('tutorial flow', () => {
     expect(cellAt(5, 5)).toHaveClass('hint-target');
   });
 
-  it('hint button does nothing during the tutorial', async () => {
+  it('tutorial replaces the ordinary hint without spending it', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -276,18 +276,18 @@ describe('tutorial flow', () => {
     expect(document.querySelector('section.tutorial-banner')).toBeInTheDocument();
 
     vi.mocked(soundManager.play).mockClear();
-    await user.click(hintBtn);
-
-    expect(hintBtn).toHaveAccessibleName('Hint (3 left)');
+    expect(screen.queryByRole('button', { name: /^Hint/ })).not.toBeInTheDocument();
     expect(soundManager.play).not.toHaveBeenCalledWith('hint');
 
     // Only step 1 hint target (2,4) is present
     const targets = document.querySelectorAll('.board-cell.hint-target');
     expect(targets).toHaveLength(1);
     expect(targets[0]).toBe(cellAt(2, 4));
+    await user.click(screen.getByRole('button', { name: 'Skip the tutorial' }));
+    expect(screen.getByRole('button', { name: /^Hint/ })).toHaveAccessibleName('Hint (3 left)');
   });
 
-  it('new game during the tutorial opens dialog about the original game and removes banner', async () => {
+  it('leaving training restores the original game before a new-game confirmation', async () => {
     const user = userEvent.setup();
     render(<App />);
 
@@ -300,7 +300,9 @@ describe('tutorial flow', () => {
     await user.click(screen.getByRole('button', { name: 'Take the tutorial' }));
     expect(document.querySelector('section.tutorial-banner')).toBeInTheDocument();
 
-    // Click New game while in tutorial
+    // The coach replaces ordinary controls; leave it before starting another party.
+    expect(screen.queryByRole('button', { name: 'New game' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Skip the tutorial' }));
     await user.click(screen.getByRole('button', { name: 'New game' }));
 
     // Banner is gone
@@ -349,19 +351,19 @@ describe('strategy coach flow', () => {
     for (let index = 0; index < STRATEGY_LESSONS.length; index += 1) {
       const lesson = STRATEGY_LESSONS[index];
       const content = within(banner() as HTMLElement);
-      expect(content.getByText(`Puzzle ${index + 1} of 6`)).toBeInTheDocument();
+      expect(content.getByText(`Lesson ${index + 1} of 6`)).toBeInTheDocument();
       expect(content.getByText(lesson.text.en.title)).toBeInTheDocument();
       expect(content.getByRole('status')).toHaveTextContent(lesson.text.en.explanation);
       fireEvent.click(cellAt(lesson.from.x, lesson.from.y));
       fireEvent.click(cellAt(lesson.to.x, lesson.to.y));
       expect(within(banner() as HTMLElement).getByRole('status')).toHaveTextContent(lesson.text.en.success);
-      expect(within(banner() as HTMLElement).getByRole('button', { name: index === 5 ? 'Finish coach' : 'Continue' })).toBeInTheDocument();
+      expect(within(banner() as HTMLElement).getByRole('button', { name: index === 5 ? 'Return to game' : 'Continue' })).toBeInTheDocument();
       if (index < 5) {
         await user.click(within(banner() as HTMLElement).getByRole('button', { name: 'Continue' }));
       }
     }
 
-    await user.click(within(banner() as HTMLElement).getByRole('button', { name: 'Finish coach' }));
+    await user.click(within(banner() as HTMLElement).getByRole('button', { name: 'Return to game' }));
     expect(banner()).not.toBeInTheDocument();
     expect(cells().map((cell) => cell.getAttribute('aria-label'))).toEqual(originalBoard);
     expect(Object.fromEntries(Object.entries(localStorage))).toEqual(originalStorage);
@@ -374,7 +376,7 @@ describe('strategy coach flow', () => {
     await user.click(screen.getByRole('button', { name: 'Rules and info' }));
     await user.click(screen.getByRole('button', { name: 'Strategy coach' }));
     const banner = () => document.querySelector('section.strategy-coach') as HTMLElement;
-    await user.click(within(banner()).getByRole('button', { name: 'Show hint' }));
+    await user.click(within(banner()).getByRole('button', { name: 'Show a hint' }));
     expect(within(banner()).getByText(lesson.text.en.hint)).toBeInTheDocument();
     expect(document.querySelectorAll('.board-cell.hint-target')).toHaveLength(2);
 
@@ -386,9 +388,9 @@ describe('strategy coach flow', () => {
     fireEvent.click(cellAt(lesson.from.x, lesson.from.y));
     fireEvent.click(cellAt(lesson.to.x, lesson.to.y));
     expect(within(banner()).getByRole('status')).toHaveTextContent(lesson.text.en.success);
-    expect(within(banner()).getByText('Puzzle 1 of 6')).toBeInTheDocument();
+    expect(within(banner()).getByText('Lesson 1 of 6')).toBeInTheDocument();
     expect(within(banner()).getByRole('button', { name: 'Continue' })).toBeInTheDocument();
-    await user.click(within(banner()).getByRole('button', { name: 'Skip coach' }));
+    await user.click(within(banner()).getByRole('button', { name: 'Leave training' }));
   });
 
   it('can be started from Settings Game', async () => {

@@ -52,13 +52,14 @@ for (const viewport of VIEWPORTS) {
     expect(initial.banner.bottom).toBeLessThanOrEqual(viewport.height);
     expect(initial.board.top).toBeGreaterThanOrEqual(0);
     expect(initial.board.bottom).toBeLessThanOrEqual(viewport.height);
-    expect(initial.banner.bottom <= initial.board.top || initial.board.bottom <= initial.banner.top,
-      'the coach banner and playable board must not overlap').toBe(true);
+    expect(initial.banner.left >= initial.board.right || initial.banner.right <= initial.board.left
+      || initial.banner.bottom <= initial.board.top || initial.banner.top >= initial.board.bottom,
+    'the coach dock and playable board must not overlap').toBe(true);
 
     const cell = (x: number, y: number) => cells.nth(y * 9 + x);
     for (let index = 0; index < LESSON_MOVES.length; index += 1) {
       const lesson = LESSON_MOVES[index];
-      await expect(banner).toContainText(`Puzzle ${index + 1} of 6`);
+      await expect(banner).toContainText(`Lesson ${index + 1} of 6`);
 
       if (index === 0) {
         // A wrong but legal move gives feedback and resets this lesson; progress is manual.
@@ -69,20 +70,20 @@ for (const viewport of VIEWPORTS) {
         await expect(banner.getByRole('button', { name: 'Continue' })).toHaveCount(0);
       }
 
-      await banner.getByRole('button', { name: 'Show hint' }).click();
+      await banner.getByRole('button', { name: 'Show a hint' }).click();
       await expect(banner.getByRole('button', { name: 'Hide hint' })).toBeVisible();
       await expect(page.locator('.board-cell.hint-target')).toHaveCount(2);
       await cell(lesson.from[0], lesson.from[1]).click();
       await cell(lesson.to[0], lesson.to[1]).click();
       await expect(banner.getByRole('status')).not.toHaveText('');
-      const continuation = index === LESSON_MOVES.length - 1 ? 'Finish coach' : 'Continue';
+      const continuation = index === LESSON_MOVES.length - 1 ? 'Return to game' : 'Continue';
       await expect(banner.getByRole('button', { name: continuation })).toBeVisible();
       if (index < LESSON_MOVES.length - 1) {
         await banner.getByRole('button', { name: 'Continue' }).click();
       }
     }
 
-    await banner.getByRole('button', { name: 'Finish coach' }).click();
+    await banner.getByRole('button', { name: 'Return to game' }).click();
     await expect(banner).toHaveCount(0);
     await expect.poll(() => cells.evaluateAll((items) => items.map((cell) => cell.getAttribute('aria-label')))).toEqual(savedBoard);
     expect(await page.evaluate(() => Object.fromEntries(Object.entries(localStorage)))).toEqual(savedStorage);

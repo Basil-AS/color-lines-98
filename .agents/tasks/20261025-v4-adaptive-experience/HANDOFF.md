@@ -2,26 +2,28 @@
 
 TASK_ID: 20261025-v4-adaptive-experience
 STATUS: wip
-ACTIVE_SKILLS: cold-start-resume, brainstorming, test-driven-development, dispatching-parallel-agents, requesting-code-review, verification-before-completion, task-handoff
-PROFILE: balanced
-TOOLS_USED: git, gh, adb, pinned Artemis AndroidAdbDriver, Gradle, Playwright
-UPDATED_AT: 2026-10-26T13:20:00+04:00
 BRANCH: codex/v4-tutorial-reachability
 BASE_COMMIT: 15e2bb05a43099040bf839b5cb955a7a64a10a4b
-HEAD: 9b7025f4250eec3f32c39a6e9503649704042465
-LAST_VERIFIED_COMMIT: 9b7025f4250eec3f32c39a6e9503649704042465
+HEAD: 1832c7633cd2a548bfd83e4e342d2732a4926371
+LAST_VERIFIED_COMMIT: 1832c7633cd2a548bfd83e4e342d2732a4926371
+PROFILE: balanced
+ACTIVE_SKILLS: cold-start-resume, frontend-design, better-layout, better-ui, test-driven-development, verification-before-completion, requesting-code-review, task-handoff
+TOOLS_USED: git, gh, Gradle, Playwright, pinned Artemis AndroidAdbDriver, adb
+UPDATED_AT: 2026-10-27
 
-## Current work
-Uncommitted source implements nativeAndroid/web Settings+Statistics tab swipes and separate bilingual strategy coach with6real-engine puzzles, explanations/hints/wrongfeedback/manualContinue. Semantic acceptance covers equivalent open ends/diagonals/safe corridor destinations. Android timing regression RED0vs20090ms then resettransientclock/combo/danger and staleeffects guards. All themes/fullbuilder/originalassets preserved. RootmodernHUD compactwideheader fixes Helpclipping atfont1.3 withoutreducingboard.
+## Current source and authorization
+User explicitly says commit/push/PR/merge every change. Checkpoint current complete board-preserving training/design work toPR73, push, merge greenCI; then merge reviewedworkflow-onlyPR68–72. Do not use absentphone as permission blocker. LatestphysicalHuaweivalidation remains pending andmustnotbeclaimed.
 
-## Verified evidence
-FinalAndroid .agent-cache/v4-coach-final-android.log BUILD SUCCESSFUL:202core+165app tests,lintDebug,assembleDebug+Release. Newcoach5flowtests includeexactparty/history/timeisolation; swipe tests and existingtutorialsize/font/API regressions pass. Browser185tests .agent-cache/v4-coach-final-browser.log pass, including6coachlessonsinbothorientations and realCDPtouchswipes. Finalwebunitisolatedrerun .agent-cache/v4-coach-verified-web-unit.log inprogress; earlierfull1046pass+1timeout underconcurrentheavyCPU, noassertfailure. Horizontal-onlytabrail helper+2regressiontests latestpatchmustberebuiltandfocusedbrowserverified. Independentagentreviewfoundclock/equivalenttargetissues bothfixed.
+Training now replaces normal controls/dock/rail and preserves exact modernboardbounds. Sixnativegeometrytests include130%fontvisibleactions,Detailsdialogopen/close andlargeunfinishedscore(headerfootprintretained). SharedcompactnativeTrainingInstructions showsfullcopyinroomylandscape,Detailsforportrait; moderncontrolsusecompacticon/text andconsistentbuttonsurfaces. WebhasprimaryNewGame,outlinedUndo/Hint,borderedutilities,aligned3statcolumns,auto-fitcontrols atlargefont and44pxtrainingactions. Lines98practicebannerrestoredafterindependentreview. All18themes/fullbuilder/originalart/audio preserved. Sixbilingualstrategylessons acceptequivalentopen-end/diagonal/corridorsolutions andrestoreparty/history/time.
+
+## Evidence
+CurrentfullAndroid202core+171app/lint/debug+releaseGREEN .agent-cache/v4-merge-final-android.log. Web1057unit/31filesGREEN .agent-cache/v4-merge-final-web-unit.log. Affectedbrowser46passed; alladaptive42assertionsretained. Fullfinalbrowserrun .agent-cache/v4-merge-final-browser.log inprogress. Sharedstringgenerator/diff/statecheckGREEN. Source-onlyself_testpassed .agent-cache/v4-merge-source-selftest.log; rawworkspacecheckerrecursesintoignoredSDK/venv andhitsvendoredunicode.md fencenoise, so useGit-sourceisolatedsnapshotasCI.
 
 ## Exact next action
-COMMAND: `tail -8 .agent-cache/v4-coach-verified-web-unit.log`
-EXPECTED: fullwebunitgreen; then build/lint/focusednewbrowserchecks, updatecheckpoint/pushPR73anddispatchandroid-candidate.yml.
+COMMAND: `git diff --check && python3 scripts/validate_agent_state.py --soft`
+EXPECTED: green; checkpoint withBasil-ASauthor+Codexfooter, pushPR73, dispatchsignedcandidate;ready+mergeaftergreenrequiredCI. Then mergePR68–72, verifyrelease4.0APK/cert/checksums/assets/Pages, syncmain andcloseoutdocs.
 
-## Delivery gates
-PR67 merged15e2bb05. PR73draft attached mustremainuntil signedlatestHuaweiactualArtemis gates. Sourcehead9b signedcandidate40288635023succeeded butobsoletefornewcoach/swipes. PhoneX6H4C20B16000698authorizedHuaweiAndroid10 installedsigned053e27c. Userplaying(score/bestnowchanged), DO NOT resetparty/uninstall/newgame. Capturefreshbaseline. Debuglatestinstalledownedemulator-5554only. Currentphysicalcapturehelper.agent-cache/artemis_ui.py usesactualpinneddriver for taps/swipes/screenshots;nooptionalUIAutomatorhelper/noautonomousmodelcredentials. Capturematrix scriptrestoresrotation/fontfinally.
+## Device / artifact limits
+HuaweiX6H4C20B16000698nowabsentinADB; asyncconnectionquestionpending. Installedphonecandidate053e27c lacksnewcoach/swipes/design; userhasplayed sinceoldscore42, capturefreshbaselineifphoneconnects. Neveruninstall/resetphone/newgame;onlyproject-signedinstall-r. PinnedArtemis351ca842...actualdriver; noautonomousmodelcredentials. Actualemulatorcoach6lessons passedandboardfingerprintrestored .agent-cache/v4-artemis-coach-emulator-5554; latestredesignnotphysicallychecked.
 
-Release40225026151cancelled beforepublish; latestpublic3.2.2. WorkflowonlyPR68–72green,mergeafter73toavoidprematurerelease. NeedpublishedsignedAPK/cert/checksums/webZIP/attestations,actualreleaseAPKphoneupdate,Pagesproductionverification,cleanmain. RootownedemulatorGPUhostsession14547andVite4173session29331;knownstashv4-closeout-docs-pendingappliedandkeptrecoverably. MissingLinuxglobalrulesdocumentedmacOSfallback. NoTalkBack/humanlisteningclaim;backupfilepickeronlycancelledphysically,automatedroundtripcovered.
+EmulatorColorLines37headlessAPI37wasstoppedviaadbemu kill atuserresourcequestion,PID6529gone. Filesretained:~1.7GAVD+5.3Gimage+1.2Gengine=8.2G explainedscopeddeletecommands;donotrestartunnecessarily. ADBcurrentlyempty. RootVitepreview4173stillowned. Signed1832candidate40299031748succeededbutobsoletefornewboard-preservingdesign;newcandidateaftercheckpoint. PR67merged15e2bb05;release40225026151cancelledbeforepublish,latestpublic3.2.2untilnewmainmerge. Knownstashv4-closeout-docs-pendingappliedandkeptrecoverably. NoTalkBack/humanlisteningclaim;PWAphoneinstallunverified.

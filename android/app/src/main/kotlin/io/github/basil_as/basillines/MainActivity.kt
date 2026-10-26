@@ -56,6 +56,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -801,116 +802,118 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             extraLarge = RoundedCornerShape(24.dp)
         )
     ) {
-        BoxWithConstraints(Modifier.fillMaxSize().background(palette.background)) {
-            val tutorialMaxHeight = maxHeight * 0.4f
-            Column(Modifier.fillMaxSize()) {
-                // Reserve actual space for training instructions: they must never cover a required cell.
-                Box(Modifier.weight(1f).fillMaxWidth()) {
-                    if (theme == AppTheme.COLORLINES_92 && tut == null) {
-                        DosGameScreen(
-                            snapshot = snapshot,
-                            score = score,
-                            kingScore = Hall.kingOf(hall).score,
-                            nextColors = nextColors,
-                            showNext = showNext,
-                            soundEnabled = soundEnabled,
-                            effects = effects,
-                            coronationStart = if (tut != null) null else coronationStart,
-                            // The dethroned king keeps his name and record; the crowned pretender is the player.
-                            kingName = Hall.kingOf(hall).name,
-                            pretenderName = if (tut == null && coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
-                            window = dosWindow,
-                            hall = hall,
-                            canUndo = canUndo,
-                            onCellTap = ::onCellTap,
-                            onButton = { button ->
-                                when (button) {
-                                    DosButton.HELP -> dosWindow = if (dosWindow == DosWindow.HELP) DosWindow.NONE else DosWindow.HELP
-                                    DosButton.SOUND -> {
-                                        soundEnabled = !soundEnabled
-                                        soundManager.isEnabled = soundEnabled
-                                    }
-                                    DosButton.NEXT -> {
-                                        showNext = !showNext
-                                        storage.showNext = showNext
-                                    }
-                                    DosButton.RESTART -> onNewGame()
-                                }
-                            },
-                            onCloseWindow = { dosWindow = DosWindow.NONE },
-                            onUndo = ::onUndo,
-                            onTopTen = { dosWindow = if (dosWindow == DosWindow.TOP_TEN) DosWindow.NONE else DosWindow.TOP_TEN },
-                            onStats = {
-                                statsNow = System.currentTimeMillis()
-                                dialog = Dialog.STATS
-                            },
-                            onSettings = { dialog = Dialog.SETTINGS },
-                            extras = extras
-                        )
-                    } else GameScreen(
-                        palette = palette,
-                        score = score,
-                        best = maxOf(score, bestScore),
-                        nextColors = nextColors,
-                        canUndo = canUndo,
-                        soundEnabled = soundEnabled,
-                        snapshot = snapshot,
-                        onCellTap = ::onCellTap,
-                        onUndo = ::onUndo,
-                        onNewGame = ::onNewGame,
-                        onStats = {
-                            statsNow = System.currentTimeMillis()
-                            dialog = Dialog.STATS
-                        },
-                        onSettings = { dialog = Dialog.SETTINGS },
-                        onHelp = { dialog = Dialog.HELP },
-                        onToggleSound = {
-                            soundEnabled = !soundEnabled
-                            soundManager.isEnabled = soundEnabled
-                        },
-                        extras = extras,
-                        training = tut != null
-                    )
-                }
-                tut?.let { run ->
-                    if (run.strategy) {
-                        val lesson = STRATEGY_LESSONS[run.step]
-                        val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language
-                        val text = lesson.text[locale] ?: lesson.text.getValue("en")
-                        StrategyCoachBanner(
-                            title = text.title,
-                            explanation = when { run.solved -> text.success; run.retry -> text.wrong; else -> text.explanation },
-                            hintText = if (run.hinted) text.hint else null,
-                            step = run.step + 1,
-                            total = STRATEGY_LESSONS.size,
-                            solved = run.solved,
-                            last = run.step == STRATEGY_LESSONS.lastIndex,
-                            onHint = {
-                                tut = run.copy(hinted = true)
-                                hint = Hint(lesson.from, lesson.to, clears = lesson.expectedCleared > 0, value = 0)
-                                version++
-                            },
-                            onContinue = { if (run.step == STRATEGY_LESSONS.lastIndex) endTutorial() else enterStrategy(run.step + 1, run.saved) },
-                            onLeave = ::endTutorial,
-                            modifier = Modifier.heightIn(max = tutorialMaxHeight).verticalScroll(rememberScrollState())
-                        )
-                    } else {
-                        val step = TUTORIAL_STEPS[run.step]
-                        val last = run.step == TUTORIAL_STEPS.lastIndex
-                        TutorialBanner(
-                            palette = palette,
-                            step = run.step + 1,
-                            total = TUTORIAL_STEPS.size,
-                            text = stringResource(tutorialText(step.id, run.retry)),
-                            showContinue = step.info,
-                            last = last,
-                            onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
-                            onSkip = ::endTutorial,
-                            modifier = Modifier.heightIn(max = tutorialMaxHeight).verticalScroll(rememberScrollState())
-                        )
+        Box(Modifier.fillMaxSize().background(palette.background)) {
+            val trainingPanel: (@Composable () -> Unit)? = tut?.let { run ->
+                {
+                    androidx.compose.runtime.key(run.strategy, run.step, run.retry, run.solved, run.hinted) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("game-training-panel")) {
+                            if (run.strategy) {
+                                val lesson = STRATEGY_LESSONS[run.step]
+                                val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language
+                                val text = lesson.text[locale] ?: lesson.text.getValue("en")
+                                StrategyCoachBanner(
+                                    title = text.title,
+                                    explanation = when { run.solved -> text.success; run.retry -> text.wrong; else -> text.explanation },
+                                    hintText = if (run.hinted) text.hint else null,
+                                    step = run.step + 1,
+                                    total = STRATEGY_LESSONS.size,
+                                    solved = run.solved,
+                                    last = run.step == STRATEGY_LESSONS.lastIndex,
+                                    onHint = {
+                                        tut = run.copy(hinted = true)
+                                        hint = Hint(lesson.from, lesson.to, clears = lesson.expectedCleared > 0, value = 0)
+                                        version++
+                                    },
+                                    onContinue = { if (run.step == STRATEGY_LESSONS.lastIndex) endTutorial() else enterStrategy(run.step + 1, run.saved) },
+                                    onLeave = ::endTutorial,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                val step = TUTORIAL_STEPS[run.step]
+                                val last = run.step == TUTORIAL_STEPS.lastIndex
+                                TutorialBanner(
+                                    palette = palette,
+                                    step = run.step + 1,
+                                    total = TUTORIAL_STEPS.size,
+                                    text = stringResource(tutorialText(step.id, run.retry)),
+                                    showContinue = step.info,
+                                    last = last,
+                                    onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
+                                    onSkip = ::endTutorial,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
                     }
                 }
             }
+            if (theme == AppTheme.COLORLINES_92 && tut == null) {
+                DosGameScreen(
+                    snapshot = snapshot,
+                    score = score,
+                    kingScore = Hall.kingOf(hall).score,
+                    nextColors = nextColors,
+                    showNext = showNext,
+                    soundEnabled = soundEnabled,
+                    effects = effects,
+                    coronationStart = if (tut != null) null else coronationStart,
+                    // The dethroned king keeps his name and record; the crowned pretender is the player.
+                    kingName = Hall.kingOf(hall).name,
+                    pretenderName = if (tut == null && coronationStart != null) playerName.ifBlank { defaultName } else "Pretender",
+                    window = dosWindow,
+                    hall = hall,
+                    canUndo = canUndo,
+                    onCellTap = ::onCellTap,
+                    onButton = { button ->
+                        when (button) {
+                            DosButton.HELP -> dosWindow = if (dosWindow == DosWindow.HELP) DosWindow.NONE else DosWindow.HELP
+                            DosButton.SOUND -> {
+                                soundEnabled = !soundEnabled
+                                soundManager.isEnabled = soundEnabled
+                            }
+                            DosButton.NEXT -> {
+                                showNext = !showNext
+                                storage.showNext = showNext
+                            }
+                            DosButton.RESTART -> onNewGame()
+                        }
+                    },
+                    onCloseWindow = { dosWindow = DosWindow.NONE },
+                    onUndo = ::onUndo,
+                    onTopTen = { dosWindow = if (dosWindow == DosWindow.TOP_TEN) DosWindow.NONE else DosWindow.TOP_TEN },
+                    onStats = {
+                        statsNow = System.currentTimeMillis()
+                        dialog = Dialog.STATS
+                    },
+                    onSettings = { dialog = Dialog.SETTINGS },
+                    extras = extras
+                )
+            } else GameScreen(
+                palette = palette,
+                score = score,
+                best = maxOf(score, bestScore),
+                nextColors = nextColors,
+                canUndo = canUndo,
+                soundEnabled = soundEnabled,
+                snapshot = snapshot,
+                onCellTap = ::onCellTap,
+                onUndo = ::onUndo,
+                onNewGame = ::onNewGame,
+                onStats = {
+                    statsNow = System.currentTimeMillis()
+                    dialog = Dialog.STATS
+                },
+                onSettings = { dialog = Dialog.SETTINGS },
+                onHelp = { dialog = Dialog.HELP },
+                onToggleSound = {
+                    soundEnabled = !soundEnabled
+                    soundManager.isEnabled = soundEnabled
+                },
+                extras = extras,
+                training = tut != null,
+                trainingPanel = trainingPanel,
+                trainingScores = tut?.saved?.let { it.score to maxOf(it.score, bestScore) }
+            )
         }
 
         updateOffer?.let { info ->
@@ -1102,13 +1105,15 @@ private fun GameScreen(
     onHelp: () -> Unit,
     onToggleSound: () -> Unit,
     extras: GameExtras = GameExtras(),
-    training: Boolean = false
+    training: Boolean = false,
+    trainingPanel: (@Composable () -> Unit)? = null,
+    trainingScores: Pair<Int, Int>? = null
 ) {
     // Original artwork keeps its own chrome; all modern looks retain their Palette and builder rendering.
     if (training || (palette.ballStyle != BallStyle.SPRITE && palette.ballStyle != BallStyle.DOS)) {
         ModernGameScreen(
             palette, score, best, nextColors, canUndo, soundEnabled, snapshot,
-            onCellTap, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras
+            onCellTap, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras, trainingPanel, trainingScores
         )
         return
     }

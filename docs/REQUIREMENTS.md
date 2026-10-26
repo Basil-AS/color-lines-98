@@ -17,11 +17,11 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 | 9 | Record every result | done | every game, no limit, plus the permanent day ledger, Top Ten |
 | 10 | Russian, language follows the system | verified | auto-detection; `e2e/game.spec.ts`, dictionary tests |
 | 11 | App icon, favicon | done | adaptive Android icon, PNG/SVG for the site and PWA |
-| 12 | Android: insets under system bars | verified by tests | `safeDrawing`, edge-to-edge; **not run on a device** |
+| 12 | Android: insets under system bars | verified by tests | `safeDrawing`, edge-to-edge; Android UI tests and Artemis evidence on Huawei/API37 emulator; latest design candidate verification pending |
 | 13 | The New button on Android must not keep the old board | verified | test `aMoveSpawnsBallsAndNewGameReplacesTheWholeBoard` |
 | 14 | A light modern theme | done | "Modern" in day shade (Settings → Day / night) on web and Android |
 | 15 | Settings are remembered (web and app) | verified | theme, language, sound, preview marks, name, NEXT |
-| 16 | All themes on the phone | done | 12 looks on Android |
+| 16 | All themes on the phone | done | 18 looks on Android |
 | 17 | Looks that repeat the originals Color Lines (1992) and Lines 98 | done | the 1992 screen from `lines.lib`; Lines 98: LED panel, board, menu |
 | 18 | The knight and the king, the look of the score display | done | original sprites and LCD |
 | 19 | Sounds of the old versions, new ones for the new | done | Lines 98 samples; PC-speaker beeps (DOS); new soft tones |
@@ -43,7 +43,7 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 | 35 | Functions consistent across looks | verified | test `consistency between themes`: every action in each look |
 | 36 | "Rating" feature | none | there is no online rating and no server; the local Top Ten and history work |
 | 37 | Tab title in English everywhere | fixed | `Color Lines — the classic ball puzzle` in any language |
-| 38 | At least 6 different looks, each with its own sound | done | 12 looks; 10 synthesised voices, Lines 98 samples, PC speaker; uniqueness test |
+| 38 | At least 6 different looks, each with its own sound | done | 18 looks; 10 synthesised voices, Lines 98 samples, PC speaker; uniqueness test |
 | 39 | Contrast of the new looks | verified | WCAG ratios by pair; axe audit of all looks and dialogs |
 | 40 | Everything that loses data asks explicitly | verified | new game (warning, safe default), history reset (checkbox), backup replace (checkbox), DOS F4 and the Windows menu use the same dialog, `?new=1` shortcut opens the dialog |
 | 41 | PWA installation must work | fixed | the install event is kept from page load; a menu hint when the browser offers no prompt; `tests/earlyinstall.test.ts`; **not tried on a real phone** |
@@ -64,7 +64,7 @@ Every wish from the work on this project. "Verified" means an automated test, a 
 
 ## Not verified or approximated
 
-* **The apps on a device or emulator** were never run (the emulator was ruled out): JVM tests (Robolectric), browser tests and builds only. Looks, insets and the PWA install flow need a real phone.
+* **Android device coverage:** previous signed candidates were exercised through Artemis on Huawei CDY-NX9A (Android10), plus an API37 emulator. Latest design/coach candidate physical verification is pending; see `v4-validation.md`. PWA installation remains unverified on a real phone.
 * **DOS 1992 sounds** are synthesised (the original melodies were not extracted).
 * **The original Windows Lines 98** ships in a closed installer; its look was taken from a screenshot, no assets.
 * **APK signing:** releases from 1.4.0 are signed with the project key (in repository secrets, a copy with the owner); 1.3 and older used the debug key and cannot be updated in place.

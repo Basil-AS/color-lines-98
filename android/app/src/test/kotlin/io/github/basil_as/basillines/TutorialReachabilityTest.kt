@@ -75,13 +75,13 @@ class TutorialReachabilityTest {
         text("Продолжить").performTouchInput { click() }
         text("Шаг 4 из 7").assertIsDisplayed()
         val board = rule.onNodeWithTag("adaptive-game-board").fetchSemanticsNode().boundsInRoot
-        val instructions = rule.onNodeWithText("Обучение").fetchSemanticsNode().boundsInRoot
+        val instructions = rule.onNodeWithTag("game-training-panel").fetchSemanticsNode().boundsInRoot
         val cells = rule.onAllNodes(hasContentDescription("Ряд ", substring = true)).fetchSemanticsNodes()
         assertEquals(81, cells.size)
         cells.forEach { cell ->
             val bounds = cell.boundsInRoot
             assertTrue("$theme cell must fit the unobscured board: $bounds / $board", bounds.width > 0 && bounds.height > 0 &&
-                bounds.left >= board.left - 1 && bounds.right <= board.right + 1 && bounds.top >= board.top - 1 && bounds.bottom <= board.bottom + 1 && bounds.bottom <= instructions.top)
+                bounds.left >= board.left - 1 && bounds.right <= board.right + 1 && bounds.top >= board.top - 1 && bounds.bottom <= board.bottom + 1 && (bounds.bottom <= instructions.top || bounds.top >= instructions.bottom || bounds.right <= instructions.left || bounds.left >= instructions.right))
         }
         tap(3, 8)
         tap(6, 6)

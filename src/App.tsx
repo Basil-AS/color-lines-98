@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react';
 import confetti from 'canvas-confetti';
 import {
   BarChart3,
+  ArrowRight,
   Download,
   MonitorDown,
   HelpCircle,
@@ -11,6 +12,7 @@ import {
   Trophy,
   Lightbulb,
   Undo2,
+  X,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -909,7 +911,7 @@ export default function App() {
     const gameWindow = boardRef.current?.parentElement;
     if (!gameWindow || dos || typeof ResizeObserver === 'undefined') return;
     const support = [...gameWindow.children].filter((node) =>
-      node.matches('.hud-header, .mode-strip, .footer-row, .tutorial-banner, .win98-titlebar, .win98-menubar'),
+      node.matches('.hud-header, .mode-strip, .footer-row, .win98-titlebar, .win98-menubar'),
     );
     const measure = () => {
       const frame = getComputedStyle(gameWindow);
@@ -917,8 +919,6 @@ export default function App() {
       gameWindow.style.setProperty('--frame-inline', `${parseFloat(frame.borderLeftWidth) + parseFloat(frame.borderRightWidth)}px`);
       const height = support.reduce((total, node) => total + node.getBoundingClientRect().height, 0);
       gameWindow.style.setProperty('--support-block', `${height}px`);
-      const tutorial = support.find((node) => node.matches('.tutorial-banner'));
-      gameWindow.style.setProperty('--tutorial-block', `${tutorial?.getBoundingClientRect().height ?? 0}px`);
       const classicTop = support.filter((node) => node.matches('.win98-titlebar, .win98-menubar'));
       gameWindow.style.setProperty('--classic-top', `${classicTop.reduce((total, node) => total + node.getBoundingClientRect().height, 0)}px`);
       const classicTitle = support.find((node) => node.matches('.win98-titlebar'));
@@ -1376,17 +1376,21 @@ export default function App() {
         <strong>{t('tutorial.title')}</strong>
         <span>{t('tutorial.progress', { n: tut.step + 1, total: STEPS.length })}</span>
       </div>
-      <p role="status">
-        {t((tut.retry ? `tutorial.retry.${STEPS[tut.step].id}` : `tutorial.${STEPS[tut.step].id}`) as MessageKey)}
-      </p>
+      <div className="practice-copy">
+        <p role="status">
+          {t((tut.retry ? `tutorial.retry.${STEPS[tut.step].id}` : `tutorial.${STEPS[tut.step].id}`) as MessageKey)}
+        </p>
+      </div>
       <div className="tutorial-actions">
         {STEPS[tut.step].info && (
           <button type="button" className="modal-btn" onClick={() => (lastStep ? endTutorial() : enterStep(tut.step + 1, tut.saved))}>
+            <ArrowRight size={14} aria-hidden="true" />
             {lastStep ? t('tutorial.finish') : t('tutorial.continue')}
           </button>
         )}
         {!lastStep && (
           <button type="button" className="modal-btn modal-btn-secondary" onClick={endTutorial}>
+            <X size={14} aria-hidden="true" />
             {t('tutorial.skip')}
           </button>
         )}
@@ -1401,21 +1405,26 @@ export default function App() {
         <strong>{coachText.title}</strong>
         <span>{t('coach.progress', { n: coach.step + 1, total: STRATEGY_LESSONS.length })}</span>
       </div>
-      <p role="status">
-        {coach.phase === 'success' ? coachText.success : coach.phase === 'wrong' ? coachText.wrong : coachText.explanation}
-      </p>
-      {coach.hintVisible && <p className="coach-hint">{coachText.hint}</p>}
+      <div className="practice-copy">
+        <p role="status">
+          {coach.phase === 'success' ? coachText.success : coach.phase === 'wrong' ? coachText.wrong : coachText.explanation}
+        </p>
+        {coach.hintVisible && <p className="coach-hint">{coachText.hint}</p>}
+      </div>
       <div className="tutorial-actions">
         {coach.phase === 'success' ? (
           <button type="button" className="modal-btn" onClick={continueStrategyCoach}>
+            <ArrowRight size={14} aria-hidden="true" />
             {coach.step === STRATEGY_LESSONS.length - 1 ? t('coach.finish') : t('coach.continue')}
           </button>
         ) : (
           <button type="button" className="modal-btn modal-btn-secondary" onClick={toggleCoachHint}>
+            <Lightbulb size={14} aria-hidden="true" />
             {t(coach.hintVisible ? 'coach.hint.hide' : 'coach.hint.show')}
           </button>
         )}
         <button type="button" className="modal-btn modal-btn-secondary" onClick={endStrategyCoach}>
+          <X size={14} aria-hidden="true" />
           {t('coach.skip')}
         </button>
       </div>
@@ -1462,7 +1471,6 @@ export default function App() {
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
         </div>
-        {tutorialBanner ?? coachBanner}
 
         {theme === 'lines98' && (
           <>
@@ -1518,7 +1526,8 @@ export default function App() {
         )}
 
         {theme === 'lines98' ? (
-          <header className="hud-header l98-header">
+          <header className={`hud-header l98-header${practiceActive ? ' is-training' : ''}`}>
+            {practiceActive && (tutorialBanner ?? coachBanner)}
             {/* Like the original: best score, the next balls and the score on one black LED panel. */}
             <div className="l98-panel">
               <div className="l98-cell" role="group" aria-label={t('hud.best')}>
@@ -1561,14 +1570,16 @@ export default function App() {
                   {sprites ? <LedNumber value={Math.max(engine.score, bestScore)} /> : Math.max(engine.score, bestScore)}
                 </div>
               </div>
+              {!sprites && !engine.isGameOver && nextPreview}
             </div>
-            {!sprites && nextPreview}
+            {!sprites && engine.isGameOver && nextPreview}
           </div>
 
           <div className="hud-action-row">
             {sprites && nextPreview}
 
-            <div className="controls-group">
+            <div className={`controls-group${practiceActive ? ' is-training' : ''}`}>
+              {practiceActive ? (tutorialBanner ?? coachBanner) : <>
               <div className="primary-controls">
                 <button
                   type="button"
@@ -1590,20 +1601,35 @@ export default function App() {
                   aria-label={hintTitle}
                 >
                   <Lightbulb size={20} aria-hidden="true" />
-                  {!sprites && <span className="control-label" aria-hidden="true">{hintTitle}</span>}
+                  {!sprites && <>
+                    <span className="control-label">{t('btn.hint.label')}</span>
+                  </>}
                 </button>
+                {!sprites && (
+                  <button
+                    type="button"
+                    className="ctrl-btn control-new-game"
+                    onClick={handleNewGame}
+                    title={t('btn.newGame')}
+                    aria-label={t('btn.newGame')}
+                  >
+                    <RotateCcw size={20} aria-hidden="true" />
+                    <span className="control-label" aria-hidden="true">{t('btn.newGame')}</span>
+                  </button>
+                )}
               </div>
               <div className="secondary-controls">
-                <button
-                  type="button"
-                  className="ctrl-btn"
-                  onClick={handleNewGame}
-                  title={t('btn.newGame')}
-                  aria-label={t('btn.newGame')}
-                >
-                  <RotateCcw size={20} aria-hidden="true" />
-                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.newGame')}</span>}
-                </button>
+                {sprites && (
+                  <button
+                    type="button"
+                    className="ctrl-btn control-new-game"
+                    onClick={handleNewGame}
+                    title={t('btn.newGame')}
+                    aria-label={t('btn.newGame')}
+                  >
+                    <RotateCcw size={20} aria-hidden="true" />
+                  </button>
+                )}
                 <button
                   type="button"
                   className="ctrl-btn"
@@ -1627,7 +1653,9 @@ export default function App() {
                   ) : (
                     <VolumeX size={20} aria-hidden="true" />
                   )}
-                  {!sprites && <span className="control-label" aria-hidden="true">{soundEnabled ? t('btn.mute') : t('btn.unmute')}</span>}
+                  {!sprites && <>
+                    <span className="control-label">{t('btn.sound.label')}</span>
+                  </>}
                 </button>
                 <button
                   type="button"
@@ -1650,6 +1678,7 @@ export default function App() {
                   {!sprites && <span className="control-label" aria-hidden="true">{t('btn.help')}</span>}
                 </button>
               </div>
+              </>}
             </div>
           </div>
         </header>

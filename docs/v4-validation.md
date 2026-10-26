@@ -45,3 +45,9 @@ Six curated bilingual strategy exercises now use real Android/web engines and is
 Full currentAndroid checks:202core+165app tests, lintDebug, debug/release assembly passed (.agent-cache/v4-coach-final-android.log). Chromium185passed includingbothcoachorientations andnativeCDPtouchswipes (.agent-cache/v4-coach-final-browser.log). Final isolated webunit/build and signedHuawei latestsource physicalchecks pending. Do not mistake earlier053/9b candidates for this coach/swipe implementation. All18themes/fullbuilder and originalassets preserved.
 
 Latest verified web source:1049unit tests across31files, build/lint pass;185fullChromium tests pass and3coach/touch tests repeated after finalhorizontal-onlytabrailfix pass. EmulatorArtemisactualSettingsswipeAppearance->Gamepasses. SignedlatestHuawei gate remains pending.
+
+
+## Board-preserving training revision
+User rejected training shrinking the board. Android exactgeometry regression reproduced403->267dp; web landscape380->238.8px(basic)/217.2px(coach). Trainingnowreplacesnormalcontrolsspace, preservingmodernboardbounds. Nativecompactinstructions haveDetailsdialog;130%font hiddenHint regression fixed. CurrentAndroid202core+170app/lint/debug+release checks pass (.agent-cache/v4-cohesive-final-android.log). Webcontrolcohesionreviewandfinalfullsuitepending.
+
+OwnedheadlessPixel6/API37emulatorwasstoppedafteruseraskedaboutresources. Diskretained:1.7GAVD+5.3Gsystemimage+1.2Gengine~8.2G. ADBcurrentlyempty, userreconnectionquestionpending. LatestphysicalHuaweicandidategateisnotcomplete.

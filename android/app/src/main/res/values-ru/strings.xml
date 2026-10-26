@@ -55,6 +55,20 @@
     <string name="gameover_result">Итоги</string>
     <string name="tutorial_title">Обучение</string>
     <string name="tutorial_start">Пройти обучение</string>
+    <string name="btn_hint_label">Подсказка</string>
+    <string name="btn_sound_label">Звук</string>
+    <string name="btn_hint_short">Подсказка %1$s</string>
+    <string name="btn_sound_on">Звук вкл</string>
+    <string name="btn_sound_off">Звук выкл</string>
+    <string name="training_details">Подробнее</string>
+    <string name="coach_start">Тренер: стратегия</string>
+    <string name="coach_title">Тренер: стратегия</string>
+    <string name="coach_progress">Урок %1$s из %2$s</string>
+    <string name="coach_hint_show">Показать подсказку</string>
+    <string name="coach_hint_hide">Скрыть подсказку</string>
+    <string name="coach_continue">Продолжить</string>
+    <string name="coach_finish">Вернуться к игре</string>
+    <string name="coach_skip">Выйти из тренировки</string>
     <string name="tutorial_progress">Шаг %1$s из %2$s</string>
     <string name="tutorial_continue">Продолжить</string>
     <string name="tutorial_finish">Начать играть</string>
@@ -149,6 +163,8 @@
     <string name="settings_tab_board">Поле</string>
     <string name="settings_tab_builder">Конструктор</string>
     <string name="settings_tab_game">Игра</string>
+    <string name="settings_tab_appearance">Вид</string>
+    <string name="settings_tab_system">Система</string>
     <string name="settings_tabs">Разделы настроек</string>
     <string name="look_preview">Предпросмотр</string>
     <string name="look_studio">Студия вида</string>
@@ -556,10 +572,4 @@
         <item quantity="many">%d партий</item>
         <item quantity="other">%d партии</item>
     </plurals>
-    <string name="settings_tab_appearance">Оформление</string>
-    <string name="settings_tab_system">Система</string>
-    <string name="coach_start">Тренер: стратегия</string>
-    <string name="coach_progress">Урок %1$d из %2$d</string>
-    <string name="coach_hint">Показать подсказку</string>
-    <string name="coach_leave">Выйти из тренировки</string>
 </resources>

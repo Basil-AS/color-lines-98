@@ -95,7 +95,7 @@ import java.util.Date
 /** A bounded window with one scroll owner; short windows keep every action in the scroll flow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SupportingDialog(
+internal fun SupportingDialog(
     onDismissRequest: () -> Unit,
     title: @Composable () -> Unit,
     text: @Composable () -> Unit,
@@ -1171,27 +1171,15 @@ fun TutorialBanner(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    TrainingInstructions(
+        title = stringResource(R.string.tutorial_title),
+        progress = stringResource(R.string.tutorial_progress, step, total),
+        explanation = text,
+        hint = null,
+        primaryLabel = if (showContinue) stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue) else null,
+        onPrimary = onContinue,
+        leaveLabel = if (!last) stringResource(R.string.tutorial_skip) else null,
+        onLeave = onSkip,
         modifier = modifier
-            .widthIn(max = 520.dp)
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(2.dp, palette.accent),
-        shadowElevation = 8.dp
-    ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.tutorial_title), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text(stringResource(R.string.tutorial_progress, step, total), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(text, fontSize = 14.sp, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (showContinue) Button(onClick = onContinue) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue)) }
-                if (!last) OutlinedButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
-            }
-        }
-    }
+    )
 }

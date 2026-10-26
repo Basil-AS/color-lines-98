@@ -60,7 +60,7 @@ class StrategyTutorFlowTest {
             rule.onNodeWithContentDescription("Row ${lesson.from.y + 1}, column ${lesson.from.x + 1},", substring = true).performClick()
             rule.onNodeWithContentDescription("Row ${lesson.to.y + 1}, column ${lesson.to.x + 1},", substring = true).performClick()
             rule.onNode(hasText(lesson.text.getValue("en").success)).assertIsDisplayed()
-            rule.onNode(hasText(if (index == STRATEGY_LESSONS.lastIndex) "Start playing" else "Continue")).performClick()
+            rule.onNode(hasText(if (index == STRATEGY_LESSONS.lastIndex) "Return to game" else "Continue")).performClick()
         }
         assertEquals(before, prefs.getString("game", null))
         assertEquals(history, GameStorage(context).history)
