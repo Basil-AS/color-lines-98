@@ -53,7 +53,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -325,8 +324,8 @@ fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
                 Text(stringResource(R.string.help_switching))
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } },
-        dismissButton = { TextButton(onClick = onTutorial) { Text(stringResource(R.string.tutorial_start)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } },
+        dismissButton = { OutlinedButton(onClick = onTutorial) { Text(stringResource(R.string.tutorial_start)) } }
     )
 }
 
@@ -441,7 +440,7 @@ fun SettingsDialog(
                                 }
                             }
                         },
-                        confirmButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.btn_close)) } }
+                        confirmButton = { OutlinedButton(onClick = { picking = false }) { Text(stringResource(R.string.btn_close)) } }
                     )
                 }
                 OutlinedButton(onClick = { studio = true }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) { Text(stringResource(R.string.look_studio)) }
@@ -463,7 +462,7 @@ fun SettingsDialog(
                 // Vibration is its own switch, separate from the sound.
                 SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
                 if (!vibrationSupported) Text(stringResource(R.string.settings_vibrationOff), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = onTutorial, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onTutorial, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.tutorial_start), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 }
                 Text(stringResource(R.string.lang_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -492,7 +491,7 @@ fun SettingsDialog(
                 if (updateStatus != null) Text(updateStatus, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -645,7 +644,7 @@ fun StatsDialog(
                     }
                 }
                 if (history.size > 10) {
-                    TextButton(onClick = { showAll = !showAll }) {
+                    OutlinedButton(onClick = { showAll = !showAll }) {
                         Text(if (showAll) stringResource(R.string.stats_showLess) else stringResource(R.string.stats_showAll, history.size))
                     }
                 }
@@ -664,7 +663,7 @@ fun StatsDialog(
                 }
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -821,7 +820,7 @@ fun NewGameDialog(
                             }
                             Text(stringResource(shown.third), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        TextButton(onClick = { picking = true }) { Text(stringResource(R.string.newgame_changeMode)) }
+                        OutlinedButton(onClick = { picking = true }) { Text(stringResource(R.string.newgame_changeMode)) }
                     }
                 } else Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (picking) modes.forEach { (mode, name, desc) ->
@@ -853,7 +852,7 @@ fun NewGameDialog(
                         }
                     }
                 }
-                TextButton(onClick = onTutorial, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.tutorial_start)) }
+                OutlinedButton(onClick = onTutorial, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.tutorial_start)) }
             }
         },
         // With a game in progress the safe choice is the focused, prominent one.
@@ -945,7 +944,7 @@ fun ImportDialog(
         dismissButton = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!replacing) OutlinedButton(onClick = { replacing = true }) { Text(stringResource(R.string.data_replace)) }
-                TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+                OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
             }
         }
     )
@@ -989,7 +988,7 @@ fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress
                 Text(stringResource(R.string.goals_streak) + ": " + goalStreak, fontSize = 13.sp)
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -1062,9 +1061,9 @@ fun UpdateDialog(
         },
         dismissButton = {
             when (stage) {
-                is UpdateStage.Downloading -> TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
-                is UpdateStage.Failed -> TextButton(onClick = onBrowser) { Text(stringResource(R.string.update_browser)) }
-                else -> TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) }
+                is UpdateStage.Downloading -> OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+                is UpdateStage.Failed -> OutlinedButton(onClick = onBrowser) { Text(stringResource(R.string.update_browser)) }
+                else -> OutlinedButton(onClick = onLater) { Text(stringResource(R.string.update_later)) }
             }
         }
     )
@@ -1143,7 +1142,7 @@ fun TutorialBanner(
             Text(text, fontSize = 14.sp, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (showContinue) Button(onClick = onContinue) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue)) }
-                if (!last) TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
+                if (!last) OutlinedButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
             }
         }
     }
