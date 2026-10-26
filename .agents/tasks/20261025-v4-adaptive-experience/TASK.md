@@ -60,16 +60,34 @@ Deliver redesigned adaptive Android and web UX, verified on real phone and size/
 
 ## Current state (authoritative)
 
-PR67 merged as15e2bb05. PR73 draft on codex/v4-tutorial-reachability contains corrective layout/dialog work and the latest requested strategy coach/swipe tabs. All18themes and fullconstructor preserved, originalart/audioassets unchanged. Current source fullAndroid202core+165app tests/lint/debug/release green;185realChromium tests green. Finalweb unit isolated rerun after tiny horizontal-only tabrail fix is running. Six real-engine bilingual coach puzzles accept equivalent open-end/diagonal/corridor solutions; all6completion, wrong/hint, savedparty/history restoration and training-time isolation tested.
+PR67 merged as `15e2bb05`. PR73 is ready for review on
+`codex/v4-tutorial-reachability`, pushed through `3b99792`. It contains the
+strategy coach, swipe tabs, rounded visible controls and training that preserves
+the game board bounds. All 18 themes, the complete constructor, original assets
+and save formats are preserved.
 
-Physicalphone currently installed053e27c project-signed4.0candidate, which lacks latestswipes/coach. User continuesplaying; baselineparty must be captured afresh and preserved, never assume oldscore42fingerprint. LatestphysicalArtemis captures .agent-cache/v4-artemis-ux-actions. FinalcandidateCI required beforemerge73. Latestphysicaltests remainpendingwhileHuaweiabsent; userexplicitlyinstructedcommit/push/PR/mergeon2026-10-27. Release40225026151cancelled beforepublication; no4.0releaseyet. WorkflowonlyPR68–72green, mergeafter73.
+Local verification: 202 core + 171 Android app tests, Android lint and debug/release
+builds; 1057 web unit tests and 195 Chromium tests passed. Remote CI passed Android,
+unit/build, repository checks and CodeQL, but four browser checks failed for
+large-font short-window controls and selected-tab visibility on Linux. Diagnose
+and fix these before merging; retain the existing assertions.
 
-NEXT_ACTION: Finish isolatedwebunit, checkpoint/push source, dispatchsignedcandidate; verify certificate+Huawei Artemis coach/swipes/insets/partyrestoration, then green PR73/remainingPRs/release/Pages/main.
+Huawei is currently absent from ADB. Its installed signed candidate is `053e27c`,
+which predates the latest source. Preserve its current game on any future update.
+The owned emulator is stopped and its files retained. Latest physical validation
+remains pending and must be reported honestly; the user explicitly requires Git
+delivery without waiting for phone availability.
 
 ## Delivery
 
-PR: https://github.com/Basil-AS/color-lines-98/pull/67
-MERGE_STATUS: merged; tutorial correction and release pending
+- PR67: merged.
+- PR73: https://github.com/Basil-AS/color-lines-98/pull/73 — fix remote browser checks,
+  then merge after green CI.
+- Workflow dependency PR68–72: green, merge after PR73 to avoid releasing old source.
+- Verify public 4.0 release, APK signature/checksums/provenance, Pages and main CI.
+- Commit final validation records through a PR and synchronize clean local main.
+
+NEXT_ACTION: fix PR73 Linux browser failures, commit/push, then merge green PRs and verify delivery.
 
 ## Latest user steering (2026-10-26)
 Basic actions visible and clearly button-shaped; round modern chrome; preserve full themes/builder; fix landscapeSettingsstatusbarshift; reduce padding/maximizefield. Subagents explicitly requested; simplerwebworkusedgpt-6-luna. Implementation/review and full156Android/182browserchecks pass. SignedcandidatewithlatestUI +physicalArtemisbefore/after remain beforemerge/release. PR73scope now includes these corrections, not only tutorial.

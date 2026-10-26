@@ -56,3 +56,25 @@ test('real Chromium touch swipes navigate Settings and Statistics tabs without c
 
   await context.close();
 });
+
+test('selected final tab stays fully inside its rail with fractional font metrics', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.addInitScript(() => { localStorage.setItem('colorlines_lang', 'en'); });
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Statistics', exact: true }).click();
+  const rail = page.getByRole('tablist');
+  await rail.evaluate((element) => {
+    element.style.fontFamily = 'monospace';
+    element.style.fontSize = '15.2px';
+    element.scrollLeft = 0;
+  });
+  const data = page.getByRole('tab', { name: 'Data', exact: true });
+  // DOM activation exercises the app's reveal helper without Playwright auto-scrolling the tab.
+  await data.evaluate((element: HTMLElement) => element.click());
+  await expect(data).toHaveAttribute('aria-selected', 'true');
+  await expect.poll(() => data.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const railRect = element.parentElement!.getBoundingClientRect();
+    return rect.left >= railRect.left && rect.right <= railRect.right;
+  })).toBe(true);
+});

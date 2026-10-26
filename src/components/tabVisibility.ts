@@ -6,8 +6,8 @@ export function revealTabHorizontally(tab: HTMLElement | null): void {
   const tabRect = tab.getBoundingClientRect();
   const railRect = rail.getBoundingClientRect();
   if (tabRect.left < railRect.left) {
-    rail.scrollLeft -= railRect.left - tabRect.left;
+    rail.scrollLeft -= Math.ceil(railRect.left - tabRect.left);
   } else if (tabRect.right > railRect.right) {
-    rail.scrollLeft += tabRect.right - railRect.right;
+    rail.scrollLeft += Math.ceil(tabRect.right - railRect.right);
   }
 }

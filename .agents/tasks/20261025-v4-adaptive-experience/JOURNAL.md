@@ -114,3 +114,17 @@ FinalwebstylepassfoundAxeLabelinNamewithcompactnumericHintbadge. Decision: prese
 
 ## Git delivery checkpoint (2026-10-27)
 CurrentAndroidfull202core+171app/lint/debug+releaseGREEN .agent-cache/v4-merge-final-android.log; web1057unit/31filesGREEN .agent-cache/v4-merge-final-web-unit.log; exactaccessiblelabelsrestored, affectedbrowser46passedincludingAxeandalladaptive42originalassertions. Finalfullbrowserrerunrunning .agent-cache/v4-merge-final-browser.log. Source-onlyGit-awareisolatedself_testGREEN .agent-cache/v4-merge-source-selftest.log (rawrecursiveworkspacecheckerincludesignoredthirdpartySDKdocandfalsefailsitsunbalancedfence;sourceunchangedcheckerworksasCI). Resourcegeneratorcheck/statevalidator/diffcheckGREEN. Userexplicitlyrequestscommit/push/PR/merge; no physicalpermissiongate. Huaweiemptylatestactualphonecheckpending, emulatorstopped.
+
+## Remote CI correction after 3b99792
+
+PR73 is pushed and ready. All Android/build/unit/repository/CodeQL checks passed.
+Remote Chromium passed 191/195; four failures exposed Linux font width and
+fractional scroll rounding. Local full 195 passed, so remote failure was inspected
+rather than dismissed. Web subagent increased text room and scoped utility grid
+minimum to short landscape; 46 focused browser tests passed with original
+assertions. Independent reviewer reproduced Data tab clipped by 0.4375px in actual
+Chromium with monospace 15.2px: integer scrollWidth clamps fractional scroll extent.
+Fix and regression verification in progress. User authorization explicitly covers
+commit, push, PR and merge. No phone in ADB; emulator remains stopped.
+
+Linux correction verification: new fractional-font regression RED before fix, GREEN afterward; full Chromium 196/196 passed (1.8m, .agent-cache/v4-linux-browser-full.log), web 1057/1057 passed, build/lint green (two existing Fast Refresh warnings), diff/state validation green. Ready to commit and push to PR73.
