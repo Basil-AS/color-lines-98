@@ -7,46 +7,51 @@ class AdaptiveGameLayoutTest {
     @Test fun landscapeUsesTheSafeHeightInsteadOfAWidthPercentage() {
         val layout = adaptiveGameLayout(899f, 423f)
         assertTrue(layout.sideBySide)
-        assertEquals(407f, layout.boardSize, 0.01f)
+        assertEquals(423f - 8f, layout.boardSize, 0.01f)
+        assertEquals(4f, layout.padding, 0f)
         assertTrue(layout.panelWidth >= 176f)
+        assertEquals(899f, layout.boardSize + layout.panelWidth + layout.gap + 2 * layout.padding, 0.01f)
         assertFits(layout, 899f, 423f)
     }
 
     @Test fun portraitBoardUsesAvailableWidth() {
         val layout = adaptiveGameLayout(320f, 640f)
         assertFalse(layout.sideBySide)
-        assertEquals(296f, layout.boardSize, 0.01f)
+        assertEquals(320f - 8f, layout.boardSize, 0.01f)
+        assertEquals(4f, layout.padding, 0f)
+        assertEquals(6f, layout.gap, 0f)
     }
 
     @Test fun shortLandscapeStillFillsTheHeight() {
         val layout = adaptiveGameLayout(600f, 280f)
         assertTrue(layout.sideBySide)
-        assertEquals(264f, layout.boardSize, 0.01f)
+        assertEquals(272f, layout.boardSize, 0.01f)
         assertFits(layout, 600f, 280f)
     }
 
     @Test fun tabletPortraitDoesNotWasteWidthOnAnUnnecessaryRail() {
         val layout = adaptiveGameLayout(840f, 1280f)
         assertFalse(layout.sideBySide)
-        assertEquals(816f, layout.boardSize, 0.01f)
+        assertEquals(832f, layout.boardSize, 0.01f)
     }
 
     @Test fun tabletLandscapeUsesTheFullAvailableHeight() {
         val layout = adaptiveGameLayout(1280f, 840f)
         assertTrue(layout.sideBySide)
-        assertEquals(824f, layout.boardSize, 0.01f)
+        assertEquals(832f, layout.boardSize, 0.01f)
     }
 
     @Test fun measuredChromeControlsTheShortPortraitBoard() {
         val layout = adaptiveGameLayout(360f, 480f, headerHeight = 180f, dockHeight = 64f)
         assertFalse(layout.sideBySide)
-        assertEquals(188f, layout.boardSize, 0.01f)
+        assertEquals(216f, layout.boardSize, 0.01f)
     }
 
     @Test fun largeFontsReserveEnoughPanelWidthAndDoNotOverflow() {
         val normal = adaptiveGameLayout(899f, 423f)
         val large = adaptiveGameLayout(899f, 423f, fontScale = 2f)
-        assertTrue(large.panelWidth > normal.panelWidth)
+        assertTrue(large.panelWidth >= normal.panelWidth)
+        assertTrue(large.panelWidth >= 176f * 2f)
         assertFits(large, 899f, 423f)
     }
 

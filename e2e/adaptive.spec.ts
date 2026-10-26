@@ -204,3 +204,30 @@ for (const theme of ['colorlines92', 'lines98', 'lines98plus']) {
     });
   }
 }
+
+test('modern controls have visible names and rounded touch surfaces', async ({ page }) => {
+  await page.setViewportSize({ width: 411, height: 891 });
+  for (const theme of ['modern', 'clear', 'meadow', 'terminal']) {
+    await page.addInitScript((theme) => {
+      localStorage.setItem('colorlines_theme', theme);
+      localStorage.setItem('colorlines_lang', 'en');
+    }, theme);
+    await page.goto('/');
+    const labels = page.locator('.adaptive-game .controls-group .control-label');
+    await expect(labels).toHaveCount(7);
+    for (const label of await labels.all()) await expect(label).toBeVisible();
+    const targets = await page.locator('.adaptive-game .controls-group button').evaluateAll((buttons) => buttons.map((button) => {
+      const bounds = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      return bounds.height >= 44 && bounds.width >= 44 && parseFloat(style.borderTopLeftRadius) >= 12;
+    }));
+    expect(targets, theme).toEqual(Array(7).fill(true));
+  }
+});
+
+test('classic Windows controls retain their original presentation', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('colorlines_theme', 'lines98plus'));
+  await page.goto('/');
+  await expect(page.locator('.board-cell')).toHaveCount(81);
+  await expect(page.locator('.control-label')).toHaveCount(0);
+});

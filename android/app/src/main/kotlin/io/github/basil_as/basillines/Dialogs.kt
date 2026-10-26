@@ -99,6 +99,7 @@ private fun SupportingDialog(
     dismissButton: @Composable (() -> Unit)? = null
 ) {
     Dialog(onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        GameDialogSystemBars()
         BoxWithConstraints(
             Modifier.fillMaxSize().pointerInput(onDismissRequest) { detectTapGestures { onDismissRequest() } }
                 .windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp),

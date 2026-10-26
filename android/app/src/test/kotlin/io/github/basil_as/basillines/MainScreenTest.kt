@@ -500,7 +500,7 @@ class RussianScreenTest {
     @Test
     fun usesTheSystemLanguage() {
         rule.onNodeWithContentDescription("Игровое поле").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Игра").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Настройки").assertIsDisplayed()
         rule.clickGameAction("Статистика", "Игра")
         rule.onAllNodes(hasText("Пока нет партий", substring = true)).onFirst().assertIsDisplayed()
     }

@@ -78,3 +78,6 @@ NEXT_ACTION: Poll .agent-cache/v4-tutorial-full.log, verify corrected tutorial t
 
 PR: https://github.com/Basil-AS/color-lines-98/pull/67
 MERGE_STATUS: merged; tutorial correction and release pending
+
+## Latest user steering (2026-10-26)
+Basic actions visible and clearly button-shaped; round modern chrome; preserve full themes/builder; fix landscapeSettingsstatusbarshift; reduce padding/maximizefield. Subagents explicitly requested; simplerwebworkusedgpt-6-luna. Implementation/review and full156Android/182browserchecks pass. SignedcandidatewithlatestUI +physicalArtemisbefore/after remain beforemerge/release. PR73scope now includes these corrections, not only tutorial.

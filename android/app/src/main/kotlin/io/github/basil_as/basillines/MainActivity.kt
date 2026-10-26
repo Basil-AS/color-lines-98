@@ -1,9 +1,6 @@
 package io.github.basil_as.basillines
 
 import android.content.res.Configuration
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import android.graphics.Color as AndroidColor
 import android.content.Context
 import android.os.Bundle
@@ -131,13 +128,8 @@ class MainActivity : ComponentActivity() {
      * (a swipe from the edge shows them for a moment). Upright they stay, as everyone expects.
      */
     private fun applyImmersive() {
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-        } else {
-            controller.show(WindowInsetsCompat.Type.systemBars())
-        }
+        applyGameWindowImmersive(window,
+            resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
     }
 
     /** A dialog, the keyboard or a swipe can bring the bars back: hide them again when the game has the focus. */
@@ -748,14 +740,21 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
 
     MaterialTheme(
         colorScheme = colorScheme(palette),
-        // The retro looks have no rounded corners anywhere: buttons, cards and dialogs are square.
-        shapes = if (palette.square) androidx.compose.material3.Shapes(
+        // Only the original DOS/Windows looks use square chrome. A modern theme's square board
+        // or builder cell shape must not also flatten settings, buttons and dialogs.
+        shapes = if (theme == AppTheme.COLORLINES_92 || theme == AppTheme.LINES_98) androidx.compose.material3.Shapes(
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
-        ) else MaterialTheme.shapes
+        ) else androidx.compose.material3.Shapes(
+            extraSmall = RoundedCornerShape(8.dp),
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(16.dp),
+            large = RoundedCornerShape(20.dp),
+            extraLarge = RoundedCornerShape(24.dp)
+        )
     ) {
         BoxWithConstraints(Modifier.fillMaxSize().background(palette.background)) {
             val tutorialMaxHeight = maxHeight * 0.4f

@@ -1321,6 +1321,29 @@ export default function App() {
     </section>
   );
 
+  const nextPreview = engine.isGameOver ? (
+              gameOverActions
+            ) : (
+              <div
+                className="next-balls-preview"
+                role="img"
+                aria-label={t('next.label', {
+                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                })}
+              >
+                <span className="next-balls-label" aria-hidden="true">
+                  {t('hud.next')}
+                </span>
+                <div className="next-balls-list" aria-hidden="true">
+                  {engine.nextColors.map((color, idx) => (
+                    <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
+                      {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+
   if (dos) {
     return (
       <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
@@ -1438,31 +1461,11 @@ export default function App() {
                 </div>
               </div>
             </div>
+            {!sprites && nextPreview}
           </div>
 
           <div className="hud-action-row">
-            {engine.isGameOver ? (
-              gameOverActions
-            ) : (
-              <div
-                className="next-balls-preview"
-                role="img"
-                aria-label={t('next.label', {
-                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
-                })}
-              >
-                <span className="next-balls-label" aria-hidden="true">
-                  {t('hud.next')}
-                </span>
-                <div className="next-balls-list" aria-hidden="true">
-                  {engine.nextColors.map((color, idx) => (
-                    <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
-                      {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {sprites && nextPreview}
 
             <div className="controls-group">
               <div className="primary-controls">
@@ -1475,6 +1478,7 @@ export default function App() {
                   aria-label={t('btn.undo')}
                 >
                   <Undo2 size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.undo')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1485,6 +1489,7 @@ export default function App() {
                   aria-label={hintTitle}
                 >
                   <Lightbulb size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{hintTitle}</span>}
                 </button>
               </div>
               <div className="secondary-controls">
@@ -1496,6 +1501,7 @@ export default function App() {
                   aria-label={t('btn.newGame')}
                 >
                   <RotateCcw size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.newGame')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1505,6 +1511,7 @@ export default function App() {
                   aria-label={t('btn.stats')}
                 >
                   <BarChart3 size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.stats')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1519,6 +1526,7 @@ export default function App() {
                   ) : (
                     <VolumeX size={20} aria-hidden="true" />
                   )}
+                  {!sprites && <span className="control-label" aria-hidden="true">{soundEnabled ? t('btn.mute') : t('btn.unmute')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1528,6 +1536,7 @@ export default function App() {
                   aria-label={t('btn.settings')}
                 >
                   <Settings size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.settings')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1537,6 +1546,7 @@ export default function App() {
                   aria-label={t('btn.help')}
                 >
                   <HelpCircle size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.help')}</span>}
                 </button>
               </div>
             </div>

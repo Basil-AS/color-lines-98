@@ -3684,6 +3684,11 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 
 .app-container.adaptive-game {
   --rail-size: 280px;
+  --safe-block: calc(max(4px, env(safe-area-inset-top)) + max(4px, env(safe-area-inset-bottom)));
+  --safe-inline: calc(max(4px, env(safe-area-inset-left)) + max(4px, env(safe-area-inset-right)));
+  padding-block: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-bottom));
+  padding-inline: max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right));
+  --adaptive-radius: 12px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -3695,6 +3700,15 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   max-width: 54rem;
   flex: none;
   overflow: visible;
+  border-radius: var(--adaptive-radius);
+}
+
+.adaptive-game .ctrl-btn,
+.adaptive-game .strip-btn,
+.adaptive-game .modal-content,
+.adaptive-game .modal-btn,
+.adaptive-game .gameover-btn {
+  border-radius: var(--adaptive-radius);
 }
 
 .adaptive-game .side-panel {
@@ -3765,31 +3779,44 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 .adaptive-game .controls-group {
-  display: contents;
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .adaptive-game .primary-controls,
 .adaptive-game .secondary-controls {
-  display: flex;
-  gap: 6px;
+  display: contents;
 }
 
-.adaptive-game .secondary-controls {
+.adaptive-game .controls-group .ctrl-btn {
+  grid-column: span 3;
+  min-height: 48px;
   width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 3px;
+  text-align: center;
+  font-size: 0.72rem;
+  line-height: 1.2;
 }
 
-.adaptive-game .ctrl-btn {
-  min-height: 44px;
-}
-
-.adaptive-game .primary-controls .ctrl-btn {
-  width: 44px;
+.adaptive-game .controls-group .ctrl-btn svg {
   flex: none;
 }
 
-.adaptive-game .secondary-controls .ctrl-btn {
-  width: auto;
-  flex: 1;
+.adaptive-game .primary-controls .ctrl-btn,
+.adaptive-game .secondary-controls .ctrl-btn:first-child {
+  grid-column: span 4;
+}
+
+.adaptive-game .control-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
 }
 
 .adaptive-game .mode-strip {
@@ -3842,7 +3869,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   .adaptive-game .game-window {
     --play-size: min(calc(100dvh - var(--safe-block) - var(--frame-block, 2px)), calc(100vw - var(--safe-inline) - var(--rail-size) - var(--frame-inline, 2px)));
     display: grid;
-    width: calc(var(--play-size) + var(--rail-size) + var(--frame-inline, 2px));
+    width: calc(100vw - var(--safe-inline));
     height: calc(var(--play-size) + var(--frame-block, 2px));
     max-width: none;
     overflow-y: auto;
@@ -4133,3 +4160,14 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+/* Compact named actions retain the board on phones; training has its own commands. */
+.adaptive-game .controls-group .ctrl-btn svg { width: 16px; height: 16px; }
+.adaptive-game .controls-group .ctrl-btn { gap: 2px; padding-block: 4px; font-size: 0.7rem; line-height: 1.1; }
+.adaptive-game .game-window:has(> .tutorial-banner) .controls-group { display: none; }
+@media (max-width: 959px) {
+  .adaptive-game .game-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .adaptive-game .hud-stats { margin-inline-start: 0; }
+}
+
+@media (max-width: 959px) { .adaptive-game .hud-header { padding-block: 6px; } }
