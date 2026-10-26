@@ -6,7 +6,7 @@ import { THEME_FAMILIES } from '../appearance';
 import type { CustomTheme, Look, LookKey, LookOverrides, LookShare } from '../appearance';
 import { COLOR_SCHEMES, followsShade } from '../themes';
 import type { ColorScheme, Theme } from '../themes';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { LookBuilder } from './LookBuilder';
 import { LookControls } from './LookControls';
 import { LookPreview } from './LookPreview';
@@ -14,6 +14,7 @@ import type { LanguagePref } from '../storage';
 import { EFFECT_LEVELS } from '../effects';
 import type { EffectsLevel } from '../effects';
 import { hapticsSupported } from '../haptics';
+import { revealTabHorizontally } from './tabVisibility';
 
 interface SettingsDialogProps {
   lang: Language;
@@ -37,6 +38,7 @@ interface SettingsDialogProps {
   custom: CustomTheme;
   onCustom: (custom: CustomTheme) => void;
   onApplyShare: (share: LookShare) => void;
+  onStrategyCoach?: () => void;
   onClose: () => void;
 }
 
@@ -51,6 +53,10 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
   const [tab, setTab] = useState<Tab>('themes');
   const showPreview = tab !== 'game';
+
+  useEffect(() => {
+    revealTabHorizontally(document.getElementById(`settings-tab-${tab}`));
+  }, [tab]);
 
   const themeCard = (id: Theme) => (
     <button
@@ -67,11 +73,19 @@ export function SettingsDialog(props: SettingsDialogProps) {
   );
 
   return (
-    <Dialog titleId="settings-title" title={t('settings.title')} onClose={props.onClose}>
+    <Dialog
+      titleId="settings-title"
+      title={t('settings.title')}
+      onClose={props.onClose}
+      onSwipe={(direction) => {
+        const next = TABS.indexOf(tab) + (direction === 'left' ? 1 : -1);
+        if (next >= 0 && next < TABS.length) setTab(TABS[next]);
+      }}
+    >
       <div className="settings-head">
         <div className="settings-tabs" role="group" aria-label={t('settings.tabs')}>
           {TABS.map((id) => (
-            <button type="button" key={id} className={`settings-tab ${tab === id ? 'active' : ''}`} aria-pressed={tab === id} onClick={() => setTab(id)}>
+            <button type="button" key={id} id={`settings-tab-${id}`} className={`settings-tab ${tab === id ? 'active' : ''}`} aria-pressed={tab === id} onClick={() => setTab(id)}>
               {t(`settings.tab.${id}` as MessageKey)}
             </button>
           ))}
@@ -131,6 +145,11 @@ export function SettingsDialog(props: SettingsDialogProps) {
 
       {tab === 'game' && (
         <div className="settings-section">
+          {props.onStrategyCoach && (
+            <button type="button" className="modal-btn modal-btn-secondary" onClick={props.onStrategyCoach}>
+              {t('coach.start')}
+            </button>
+          )}
         <label className="settings-row">
           <span>{t('settings.language')}</span>
           <select

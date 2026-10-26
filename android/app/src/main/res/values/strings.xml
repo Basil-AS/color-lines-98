@@ -548,4 +548,10 @@
         <item quantity="one">%d game</item>
         <item quantity="other">%d games</item>
     </plurals>
+    <string name="settings_tab_appearance">Appearance</string>
+    <string name="settings_tab_system">System</string>
+    <string name="coach_start">Strategy coach</string>
+    <string name="coach_progress">Lesson %1$d of %2$d</string>
+    <string name="coach_hint">Show a hint</string>
+    <string name="coach_leave">Leave training</string>
 </resources>

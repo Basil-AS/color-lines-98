@@ -122,6 +122,17 @@ class AdaptiveGameScreenTest {
             }
     }
 
+    @Test @Config(sdk = [29]) fun landscapeAtEverydayLargeFontShowsEveryWholeAction() {
+        show(899, 423, 1.3f)
+        val viewport = rule.onNodeWithTag("viewport").getUnclippedBoundsInRoot()
+        listOf("New game", "Undo move", "Hint (3 left)", "Settings", "Statistics", "Mute sound", "Rules and info")
+            .forEach { label ->
+                val bounds = rule.onNodeWithContentDescription(label).getUnclippedBoundsInRoot()
+                assertTrue("$label must fit entirely without scrolling: $bounds / $viewport",
+                    bounds.top >= viewport.top && bounds.bottom <= viewport.bottom)
+            }
+    }
+
     @Test fun gameOverKeepsNewGameResultAndSettingsDirectlyAccessible() {
         var newGames = 0
         var results = 0

@@ -60,19 +60,11 @@ Deliver redesigned adaptive Android and web UX, verified on real phone and size/
 
 ## Current state (authoritative)
 
-PR67 merged as15e2bb05a43099040bf839b5cb955a7a64a10a4b after all required checks, independent reviews and signed33cebf5physical validation. All18themes and builder preserved; assets unchanged. Final modern/DOS/Windows98matrices passed onHuaweiAndroid10,81cellsstable and same fingerprint as3.2.2. Goals/stats/help/nativeBack and style-code roundtrip checked. Backup save picker opened/cancelled; automated tests cover full export/import and gameplay. Full suite at33cebf5:197core/137Android,1026webunit/180Chromium, lint/builds green.
+PR67 merged as15e2bb05. PR73 draft on codex/v4-tutorial-reachability contains corrective layout/dialog work and the latest requested strategy coach/swipe tabs. All18themes and fullconstructor preserved, originalart/audioassets unchanged. Current source fullAndroid202core+165app tests/lint/debug/release green;185realChromium tests green. Finalweb unit isolated rerun after tiny horizontal-only tabrail fix is running. Six real-engine bilingual coach puzzles accept equivalent open-end/diagonal/corridor solutions; all6completion, wrong/hint, savedparty/history restoration and training-time isolation tested.
 
-Additional physical tutorial play found an actual blocker: landscape instructions overlay the required line destination. Release run40225026151 was cancelled before publication; Pages main deployment succeeded but will be refreshed by the correction. A touch-based regression fails atstep5 onAPI29/37. Follow-up branch codex/v4-tutorial-reachability reserves separate bounded scrolling space for the tutorial, leaving the game board unobscured. Full suite, independent review and new signed physical candidate required before merging the fix and restarting release4.0.0. No release4.0published yet.
+Physicalphone currently installed053e27c project-signed4.0candidate, which lacks latestswipes/coach. User continuesplaying; baselineparty must be captured afresh and preserved, never assume oldscore42fingerprint. LatestphysicalArtemis captures .agent-cache/v4-artemis-ux-actions. FinalcandidateCI/newphysicaltests required beforemerge73. Release40225026151cancelled beforepublication; no4.0releaseyet. WorkflowonlyPR68–72green, mergeafter73.
 
-NEXT_ACTION: Poll .agent-cache/v4-tutorial-full.log, verify corrected tutorial through actual emulator/phone touches, create reviewed follow-upPR, merge only greenCI, verify signed release assets/Pages/main and close task state.
-
-## Verification
-
-- Pure-engine197 +Android137 +lint/debug/release passed at33cebf5.
-- Web1026unit/180Chromium plus all required PR67CI passed.
-- Signedcandidate33cebf5run40223651992,artifact12610632193, projectcert5D3030E9363804C3F732D1A72BB683E1997F73D0454A1362C0FF5BF463271993.
-- ActualArtemis modern/DOS/98matrices: .agent-cache/v4-artemis-huawei-{33,dos33,win9833}/.
-- Corrected tutorial gesture test red onAPI29/37, fullruninprogress .agent-cache/v4-tutorial-full.log.
+NEXT_ACTION: Finish isolatedwebunit, checkpoint/push source, dispatchsignedcandidate; verify certificate+Huawei Artemis coach/swipes/insets/partyrestoration, then green PR73/remainingPRs/release/Pages/main.
 
 ## Delivery
 

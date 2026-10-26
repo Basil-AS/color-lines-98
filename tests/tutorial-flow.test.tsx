@@ -23,6 +23,7 @@ import App from '../src/App';
 import { GameEngine } from '../src/engine/gameengine';
 import { soundManager } from '../src/audio';
 import { saveGame } from '../src/storage';
+import { STRATEGY_LESSONS } from '../src/coach';
 
 function setLanguages(languages: string[]) {
   Object.defineProperty(window.navigator, 'languages', { value: languages, configurable: true });
@@ -329,5 +330,73 @@ describe('tutorial flow', () => {
     const banner = document.querySelector('section.tutorial-banner');
     expect(banner).toBeInTheDocument();
     expect(within(banner as HTMLElement).getByText('Step 1 of 7')).toBeInTheDocument();
+  });
+});
+
+describe('strategy coach flow', () => {
+  it('plays all six real-board lessons only when continued and restores the party untouched', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await playOneMove(user);
+    const originalBoard = cells().map((cell) => cell.getAttribute('aria-label'));
+    const originalStorage = Object.fromEntries(Object.entries(localStorage));
+
+    await user.click(screen.getByRole('button', { name: 'Rules and info' }));
+    await user.click(screen.getByRole('button', { name: 'Strategy coach' }));
+
+    const banner = () => document.querySelector('section.strategy-coach');
+    expect(banner()).toBeInTheDocument();
+    for (let index = 0; index < STRATEGY_LESSONS.length; index += 1) {
+      const lesson = STRATEGY_LESSONS[index];
+      const content = within(banner() as HTMLElement);
+      expect(content.getByText(`Puzzle ${index + 1} of 6`)).toBeInTheDocument();
+      expect(content.getByText(lesson.text.en.title)).toBeInTheDocument();
+      expect(content.getByRole('status')).toHaveTextContent(lesson.text.en.explanation);
+      fireEvent.click(cellAt(lesson.from.x, lesson.from.y));
+      fireEvent.click(cellAt(lesson.to.x, lesson.to.y));
+      expect(within(banner() as HTMLElement).getByRole('status')).toHaveTextContent(lesson.text.en.success);
+      expect(within(banner() as HTMLElement).getByRole('button', { name: index === 5 ? 'Finish coach' : 'Continue' })).toBeInTheDocument();
+      if (index < 5) {
+        await user.click(within(banner() as HTMLElement).getByRole('button', { name: 'Continue' }));
+      }
+    }
+
+    await user.click(within(banner() as HTMLElement).getByRole('button', { name: 'Finish coach' }));
+    expect(banner()).not.toBeInTheDocument();
+    expect(cells().map((cell) => cell.getAttribute('aria-label'))).toEqual(originalBoard);
+    expect(Object.fromEntries(Object.entries(localStorage))).toEqual(originalStorage);
+  });
+
+  it('shows optional hints and specific wrong-move feedback before waiting for Continue', async () => {
+    const user = userEvent.setup();
+    const lesson = STRATEGY_LESSONS[0];
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Rules and info' }));
+    await user.click(screen.getByRole('button', { name: 'Strategy coach' }));
+    const banner = () => document.querySelector('section.strategy-coach') as HTMLElement;
+    await user.click(within(banner()).getByRole('button', { name: 'Show hint' }));
+    expect(within(banner()).getByText(lesson.text.en.hint)).toBeInTheDocument();
+    expect(document.querySelectorAll('.board-cell.hint-target')).toHaveLength(2);
+
+    fireEvent.click(cellAt(lesson.from.x, lesson.from.y));
+    fireEvent.click(cellAt(8, 7));
+    expect(within(banner()).getByRole('status')).toHaveTextContent(lesson.text.en.wrong);
+    expect(within(banner()).queryByRole('button', { name: 'Continue' })).not.toBeInTheDocument();
+
+    fireEvent.click(cellAt(lesson.from.x, lesson.from.y));
+    fireEvent.click(cellAt(lesson.to.x, lesson.to.y));
+    expect(within(banner()).getByRole('status')).toHaveTextContent(lesson.text.en.success);
+    expect(within(banner()).getByText('Puzzle 1 of 6')).toBeInTheDocument();
+    expect(within(banner()).getByRole('button', { name: 'Continue' })).toBeInTheDocument();
+    await user.click(within(banner()).getByRole('button', { name: 'Skip coach' }));
+  });
+
+  it('can be started from Settings Game', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    await user.click(screen.getByRole('button', { name: 'Game' }));
+    await user.click(screen.getByRole('button', { name: 'Strategy coach' }));
+    expect(document.querySelector('section.strategy-coach')).toBeInTheDocument();
   });
 });

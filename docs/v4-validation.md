@@ -37,3 +37,11 @@ Tutorial follow-up: semantic-click tests missed an instruction banner covering t
 Modern game actions are now direct named, rounded buttons, including settings and game-over result access. Palette and constructor rendering remain intact. Safe outer spacing is4dp/4px and Android gaps6dp; the landscape rail consumes remaining width. A320dp portrait policy gives a312dp board;423dp landscape gives415dp. Measured Compose tests enforce the same bounds. Independent reviews approved controls, per-dialog window handling, classic label scoping and geometry.
 
 Huawei Artemis before/openSettings evidence confirms the reported notification-bar/board shift in the previous signed build: `.agent-cache/v4-bars-before/{game,settings}.png`. The fix applies immersive requests to each dialog window before drawing and on focus regain. API29 tests for supporting dialogs and Studio fail before the fix and pass after it; final signed physical verification is still required. Current user's score42/game-over/themeMeadow must be preserved. Full local result:197core/156Android tests, lintDebug, debug/release build;1026webunit(previous pass, final rerun in progress),182Chromium, typecheck/build. Logs are project-local ignored cache.
+
+
+## Strategy coach and swipe tabs (2026-10-26)
+Six curated bilingual strategy exercises now use real Android/web engines and isolated boards. Equivalent open ends/diagonals and69 safe corridor destinations accepted. Whole-course UI tests verify wrongfeedback, optionalhint, manualContinue and exactparty/history restoration. Android regression proves20s of coach time no longer leaks into restoredgame.
+
+Full currentAndroid checks:202core+165app tests, lintDebug, debug/release assembly passed (.agent-cache/v4-coach-final-android.log). Chromium185passed includingbothcoachorientations andnativeCDPtouchswipes (.agent-cache/v4-coach-final-browser.log). Final isolated webunit/build and signedHuawei latestsource physicalchecks pending. Do not mistake earlier053/9b candidates for this coach/swipe implementation. All18themes/fullbuilder and originalassets preserved.
+
+Latest verified web source:1049unit tests across31files, build/lint pass;185fullChromium tests pass and3coach/touch tests repeated after finalhorizontal-onlytabrailfix pass. EmulatorArtemisactualSettingsswipeAppearance->Gamepasses. SignedlatestHuawei gate remains pending.

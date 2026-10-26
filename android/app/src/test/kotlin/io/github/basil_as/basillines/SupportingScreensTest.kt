@@ -82,6 +82,7 @@ class SupportingScreensTest {
                 }
             }
         }
+        rule.onNodeWithText("Game").performScrollTo().performClick()
         rule.onNodeWithText("Sound effects").performScrollTo().performClick()
         val label = rule.onNodeWithText("Show where new balls will appear").performScrollTo()
         val layouts = mutableListOf<TextLayoutResult>()
@@ -90,6 +91,7 @@ class SupportingScreensTest {
         label.performClick()
         rule.onNodeWithText("Vibration").performScrollTo().performClick()
         rule.onNodeWithText("Take the tutorial").performScrollTo().performClick()
+        rule.onNodeWithText("System").performScrollTo().performClick()
         rule.onNodeWithText("Check for updates").performScrollTo().performClick()
         assertEquals(listOf(1, 1, 1, 1, 1), listOf(sound, preview, vibration, tutorial, update))
     }

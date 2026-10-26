@@ -68,6 +68,7 @@ class TutorialReachabilityTest {
         val settings = rule.gameAction("Настройки", "Игра")
         if (!settings.isDisplayed()) settings.performScrollTo()
         settings.performClick()
+        text("Игра").performClick()
         text("Пройти обучение").performClick()
         tap(5, 3)
         tap(3, 3)

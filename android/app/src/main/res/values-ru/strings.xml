@@ -556,4 +556,10 @@
         <item quantity="many">%d партий</item>
         <item quantity="other">%d партии</item>
     </plurals>
+    <string name="settings_tab_appearance">Оформление</string>
+    <string name="settings_tab_system">Система</string>
+    <string name="coach_start">Тренер: стратегия</string>
+    <string name="coach_progress">Урок %1$d из %2$d</string>
+    <string name="coach_hint">Показать подсказку</string>
+    <string name="coach_leave">Выйти из тренировки</string>
 </resources>

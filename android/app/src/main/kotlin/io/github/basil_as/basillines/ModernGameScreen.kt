@@ -160,36 +160,39 @@ private fun ModernBoard(snapshot: BoardSnapshot, palette: Palette, onCellTap: (P
 
 @Composable
 private fun ModernHeader(palette: Palette, score: Int, best: Int, nextColors: List<BallColor>, extras: GameExtras, sidePanel: Boolean = false) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        val separateScore = sidePanel || score >= 10000 || best >= 10000 || LocalDensity.current.fontScale > 1.4f
-        if (separateScore) {
-            ModernScore(stringResource(R.string.hud_score), score, palette, Modifier.fillMaxWidth(), true)
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                ModernScore(stringResource(R.string.hud_best), best, palette, Modifier.weight(1f))
-                ModernNext(palette, nextColors, Modifier.weight(.8f))
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        val narrowHeader = maxWidth < 320.dp
+        Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            val separateScore = (sidePanel && narrowHeader) || score >= 10000 || best >= 10000 || LocalDensity.current.fontScale > 1.4f
+            if (separateScore) {
+                ModernScore(stringResource(R.string.hud_score), score, palette, Modifier.fillMaxWidth(), true)
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    ModernScore(stringResource(R.string.hud_best), best, palette, Modifier.weight(1f))
+                    ModernNext(palette, nextColors, Modifier.weight(.8f))
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    ModernScore(stringResource(R.string.hud_score), score, palette, Modifier.weight(1f), true)
+                    ModernScore(stringResource(R.string.hud_best), best, palette, Modifier.weight(1f))
+                    ModernNext(palette, nextColors, Modifier.weight(1.2f))
+                }
             }
-        } else {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                ModernScore(stringResource(R.string.hud_score), score, palette, Modifier.weight(1f), true)
-                ModernScore(stringResource(R.string.hud_best), best, palette, Modifier.weight(1f))
-                ModernNext(palette, nextColors, Modifier.weight(1.2f))
-            }
-        }
-        // Independent entries retain their natural width: long translations never break into a
-        // stack of letters. The row scrolls when the font or window leaves insufficient room.
-        Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-            ModernAction(palette, extras.modeLabel, extras.onChangeMode, icon = null)
-            if (extras.clock != null) {
-                val clockDescription = stringResource(R.string.mode_timeLeft, extras.clock)
-                Text(extras.clock, color = palette.accent, fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold, maxLines = 1,
-                    modifier = Modifier.semantics { contentDescription = clockDescription })
-            }
-            if (extras.goalsLabel.isNotEmpty()) {
-                ModernAction(palette, extras.goalsLabel, extras.onGoals, AppIcons.Flag)
+            // Independent entries retain their natural width: long translations never break into a
+            // stack of letters. The row scrolls when the font or window leaves insufficient room.
+            Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                ModernAction(palette, extras.modeLabel, extras.onChangeMode, icon = null)
+                if (extras.clock != null) {
+                    val clockDescription = stringResource(R.string.mode_timeLeft, extras.clock)
+                    Text(extras.clock, color = palette.accent, fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold, maxLines = 1,
+                        modifier = Modifier.semantics { contentDescription = clockDescription })
+                }
+                if (extras.goalsLabel.isNotEmpty()) {
+                    ModernAction(palette, extras.goalsLabel, extras.onGoals, AppIcons.Flag)
+                }
             }
         }
     }
