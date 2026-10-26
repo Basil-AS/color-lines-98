@@ -138,3 +138,14 @@ were insufficient. Short-landscape primary controls now wrap at intrinsic conten
 width; portrait unchanged. Separate stress regression RED before/GREEN after;
 existing default-font cases and strict hit-test/overflow/board assertions retained.
 Adaptive+modern-control47/47 and build/lint passed; remote full gate required.
+
+## Runner mirror stall
+
+Head9a0ec14 local full197browser tests passed; every remote check except browserjob
+passed. Browserattempt1 stalled over10minutes during native dependencies download
+from azure.archive.ubuntu.com (fonts and libglib retries), before executing tests.
+Cancelled onlyWeb workflow andreran browserjob; secondattempt stalls atsameinstall.
+Keep full --with-deps coverage; shared disposable-runner installer now switches
+observed Azure mirror to official archive.ubuntu.com with30s acquisition timeouts
+and3retries. WebPR and release use same script. No local machine apt settings
+modified. Validate syntax/diff and actualCI beforemerge.

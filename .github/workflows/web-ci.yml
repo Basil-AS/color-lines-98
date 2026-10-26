@@ -81,7 +81,7 @@ jobs:
         run: npm ci
 
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: bash .github/scripts/install-playwright.sh
 
       - name: Browser tests (layout, game, 1992 screen, offline PWA)
         run: npm run e2e
