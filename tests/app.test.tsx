@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -730,6 +730,58 @@ describe('long-term statistics and data files', () => {
     expect(screen.getByText(/Play a few games/)).toBeInTheDocument();
   });
 
+  it('swipes between statistics tabs while leaving vertical gestures and tab buttons alone', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openStats(user);
+    const panel = screen.getByRole('dialog', { name: 'Statistics' });
+    const gesture = (target: Element, from: [number, number], to: [number, number]) => {
+      fireEvent.touchStart(target, { touches: [{ identifier: 1, target, clientX: from[0], clientY: from[1] }] });
+      fireEvent.touchEnd(target, { changedTouches: [{ identifier: 1, target, clientX: to[0], clientY: to[1] }] });
+    };
+
+    gesture(panel, [220, 120], [120, 126]);
+    expect(screen.getByRole('tab', { name: 'Career' })).toHaveAttribute('aria-selected', 'true');
+    gesture(panel, [120, 120], [220, 120]);
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+    gesture(panel, [120, 120], [220, 120]);
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+    gesture(panel, [220, 120], [170, 120]);
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+    gesture(panel, [220, 120], [120, 126]);
+    expect(screen.getByRole('tab', { name: 'Career' })).toHaveAttribute('aria-selected', 'true');
+    gesture(panel, [120, 120], [126, 220]);
+    expect(screen.getByRole('tab', { name: 'Career' })).toHaveAttribute('aria-selected', 'true');
+    gesture(screen.getByRole('tab', { name: 'Mind' }), [220, 120], [120, 120]);
+    expect(screen.getByRole('tab', { name: 'Career' })).toHaveAttribute('aria-selected', 'true');
+
+    await user.click(screen.getByRole('tab', { name: 'Data' }));
+    gesture(panel, [220, 120], [120, 120]);
+    expect(screen.getByRole('tab', { name: 'Data' })).toHaveAttribute('aria-selected', 'true');
+  });
+
+  it('cancels tab swipes after a pinch, touchcancel, or a mismatched touch end', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openStats(user);
+    const dialog = screen.getByRole('dialog', { name: 'Statistics' });
+    const touch = (identifier: number, clientX: number, clientY: number) => ({ identifier, target: dialog, clientX, clientY });
+
+    fireEvent.touchStart(dialog, { touches: [touch(1, 220, 120)] });
+    fireEvent.touchMove(dialog, { touches: [touch(1, 200, 120), touch(2, 100, 120)] });
+    fireEvent.touchEnd(dialog, { touches: [], changedTouches: [touch(1, 120, 120)] });
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.touchStart(dialog, { touches: [touch(3, 220, 120)] });
+    fireEvent.touchCancel(dialog, { touches: [], changedTouches: [touch(3, 200, 120)] });
+    fireEvent.touchEnd(dialog, { touches: [], changedTouches: [touch(3, 120, 120)] });
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.touchStart(dialog, { touches: [touch(4, 220, 120)] });
+    fireEvent.touchEnd(dialog, { touches: [], changedTouches: [touch(5, 120, 120)] });
+    expect(screen.getByRole('tab', { name: 'Overview' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   it('writes a game into the permanent ledger when it ends', async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -907,6 +959,36 @@ describe('look studio', () => {
     expect(screen.queryByRole('switch', { name: /Sound/i })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^Game$/ }));
     expect(screen.getByRole('switch', { name: /Sound/i })).toBeInTheDocument();
+  });
+
+  it('swipes between settings tabs without taking over sliders or vertical scrolling', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await openSettings(user);
+    const dialog = screen.getByRole('dialog', { name: 'Settings' });
+    const gesture = (target: Element, from: [number, number], to: [number, number]) => {
+      fireEvent.touchStart(target, { touches: [{ identifier: 1, target, clientX: from[0], clientY: from[1] }] });
+      fireEvent.touchEnd(target, { changedTouches: [{ identifier: 1, target, clientX: to[0], clientY: to[1] }] });
+    };
+
+    gesture(dialog, [220, 120], [120, 126]);
+    expect(screen.getByRole('button', { name: /^Balls$/ })).toHaveAttribute('aria-pressed', 'true');
+    gesture(dialog, [120, 120], [220, 120]);
+    expect(screen.getByRole('button', { name: /^Themes$/ })).toHaveAttribute('aria-pressed', 'true');
+    gesture(dialog, [120, 120], [220, 120]);
+    expect(screen.getByRole('button', { name: /^Themes$/ })).toHaveAttribute('aria-pressed', 'true');
+    gesture(dialog, [220, 120], [170, 120]);
+    expect(screen.getByRole('button', { name: /^Themes$/ })).toHaveAttribute('aria-pressed', 'true');
+    gesture(dialog, [220, 120], [120, 126]);
+    expect(screen.getByRole('button', { name: /^Balls$/ })).toHaveAttribute('aria-pressed', 'true');
+    gesture(dialog, [120, 120], [126, 220]);
+    expect(screen.getByRole('button', { name: /^Balls$/ })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.click(screen.getByRole('button', { name: /^Game$/ }));
+    const sound = screen.getByRole('switch', { name: /Sound/i });
+    gesture(sound, [220, 120], [120, 120]);
+    expect(screen.getByRole('button', { name: /^Game$/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(sound).toBeInTheDocument();
   });
 
   it('groups the themes into collections', async () => {

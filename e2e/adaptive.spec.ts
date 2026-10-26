@@ -42,13 +42,36 @@ for (const theme of ['modern', 'lines98', 'lines98plus', 'colorlines92']) {
         for (const action of await actions.all()) {
           if (await action.evaluate((el) => !!el.closest('.board-grid, .dos-screen'))) continue;
           await action.scrollIntoViewIfNeeded();
-          const reachable = await action.evaluate((el) => {
+          const diagnostics = await action.evaluate((el) => {
             const r = el.getBoundingClientRect();
             const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-            return r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight
-              && !!hit && (el === hit || el.contains(hit)) && el.scrollWidth <= el.clientWidth + 1;
+            const label = el.querySelector<HTMLElement>('.control-label');
+            const rail = el.closest<HTMLElement>('.controls-group');
+            return {
+              reachable: r.left >= 0 && r.right <= innerWidth && r.top >= 0 && r.bottom <= innerHeight
+                && !!hit && (el === hit || el.contains(hit)) && el.scrollWidth <= el.clientWidth + 1,
+              action: el.getAttribute('aria-label') ?? el.textContent?.trim(),
+              viewport: { width: innerWidth, height: innerHeight },
+              rect: { left: r.left, top: r.top, right: r.right, bottom: r.bottom },
+              size: { scrollWidth: el.scrollWidth, clientWidth: el.clientWidth },
+              label: label ? {
+                text: label.textContent?.trim(),
+                width: label.getBoundingClientRect().width,
+                scrollWidth: label.scrollWidth,
+                clientWidth: label.clientWidth,
+                font: getComputedStyle(label).font,
+                family: getComputedStyle(label).fontFamily,
+              } : null,
+              rail: rail ? {
+                scrollTop: rail.scrollTop,
+                scrollHeight: rail.scrollHeight,
+                clientHeight: rail.clientHeight,
+                primaryColumns: getComputedStyle(rail.querySelector('.primary-controls')!).gridTemplateColumns,
+              } : null,
+              hit: hit ? { tag: hit.tagName, className: (hit as HTMLElement).className, text: hit.textContent?.trim() } : null,
+            };
           });
-          expect(reachable, await action.getAttribute('aria-label') ?? await action.textContent() ?? '').toBe(true);
+          expect(diagnostics.reachable, JSON.stringify(diagnostics)).toBe(true);
         }
         const after = await picture.boundingBox();
         for (const key of ['x', 'y', 'width', 'height'] as const) {
@@ -62,6 +85,65 @@ for (const theme of ['modern', 'lines98', 'lines98plus', 'colorlines92']) {
     }
   }
 }
+
+test('primary controls adapt to wide fallback-font metrics at 32px without shrinking the board', async ({ page }) => {
+  const viewport = { width: 568, height: 280 };
+  await page.setViewportSize(viewport);
+  await page.addInitScript(() => {
+    localStorage.setItem('colorlines_theme', 'modern');
+    localStorage.setItem('colorlines_lang', 'ru');
+  });
+  await page.goto('/');
+  await page.evaluate(() => { document.documentElement.style.fontSize = '32px'; });
+  // Georgia with added tracking is a deterministic stress case for wider
+  // platform font metrics. The shipped fonts and default 32px test stay intact.
+  await page.addStyleTag({
+    content: '.adaptive-game .primary-controls .control-label { font-family: Georgia, serif !important; letter-spacing: .1em !important; }',
+  });
+
+  const board = page.locator('.board-grid');
+  const boardBefore = await board.boundingBox();
+  expect(boardBefore).not.toBeNull();
+  const labels = await page.locator('.primary-controls .control-label').evaluateAll((elements) =>
+    elements.map((label) => ({
+      text: label.textContent?.trim(),
+      scrollWidth: label.scrollWidth,
+      clientWidth: label.clientWidth,
+      buttonWidth: label.closest('button')!.getBoundingClientRect().width,
+    })),
+  );
+  expect(labels).toHaveLength(3);
+  expect(labels.every((label) => label.scrollWidth <= label.clientWidth + 1), JSON.stringify(labels)).toBe(true);
+
+  const buttons = page.locator('.primary-controls .ctrl-btn');
+  for (const button of await buttons.all()) {
+    await button.scrollIntoViewIfNeeded();
+    const diagnostics = await button.evaluate((element) => {
+      const rect = element.getBoundingClientRect();
+      const hit = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      return {
+        reachable: rect.left >= 0 && rect.right <= innerWidth && rect.top >= 0 && rect.bottom <= innerHeight
+          && !!hit && (element === hit || element.contains(hit))
+          && element.scrollWidth <= element.clientWidth + 1,
+        name: element.getAttribute('aria-label'),
+        button: { rect: [rect.left, rect.top, rect.right, rect.bottom], scrollWidth: element.scrollWidth, clientWidth: element.clientWidth },
+        label: [...element.querySelectorAll<HTMLElement>('.control-label')].map((label) => ({
+          text: label.textContent?.trim(),
+          scrollWidth: label.scrollWidth,
+          clientWidth: label.clientWidth,
+          font: getComputedStyle(label).font,
+        })),
+        columns: getComputedStyle(element.parentElement!).gridTemplateColumns,
+        hit: hit ? { tag: hit.tagName, className: (hit as HTMLElement).className } : null,
+      };
+    });
+    expect(diagnostics.reachable, JSON.stringify(diagnostics)).toBe(true);
+  }
+  const boardAfter = await board.boundingBox();
+  expect(boardAfter).not.toBeNull();
+  expect(boardAfter!.width).toBe(boardBefore!.width);
+  expect(boardAfter!.height).toBe(boardBefore!.height);
+});
 
 for (const viewport of WINDOWS) {
   test(`board and all game controls fit ${viewport.width}×${viewport.height}`, async ({ page }) => {
@@ -204,3 +286,30 @@ for (const theme of ['colorlines92', 'lines98', 'lines98plus']) {
     });
   }
 }
+
+test('modern controls have visible names and rounded touch surfaces', async ({ page }) => {
+  await page.setViewportSize({ width: 411, height: 891 });
+  for (const theme of ['modern', 'clear', 'meadow', 'terminal']) {
+    await page.addInitScript((theme) => {
+      localStorage.setItem('colorlines_theme', theme);
+      localStorage.setItem('colorlines_lang', 'en');
+    }, theme);
+    await page.goto('/');
+    const labels = page.locator('.adaptive-game .controls-group .control-label');
+    await expect(labels).toHaveCount(7);
+    for (const label of await labels.all()) await expect(label).toBeVisible();
+    const targets = await page.locator('.adaptive-game .controls-group button').evaluateAll((buttons) => buttons.map((button) => {
+      const bounds = button.getBoundingClientRect();
+      const style = getComputedStyle(button);
+      return bounds.height >= 44 && bounds.width >= 44 && parseFloat(style.borderTopLeftRadius) >= 12;
+    }));
+    expect(targets, theme).toEqual(Array(7).fill(true));
+  }
+});
+
+test('classic Windows controls retain their original presentation', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('colorlines_theme', 'lines98plus'));
+  await page.goto('/');
+  await expect(page.locator('.board-cell')).toHaveCount(81);
+  await expect(page.locator('.control-label')).toHaveCount(0);
+});

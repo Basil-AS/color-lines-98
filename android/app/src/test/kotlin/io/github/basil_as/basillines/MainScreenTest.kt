@@ -135,6 +135,7 @@ class MainScreenTest {
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
 
         rule.clickGameAction("Settings")
+        rule.onNode(hasText("Game")).performClick()
         rule.onNode(hasText("Calm")).performScrollTo().performClick()
         rule.waitForIdle()
         val prefs = ApplicationProvider.getApplicationContext<Context>().getSharedPreferences("colorlines_prefs", Context.MODE_PRIVATE)
@@ -175,7 +176,7 @@ class MainScreenTest {
     @Test
     fun statsAndHelpDialogsOpenAndClose() {
         rule.clickGameAction("Statistics")
-        rule.onAllNodes(hasText("No games yet", substring = true)).onFirst().assertIsDisplayed()
+        rule.onAllNodes(hasText("No games yet", substring = true)).onFirst().performScrollTo().assertIsDisplayed()
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
 
         rule.clickGameAction("Rules and info")
@@ -202,6 +203,7 @@ class MainScreenTest {
     @Test
     fun thePreviewCanBeSwitchedOffAndIsRemembered() {
         rule.clickGameAction("Settings")
+        rule.onNode(hasText("Game")).performClick()
         rule.onNode(hasText("Show where new balls will appear")).performClick()
         rule.waitForIdle()
         rule.onAllNodes(hasText("Close")).onFirst().performClick()
@@ -224,6 +226,7 @@ class MainScreenTest {
     @Test
     fun theLanguageCanBeSwitchedInsideTheGame() {
         rule.clickGameAction("Settings")
+        rule.onNode(hasText("System")).performClick()
         rule.onNode(hasText("Русский")).performScrollTo().performClick()
         rule.waitForIdle()
         assertEquals(AppLanguage.RU, GameStorage(ApplicationProvider.getApplicationContext()).language)
@@ -341,6 +344,7 @@ class MainScreenTest {
     fun settingsShowTheVersionAndTheUpdateControls() {
         rule.clickGameAction("Settings")
         rule.waitForIdle()
+        rule.onNode(hasText("System")).performClick()
         rule.onNode(hasText("Version", substring = true)).performScrollTo().assertExists()
         rule.onNode(hasText("Check for updates automatically")).performScrollTo().assertExists()
         rule.onNode(hasText("Check for updates")).performScrollTo().performClick()
@@ -353,6 +357,7 @@ class MainScreenTest {
     fun theAutomaticCheckIsOnByDefaultAndCanBeSwitchedOff() {
         assertTrue(GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck)
         rule.clickGameAction("Settings")
+        rule.onNode(hasText("System")).performClick()
         rule.onNode(hasText("Check for updates automatically")).performScrollTo().performClick()
         rule.waitForIdle()
         assertTrue(!GameStorage(ApplicationProvider.getApplicationContext()).autoUpdateCheck)
@@ -500,9 +505,9 @@ class RussianScreenTest {
     @Test
     fun usesTheSystemLanguage() {
         rule.onNodeWithContentDescription("Игровое поле").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Игра").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Настройки").assertIsDisplayed()
         rule.clickGameAction("Статистика", "Игра")
-        rule.onAllNodes(hasText("Пока нет партий", substring = true)).onFirst().assertIsDisplayed()
+        rule.onAllNodes(hasText("Пока нет партий", substring = true)).onFirst().performScrollTo().assertIsDisplayed()
     }
 }
 

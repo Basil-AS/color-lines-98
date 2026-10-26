@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Dialog } from './Dialog';
 import { formatDuration } from '../format';
 import { formatDate, translate, translatePlural } from '../i18n';
@@ -24,6 +24,7 @@ import type { Ledger } from '../ledger';
 import { MODE_IDS } from '../engine/modes';
 import { summarize } from '../stats';
 import type { GameRecord } from '../stats';
+import { revealTabHorizontally } from './tabVisibility';
 
 interface StatsDialogProps {
   lang: Language;
@@ -67,6 +68,10 @@ export function StatsDialog({ lang, history, progress, ledger, now, onExport, on
   const [showAll, setShowAll] = useState(false);
   const [tab, setTab] = useState<Tab>('overview');
 
+  useEffect(() => {
+    revealTabHorizontally(document.getElementById(`stats-tab-${tab}`));
+  }, [tab]);
+
   const summary = summarize(history);
   const level = levelInfo(xpOf(progress));
   const title = LEVEL_TITLES[titleIndex(level.level)];
@@ -89,7 +94,15 @@ export function StatsDialog({ lang, history, progress, ledger, now, onExport, on
   ];
 
   return (
-    <Dialog titleId="stats-title" title={t('stats.title')} onClose={onClose}>
+    <Dialog
+      titleId="stats-title"
+      title={t('stats.title')}
+      onClose={onClose}
+      onSwipe={(direction) => {
+        const next = TABS.indexOf(tab) + (direction === 'left' ? 1 : -1);
+        if (next >= 0 && next < TABS.length) setTab(TABS[next]);
+      }}
+    >
       <div className="tabs" role="tablist" aria-label={t('stats.title')}>
         {TABS.map((id) => (
           <button

@@ -1,5 +1,10 @@
 package io.github.basil_as.basillines
 
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.testTag
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.BorderStroke
@@ -53,7 +58,6 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -91,20 +95,22 @@ import java.util.Date
 /** A bounded window with one scroll owner; short windows keep every action in the scroll flow. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SupportingDialog(
+internal fun SupportingDialog(
     onDismissRequest: () -> Unit,
     title: @Composable () -> Unit,
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit,
-    dismissButton: @Composable (() -> Unit)? = null
+    dismissButton: @Composable (() -> Unit)? = null,
+    pagedBody: Boolean = false
 ) {
     Dialog(onDismissRequest, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        GameDialogSystemBars()
         BoxWithConstraints(
             Modifier.fillMaxSize().pointerInput(onDismissRequest) { detectTapGestures { onDismissRequest() } }
                 .windowInsetsPadding(WindowInsets.safeDrawing).padding(12.dp),
             contentAlignment = Alignment.Center
         ) {
-            val scrollAll = maxHeight < 360.dp * LocalDensity.current.fontScale
+            val scrollAll = !pagedBody && maxHeight < 360.dp * LocalDensity.current.fontScale
             Surface(
                 Modifier.widthIn(max = 640.dp).fillMaxWidth().heightIn(max = maxHeight)
                     .pointerInput(Unit) { detectTapGestures { /* Keep panel taps inside the dialog. */ } },
@@ -113,11 +119,13 @@ private fun SupportingDialog(
                 tonalElevation = 6.dp
             ) {
                 Column(
-                    Modifier.then(if (scrollAll) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                    Modifier.then(if (scrollAll) Modifier.verticalScroll(rememberScrollState()) else Modifier).padding(if (pagedBody) 8.dp else 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (pagedBody) 4.dp else 16.dp)
                 ) {
                     ProvideTextStyle(MaterialTheme.typography.headlineSmall) { title() }
-                    val body = if (scrollAll) Modifier else Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                    val body = if (scrollAll) Modifier else Modifier.weight(1f, fill = false).then(
+                        if (pagedBody) Modifier else Modifier.verticalScroll(rememberScrollState())
+                    )
                     Box(body.fillMaxWidth()) {
                         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) {
                             ProvideTextStyle(MaterialTheme.typography.bodyMedium) { text() }
@@ -292,7 +300,7 @@ private fun AchievementRow(id: String, unlockedAt: Long?, showDate: Boolean = tr
 }
 
 @Composable
-fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
+fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit, onStrategy: () -> Unit = {}) {
     SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.help_title)) },
@@ -324,9 +332,42 @@ fun HelpDialog(onClose: () -> Unit, onTutorial: () -> Unit) {
                 Text(stringResource(R.string.help_switching))
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } },
-        dismissButton = { TextButton(onClick = onTutorial) { Text(stringResource(R.string.tutorial_start)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } },
+        dismissButton = {
+            OutlinedButton(onClick = onTutorial) { Text(stringResource(R.string.tutorial_start)) }
+            OutlinedButton(onClick = onStrategy) { Text(stringResource(R.string.coach_start)) }
+        }
     )
+}
+
+/** Native paging lets vertical page scrolling and child controls arbitrate gestures normally. */
+@Composable
+private fun DialogTabPages(tabs: List<Int>, content: @Composable (Int) -> Unit) {
+    val pager = rememberPagerState(pageCount = { tabs.size })
+    val scope = rememberCoroutineScope()
+    BoxWithConstraints(Modifier.fillMaxWidth()) {
+        Column(Modifier.fillMaxWidth().height(maxHeight.coerceAtMost(400.dp)), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.ScrollableTabRow(selectedTabIndex = pager.currentPage, edgePadding = 0.dp) {
+                tabs.forEachIndexed { index, name ->
+                    androidx.compose.material3.Tab(
+                        selected = pager.currentPage == index,
+                        onClick = { scope.launch { pager.animateScrollToPage(index) } },
+                        text = { Text(stringResource(name), maxLines = 1) }
+                    )
+                }
+            }
+            HorizontalPager(
+                state = pager,
+                modifier = Modifier.fillMaxWidth().weight(1f).testTag("dialog-tab-pages"),
+                verticalAlignment = Alignment.Top
+            ) { page ->
+                Column(
+                    Modifier.fillMaxSize().verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) { content(page) }
+            }
+        }
+    }
 }
 
 @Composable
@@ -360,7 +401,8 @@ fun SettingsDialog(
     onCustom: (io.github.basil_as.basillines.engine.CustomTheme) -> Unit,
     onUseCustom: () -> Unit,
     onApplyShare: (io.github.basil_as.basillines.engine.LookShare) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onStrategy: () -> Unit = {}
 ) {
     var studio by remember { mutableStateOf(false) }
     if (studio) {
@@ -379,8 +421,10 @@ fun SettingsDialog(
     SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.settings_title)) },
+        pagedBody = true,
         text = {
-            Column(Modifier.fillMaxWidth()) {
+            DialogTabPages(listOf(R.string.settings_tab_appearance, R.string.settings_tab_game, R.string.settings_tab_system)) { page ->
+                if (page == 0) {
                 Text(stringResource(R.string.scheme_title), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 FlowRow(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     listOf(DayNight.AUTO to R.string.scheme_auto, DayNight.DAY to R.string.scheme_day, DayNight.NIGHT to R.string.scheme_night).forEach { (value, name) ->
@@ -440,11 +484,13 @@ fun SettingsDialog(
                                 }
                             }
                         },
-                        confirmButton = { TextButton(onClick = { picking = false }) { Text(stringResource(R.string.btn_close)) } }
+                        confirmButton = { OutlinedButton(onClick = { picking = false }) { Text(stringResource(R.string.btn_close)) } }
                     )
                 }
                 OutlinedButton(onClick = { studio = true }, modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) { Text(stringResource(R.string.look_studio)) }
                 Text(stringResource(R.string.look_studioHint), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (page == 1) {
                 SwitchRow(stringResource(R.string.settings_sound), soundEnabled, onToggleSound)
                 SwitchRow(stringResource(R.string.settings_preview), spawnPreview, onTogglePreview)
                 Text(stringResource(R.string.settings_effects), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(top = 8.dp))
@@ -462,9 +508,14 @@ fun SettingsDialog(
                 // Vibration is its own switch, separate from the sound.
                 SwitchRow(stringResource(R.string.settings_vibration), vibration) { onVibration(!vibration) }
                 if (!vibrationSupported) Text(stringResource(R.string.settings_vibrationOff), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                TextButton(onClick = onTutorial, modifier = Modifier.fillMaxWidth()) {
+                OutlinedButton(onClick = onTutorial, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.tutorial_start), modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Start)
                 }
+                OutlinedButton(onClick = onStrategy, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.coach_start))
+                }
+                }
+                if (page == 2) {
                 Text(stringResource(R.string.lang_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 listOf(
                     AppLanguage.AUTO to R.string.lang_auto,
@@ -489,9 +540,10 @@ fun SettingsDialog(
                     Text(stringResource(R.string.update_check))
                 }
                 if (updateStatus != null) Text(updateStatus, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
+                }
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -542,7 +594,6 @@ fun StatsDialog(
     onClear: () -> Unit,
     onClose: () -> Unit
 ) {
-    var tab by remember { mutableStateOf(0) }
     val today = remember(now) { java.time.Instant.ofEpochMilli(if (now == 0L) System.currentTimeMillis() else now).atZone(java.time.ZoneId.systemDefault()).toLocalDate() }
     val summary = GameStats.summarize(history)
     var confirming by remember { mutableStateOf(false) }
@@ -557,21 +608,17 @@ fun StatsDialog(
     SupportingDialog(
         onDismissRequest = onClose,
         title = { Text(stringResource(R.string.stats_title)) },
+        pagedBody = true,
         text = {
-            Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                val tabs = listOf(R.string.stats_tab_overview, R.string.stats_tab_career, R.string.stats_tab_mind, R.string.stats_tab_seasons, R.string.stats_tab_records, R.string.stats_tab_data)
-                androidx.compose.material3.ScrollableTabRow(selectedTabIndex = tab, edgePadding = 0.dp) {
-                    tabs.forEachIndexed { i, name ->
-                        androidx.compose.material3.Tab(selected = tab == i, onClick = { tab = i }, text = { Text(stringResource(name), maxLines = 1) })
-                    }
+            DialogTabPages(listOf(R.string.stats_tab_overview, R.string.stats_tab_career, R.string.stats_tab_mind, R.string.stats_tab_seasons, R.string.stats_tab_records, R.string.stats_tab_data)) { page ->
+                when (page) {
+                    1 -> CareerTab(ledger, today)
+                    2 -> MindTab(history)
+                    3 -> SeasonsTab(ledger, today)
+                    4 -> RecordsTab(history, ledger)
+                    5 -> DataTab(dataMessage, history.size, onExportJson, onExportCsv, onImport)
                 }
-                when (tab) {
-                    1 -> { CareerTab(ledger, today); return@Column }
-                    2 -> { MindTab(history); return@Column }
-                    3 -> { SeasonsTab(ledger, today); return@Column }
-                    4 -> { RecordsTab(history, ledger); return@Column }
-                    5 -> { DataTab(dataMessage, history.size, onExportJson, onExportCsv, onImport); return@Column }
-                }
+                if (page == 0) {
                 Surface(
                     shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.surfaceVariant,
@@ -644,7 +691,7 @@ fun StatsDialog(
                     }
                 }
                 if (history.size > 10) {
-                    TextButton(onClick = { showAll = !showAll }) {
+                    OutlinedButton(onClick = { showAll = !showAll }) {
                         Text(if (showAll) stringResource(R.string.stats_showLess) else stringResource(R.string.stats_showAll, history.size))
                     }
                 }
@@ -661,9 +708,10 @@ fun StatsDialog(
                         OutlinedButton(onClick = { confirming = true }) { Text(stringResource(R.string.stats_clear)) }
                     }
                 }
+                }
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -820,7 +868,7 @@ fun NewGameDialog(
                             }
                             Text(stringResource(shown.third), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        TextButton(onClick = { picking = true }) { Text(stringResource(R.string.newgame_changeMode)) }
+                        OutlinedButton(onClick = { picking = true }) { Text(stringResource(R.string.newgame_changeMode)) }
                     }
                 } else Text(stringResource(R.string.mode_label), fontSize = 13.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 if (picking) modes.forEach { (mode, name, desc) ->
@@ -852,7 +900,7 @@ fun NewGameDialog(
                         }
                     }
                 }
-                TextButton(onClick = onTutorial, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.tutorial_start)) }
+                OutlinedButton(onClick = onTutorial, modifier = Modifier.padding(top = 4.dp)) { Text(stringResource(R.string.tutorial_start)) }
             }
         },
         // With a game in progress the safe choice is the focused, prominent one.
@@ -944,7 +992,7 @@ fun ImportDialog(
         dismissButton = {
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (!replacing) OutlinedButton(onClick = { replacing = true }) { Text(stringResource(R.string.data_replace)) }
-                TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+                OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
             }
         }
     )
@@ -988,7 +1036,7 @@ fun GoalsDialog(progress: List<io.github.basil_as.basillines.engine.GoalProgress
                 Text(stringResource(R.string.goals_streak) + ": " + goalStreak, fontSize = 13.sp)
             }
         },
-        confirmButton = { TextButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
+        confirmButton = { OutlinedButton(onClick = onClose) { Text(stringResource(R.string.btn_close)) } }
     )
 }
 
@@ -1061,9 +1109,9 @@ fun UpdateDialog(
         },
         dismissButton = {
             when (stage) {
-                is UpdateStage.Downloading -> TextButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
-                is UpdateStage.Failed -> TextButton(onClick = onBrowser) { Text(stringResource(R.string.update_browser)) }
-                else -> TextButton(onClick = onLater) { Text(stringResource(R.string.update_later)) }
+                is UpdateStage.Downloading -> OutlinedButton(onClick = onCancel) { Text(stringResource(R.string.data_cancel)) }
+                is UpdateStage.Failed -> OutlinedButton(onClick = onBrowser) { Text(stringResource(R.string.update_browser)) }
+                else -> OutlinedButton(onClick = onLater) { Text(stringResource(R.string.update_later)) }
             }
         }
     )
@@ -1093,7 +1141,7 @@ internal fun ThemeSwatch(theme: AppTheme, night: Boolean?, modifier: Modifier = 
 }
 
 /** A tutorial in progress: the step, the game it replaced, and whether the last try missed. */
-class TutorialRun(val step: Int, val saved: GameEngine, val retry: Boolean)
+data class TutorialRun(val step: Int, val saved: GameEngine, val retry: Boolean, val strategy: Boolean = false, val solved: Boolean = false, val hinted: Boolean = false)
 
 internal fun tutorialText(id: StepId, retry: Boolean): Int = when {
     retry && id == StepId.LINE -> R.string.tutorial_retry_line
@@ -1123,27 +1171,15 @@ fun TutorialBanner(
     onSkip: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Surface(
+    TrainingInstructions(
+        title = stringResource(R.string.tutorial_title),
+        progress = stringResource(R.string.tutorial_progress, step, total),
+        explanation = text,
+        hint = null,
+        primaryLabel = if (showContinue) stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue) else null,
+        onPrimary = onContinue,
+        leaveLabel = if (!last) stringResource(R.string.tutorial_skip) else null,
+        onLeave = onSkip,
         modifier = modifier
-            .widthIn(max = 520.dp)
-            .fillMaxWidth()
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .padding(8.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shape = MaterialTheme.shapes.medium,
-        border = BorderStroke(2.dp, palette.accent),
-        shadowElevation = 8.dp
-    ) {
-        Column(Modifier.padding(horizontal = 12.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(stringResource(R.string.tutorial_title), fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                Text(stringResource(R.string.tutorial_progress, step, total), fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(text, fontSize = 14.sp, modifier = Modifier.semantics { liveRegion = androidx.compose.ui.semantics.LiveRegionMode.Polite })
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (showContinue) Button(onClick = onContinue) { Text(stringResource(if (last) R.string.tutorial_finish else R.string.tutorial_continue)) }
-                if (!last) TextButton(onClick = onSkip) { Text(stringResource(R.string.tutorial_skip)) }
-            }
-        }
-    }
+    )
 }

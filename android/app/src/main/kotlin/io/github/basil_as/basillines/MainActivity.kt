@@ -1,9 +1,6 @@
 package io.github.basil_as.basillines
 
 import android.content.res.Configuration
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import android.graphics.Color as AndroidColor
 import android.content.Context
 import android.os.Bundle
@@ -24,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -58,6 +56,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
@@ -94,6 +93,9 @@ import io.github.basil_as.basillines.engine.stepEngine
 import io.github.basil_as.basillines.engine.judge
 import io.github.basil_as.basillines.engine.Verdict
 import io.github.basil_as.basillines.engine.TutorialEvent
+import io.github.basil_as.basillines.engine.STRATEGY_LESSONS
+import io.github.basil_as.basillines.engine.strategyEngine
+import io.github.basil_as.basillines.engine.judgeStrategy
 import io.github.basil_as.basillines.engine.TUTORIAL_STEPS
 import io.github.basil_as.basillines.engine.SoundKind
 import io.github.basil_as.basillines.engine.Progress
@@ -130,13 +132,8 @@ class MainActivity : ComponentActivity() {
      * (a swipe from the edge shows them for a moment). Upright they stay, as everyone expects.
      */
     private fun applyImmersive() {
-        val controller = WindowCompat.getInsetsController(window, window.decorView)
-        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-            controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            controller.hide(WindowInsetsCompat.Type.systemBars())
-        } else {
-            controller.show(WindowInsetsCompat.Type.systemBars())
-        }
+        applyGameWindowImmersive(window,
+            resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE)
     }
 
     /** A dialog, the keyboard or a swipe can bring the bars back: hide them again when the game has the focus. */
@@ -390,31 +387,67 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         enterStep(0, tut?.saved ?: engine)
     }
 
-    /** Leaves the tutorial and puts the game that was on the board back, exactly as it was. */
-    fun endTutorial() {
-        val run = tut ?: return
-        engine = run.saved
-        tut = null
+    fun enterStrategy(index: Int, saved: GameEngine, retry: Boolean = false) {
+        engine = strategyEngine(STRATEGY_LESSONS[index])
+        tut = TutorialRun(index, saved, retry, strategy = true)
+        lastActionAt = 0L
+        combo = 0
+        dangerWarned = false
         hint = null
         effects = emptyList()
         moveFx = null
         version++
     }
 
-    fun tutorialEvent(event: TutorialEvent) {
+    fun startStrategy() {
+        dialog = Dialog.NONE
+        showResult = false
+        dosWindow = DosWindow.NONE
+        enterStrategy(0, tut?.saved ?: engine)
+    }
+
+    fun strategyMove(from: Point, to: Point, success: Boolean, cleared: Int) {
+        val run = tut?.takeIf { it.strategy } ?: return
+        if (judgeStrategy(STRATEGY_LESSONS[run.step], from, to, success, cleared) == Verdict.DONE) {
+            tut = run.copy(solved = true)
+            hint = null
+        } else {
+            enterStrategy(run.step, run.saved, retry = true)
+        }
+    }
+
+    /** Leaves the tutorial and puts the game that was on the board back, exactly as it was. */
+    fun endTutorial() {
         val run = tut ?: return
+        engine = run.saved
+        tut = null
+        // Training and time spent reading lessons are not part of the resumed game.
+        lastActionAt = 0L
+        combo = 0
+        dangerWarned = false
+        hint = null
+        effects = emptyList()
+        moveFx = null
+        version++
+    }
+
+    androidx.activity.compose.BackHandler(enabled = tut != null && dialog == Dialog.NONE) { endTutorial() }
+
+    fun tutorialEvent(event: TutorialEvent) {
+        val run = tut?.takeUnless { it.strategy } ?: return
         when (judge(TUTORIAL_STEPS[run.step], event)) {
             Verdict.DONE -> {
                 // Let the player see what their move did before the next step arrives.
                 val go = { enterStep(run.step + 1, run.saved) }
-                if (event is TutorialEvent.Move) handler.postDelayed({ if (tut?.step == run.step) go() }, 1100) else go()
+                if (event is TutorialEvent.Move) handler.postDelayed({ if (tut === run) go() }, 1100) else go()
             }
-            Verdict.RETRY -> handler.postDelayed({ if (tut?.step == run.step) enterStep(run.step, run.saved, retry = true) }, 1300)
+            Verdict.RETRY -> handler.postDelayed({ if (tut === run) enterStep(run.step, run.saved, retry = true) }, 1300)
             Verdict.IGNORE -> Unit
         }
     }
 
     fun onCellTap(point: Point) {
+        if (tut?.let { it.strategy && it.solved } == true) return
         if (engine.isGameOver) return
         hint = null
         trackTime()
@@ -437,6 +470,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             soundManager.play(SoundKind.BLOCKED)
             haptics.play(HapticKind.BLOCKED)
             tutorialEvent(TutorialEvent.Move(success = false))
+            strategyMove(from, point, false, 0)
             return
         }
         engine.unselect()
@@ -457,7 +491,10 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         val free = engine.board.getEmptyCells().size
         val path = result.path ?: listOf(from, point)
         val lag = if (animated) travelMs(path.size - 1).toLong() else 0L
-        fun after(ms: Long, block: () -> Unit) { if (ms > 0) handler.postDelayed(block, ms) else block() }
+        val moveEngine = engine
+        fun after(ms: Long, block: () -> Unit) {
+            if (ms > 0) handler.postDelayed({ if (engine === moveEngine) block() }, ms) else block()
+        }
         val cleared = result.clearedPoints.isNotEmpty()
         combo = if (cleared) combo + 1 else 0
         val comboNow = combo
@@ -492,6 +529,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
         if (result.isGameOver && tut == null) finishGame()
         commit()
         tutorialEvent(TutorialEvent.Move(success = true, cleared = result.clearedPoints.size))
+        strategyMove(from, point, true, result.clearedPoints.size)
     }
 
     /** The dialog names the mode (and lets it change) and warns before a game in progress is thrown away. */
@@ -558,6 +596,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     }
 
     fun onUndo() {
+        if (tut?.strategy == true) return
         hint = null
         trackTime()
         if (engine.undo()) {
@@ -698,7 +737,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
             cells = List(BOARD_SIZE * BOARD_SIZE) { engine.board[it % BOARD_SIZE, it / BOARD_SIZE] },
             selected = engine.selectedPoint,
             reachable = engine.getReachableCellsForSelected(),
-            incoming = if (spawnPreview && !engine.isGameOver) {
+            incoming = if ((spawnPreview || tut?.strategy == true) && !engine.isGameOver) {
                 engine.nextSpawnPoints.zip(engine.nextColors).toMap()
             } else {
                 emptyMap()
@@ -742,22 +781,73 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
     )
     val score = remember(version) { engine.score }
     val nextColors = remember(version) { engine.nextColors }
-    val canUndo = remember(version) { engine.canUndo }
+    val canUndo = remember(version, tut) { tut?.strategy != true && engine.canUndo }
     val gameOver = remember(version) { engine.isGameOver }
 
     MaterialTheme(
         colorScheme = colorScheme(palette),
-        // The retro looks have no rounded corners anywhere: buttons, cards and dialogs are square.
-        shapes = if (palette.square) androidx.compose.material3.Shapes(
+        // Only the original DOS/Windows looks use square chrome. A modern theme's square board
+        // or builder cell shape must not also flatten settings, buttons and dialogs.
+        shapes = if (theme == AppTheme.COLORLINES_92 || theme == AppTheme.LINES_98) androidx.compose.material3.Shapes(
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
             androidx.compose.foundation.shape.RoundedCornerShape(0.dp)
-        ) else MaterialTheme.shapes
+        ) else androidx.compose.material3.Shapes(
+            extraSmall = RoundedCornerShape(8.dp),
+            small = RoundedCornerShape(12.dp),
+            medium = RoundedCornerShape(16.dp),
+            large = RoundedCornerShape(20.dp),
+            extraLarge = RoundedCornerShape(24.dp)
+        )
     ) {
         Box(Modifier.fillMaxSize().background(palette.background)) {
-            if (theme == AppTheme.COLORLINES_92) {
+            val trainingPanel: (@Composable () -> Unit)? = tut?.let { run ->
+                {
+                    androidx.compose.runtime.key(run.strategy, run.step, run.retry, run.solved, run.hinted) {
+                        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).testTag("game-training-panel")) {
+                            if (run.strategy) {
+                                val lesson = STRATEGY_LESSONS[run.step]
+                                val locale = androidx.compose.ui.platform.LocalConfiguration.current.locales[0].language
+                                val text = lesson.text[locale] ?: lesson.text.getValue("en")
+                                StrategyCoachBanner(
+                                    title = text.title,
+                                    explanation = when { run.solved -> text.success; run.retry -> text.wrong; else -> text.explanation },
+                                    hintText = if (run.hinted) text.hint else null,
+                                    step = run.step + 1,
+                                    total = STRATEGY_LESSONS.size,
+                                    solved = run.solved,
+                                    last = run.step == STRATEGY_LESSONS.lastIndex,
+                                    onHint = {
+                                        tut = run.copy(hinted = true)
+                                        hint = Hint(lesson.from, lesson.to, clears = lesson.expectedCleared > 0, value = 0)
+                                        version++
+                                    },
+                                    onContinue = { if (run.step == STRATEGY_LESSONS.lastIndex) endTutorial() else enterStrategy(run.step + 1, run.saved) },
+                                    onLeave = ::endTutorial,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            } else {
+                                val step = TUTORIAL_STEPS[run.step]
+                                val last = run.step == TUTORIAL_STEPS.lastIndex
+                                TutorialBanner(
+                                    palette = palette,
+                                    step = run.step + 1,
+                                    total = TUTORIAL_STEPS.size,
+                                    text = stringResource(tutorialText(step.id, run.retry)),
+                                    showContinue = step.info,
+                                    last = last,
+                                    onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
+                                    onSkip = ::endTutorial,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            if (theme == AppTheme.COLORLINES_92 && tut == null) {
                 DosGameScreen(
                     snapshot = snapshot,
                     score = score,
@@ -819,23 +909,11 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     soundEnabled = !soundEnabled
                     soundManager.isEnabled = soundEnabled
                 },
-                extras = extras
+                extras = extras,
+                training = tut != null,
+                trainingPanel = trainingPanel,
+                trainingScores = tut?.saved?.let { it.score to maxOf(it.score, bestScore) }
             )
-            tut?.let { run ->
-                val step = TUTORIAL_STEPS[run.step]
-                val last = run.step == TUTORIAL_STEPS.lastIndex
-                TutorialBanner(
-                    palette = palette,
-                    step = run.step + 1,
-                    total = TUTORIAL_STEPS.size,
-                    text = stringResource(tutorialText(step.id, run.retry)),
-                    showContinue = step.info,
-                    last = last,
-                    onContinue = { if (last) endTutorial() else enterStep(run.step + 1, run.saved) },
-                    onSkip = ::endTutorial,
-                    modifier = Modifier.align(Alignment.BottomCenter)
-                )
-            }
         }
 
         updateOffer?.let { info ->
@@ -928,7 +1006,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     onTutorial = ::startTutorial
                 )
                 Dialog.GOALS -> GoalsDialog(goalProgress, ProgressTracker.currentStreak(progress.goalDays, today), onClose = { dialog = Dialog.NONE })
-                Dialog.HELP -> HelpDialog(onClose = { dialog = Dialog.NONE }, onTutorial = ::startTutorial)
+                Dialog.HELP -> HelpDialog(onClose = { dialog = Dialog.NONE }, onTutorial = ::startTutorial, onStrategy = ::startStrategy)
                 Dialog.STATS -> StatsDialog(
                     history = history,
                     progress = progress,
@@ -980,6 +1058,7 @@ fun ColorLinesApp(storage: GameStorage, soundManager: SoundManager, onSystemBars
                     vibration = vibration,
                     onVibration = { vibration = it; storage.vibration = it; haptics.enabled = it; if (it) haptics.play(HapticKind.SELECT) },
                     onTutorial = ::startTutorial,
+                    onStrategy = ::startStrategy,
                     versionName = appVersion,
                     autoUpdate = autoUpdate,
                     onAutoUpdate = { autoUpdate = it; storage.autoUpdateCheck = it },
@@ -1025,13 +1104,16 @@ private fun GameScreen(
     onSettings: () -> Unit,
     onHelp: () -> Unit,
     onToggleSound: () -> Unit,
-    extras: GameExtras = GameExtras()
+    extras: GameExtras = GameExtras(),
+    training: Boolean = false,
+    trainingPanel: (@Composable () -> Unit)? = null,
+    trainingScores: Pair<Int, Int>? = null
 ) {
     // Original artwork keeps its own chrome; all modern looks retain their Palette and builder rendering.
-    if (palette.ballStyle != BallStyle.SPRITE && palette.ballStyle != BallStyle.DOS) {
+    if (training || (palette.ballStyle != BallStyle.SPRITE && palette.ballStyle != BallStyle.DOS)) {
         ModernGameScreen(
             palette, score, best, nextColors, canUndo, soundEnabled, snapshot,
-            onCellTap, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras
+            onCellTap, onUndo, onNewGame, onStats, onSettings, onHelp, onToggleSound, extras, trainingPanel, trainingScores
         )
         return
     }

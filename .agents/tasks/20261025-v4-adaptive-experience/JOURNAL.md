@@ -76,3 +76,76 @@ Artemis found fresh-board regeneration before the first move during font/orienta
 USB X6H4C20B16000698 now authorized. Signed candidate142dc8e installed with adb install -r; same project certificate, no uninstall/data clear. Artemis AndroidAdbDriver matrix portrait/landscape x font1/2 passed with81labelledcells each. Board fingerprint f1522c8df4a04c48fa4f087fa9d7adf6e0d41f167bd4e6b63959d0bc78e51b74 equals3.2.2baseline: update and recreation preserve game. Device rotation/font settings restored by runner. Evidence.agent-cache/v4-artemis-huawei-142. DOS regression baseline: native BackHELP/TOPTEN finishes Activity, F3target29dp instead48. Corrected4test suite baseline3failures, goals reachability passes JVM but physical largefont/narrowrail still needs responsive wrapping. Fix measured DOS railchrome + overflow scroll + wrap classicModeBar + scopedDOSBackHandler. Full verification running.
 
 Verification: all197core/137Android tests pass, lintDebug, assembleDebug/Release pass45s. API37DOSactualArtemis allfourposes81cellsstable; nativeHelpBack returnsgame. Physical originalWindows98matrix passed, Studio/builderopened; restoredModern theme. ScopedappPIDlogcat711lineswithoutFATAL/ANRmarker. Independentfinal_v4_reviewapprovedDOSfix,noactionabledefects. Newcandidate required.
+
+## Tutorial physical follow-up and publication hold
+PR67merged15e2bb05aftergreenCIandphysicalcandidate33cebf5. Extraactualtouch tutorial atRussianfont1.3landscape stops atstep4: banner covers row6col6. Newgesturetest reproduces failedstep5 onAPI29/37. CancelledRelease40225026151beforepublish(normalcancel thenforcecancel; confirmedcancelled). Originalplayerboard restored throughSkip. MainActivitynowreservesboundedscrolling tutorialspace outsideweightedgame. Independentreview/fulltestsrequested. Branchcodex/v4-tutorial-reachability. Pendingcloseoutdocsstashedasv4-closeout-docs-pending; preserveuntilfinaldocs.
+
+Tutorialfix fullGREEN:197core/143Android, lintDebug, debug/releasebuilds57s. All18enlargedtutorialtheme/config/APIscenariosassert81unobscuredcells, actualgesturelineprogression, storedgame/themeunchangedafterSkip. ClassicmenuSettingsrequiresitsintentionalhorizontalscroll; testsfollowobservedscrollratherthantappingoffscreen. Independentreviewapprovedtraining-onlyadaptivechrome, preservingnormalclassicroutes.
+
+## 2026-10-26 Visible controls, rounded chrome and tighter spacing
+User explicitly rejected hidden basic commands and text-only/angularchrome, reported landscapeSettings exposingstatusbar/verticalshift, and requestedmaximumboardwithsmallerpadding. DelegatedAndroidactions, per-windowinsets, independentaudit and simplewebpatch(gpt-6-luna). ArtemisHuawei before/openSettings captures confirmstatusrowappears andunderlyingboardmoves; currentusergameover42/themeMeadowpreserved. Fixedallsevennamedroundedactions, classic-onlysquareMaterialshapes, sharedActivity/Dialogwindowpolicywithfocuscleanup,4dp/4pxsafeouter6dpgaps, fullremaininglandscaperail. MeaningfulREDdirectSettingsmissing andbothdialoghostsstatusbarflags; spacingRED andphantommarginRED. Full197core/156Android, lint/debug/releasegreen(.agent-cache/v4-final-geometry-android.log); all182browsercasesgreen(.agent-cache/v4-final-geometry-browser.log), typecheck/buildgreen. Independentreviewcaughtclassiclabelleakthenapprovedcorrectedscopingandremainingwidthpolicy. Newsignedcandidateandphysicalaftercapturepending; releaseheld.
+
+Final visual pass: shared dialog actions (Close, tutorial, cancel, update) now outlined buttons rather than plain text, inheriting modern rounded shapes while classic square chrome remains. Full197core/156Android, lint and both APK builds pass .agent-cache/v4-dialog-affordances-final.log. API37 actualArtemis before/openSettings proves bars stayhidden andboardtopunchanged; .agent-cache/v4-bars-after37. Candidate053e27crun40288180447 completed; finaloutlined-action candidate follows.
+
+## 2026-10-26 — swipe navigation steering
+User explicitly requests horizontal swipe between tabs inside Settings and Statistics, alongside full UX completion. Existing web5settings/6stats tabs remain; Android settings will group existing controls into Appearance/Game/System while preserving full separate LookStudio. Gesture acceptance: horizontal intent only, no wrap, vertical scrolling and sliders unaffected, tab buttons retained. Parallel agents own web and Android changes; root owns integration, regression execution and actual Artemis Huawei verification. Phone authorized; current Artemis capture .agent-cache/v4-ux-current/game.png, do not reset user party.
+NEXT_ACTION: review gesture tests, run meaningful RED before implementations, then full checks and signed candidate physical tests before PR73 merge/release.
+
+## 2026-10-26 — strategy coach implementation
+Explicit user request expands training beyond mechanics. Six real-engine strategy exercises implemented in both cores with separate Android/web entries, opt-in hints, retry feedback, explanations and explicitContinue; existing isolated tutorial engine restoration reused. Specs: docs/superpowers/specs/2026-10-26-v4-swipe-and-strategy-coach.md. Web1044tests green before equivalent-target refinement; full Android/browser runs in progress. Reviewfound transientAndroid timing/combo leakage and equivalentopen-end solution rejection; fixes queued before finalverification. Latest signed9b candidate lacks these changes andmustnotbe final.
+
+## Verified source checkpoint — 2026-10-26
+Android202core+165app/lint/debug+release GREEN (.agent-cache/v4-coach-final-android.log). Final isolatedweb1049tests/31files GREEN (.agent-cache/v4-coach-verified-web-unit.log), build/lintGREEN (2existingFastRefreshwarnings),185fullChromium GREEN plus3newflow/touchchecks rerunafterhorizontalrailfixGREEN. ActualArtemis emulator SettingsAppearance->Game swipe works (.agent-cache/v4-emu-swipe.txt). Statevalidator/diffcheckGREEN. Checkpointsource then dispatchproject-signedcandidate for actualHuawei gates.
+
+## 2026-10-26 — training geometry and design correction
+User rejects training shrinking board and overall incoherent visual design. New exactbefore/after Android regression RED403->267dp (andpositionchange); trainingnowreplacesnormalactiondock/rail, preservingwholeboardrect. Fourgeometrycases and existingcoach/tutorial reachability targetedGREEN. Largefont1.3regression REDhiddenShowHint; compactsharedTrainingInstructions withDetailsdialog and visiblefooter actions GREEN. Webagent similarlyreproducedlandscape380->238.8/217.2px then4exactgeometrycasesGREEN. Modernnativecontrolsnowcompacthorizontalicon/text, neutraltext/accenticons, shortlocalizedhint/soundcaptions;webcohesionpassunderway.
+
+CIrepo-checkon1832c76foundnewAndroidstringsmanuallyaddedoutofsyncwithsharedi18n. Rootregenerated resources fromdictionary, unifiedcoachlabels andfinishedpartialagentedits afteragentusage limit. Followupcheckrequired. Signed1832candidate40299031748succeededbutobsoletefornewgeometry/design;donotpublishasfinal.
+
+Useraskedaboutemulator: explainedvirtualPixel6API37projectcache,1.7GAVD+5.3Gsystemimage+1.2Gengine~8.2Gtotal andscopeddeletecommands. StoppedownedqemuPID6529viaadbemu kill; confirmedprocessgone. CurrentADBdevicesempty(Huaweiunpluggedtoo). Asyncphoneconnectionquestionpending;continueindependentchecks,norestartemulatorwithoutneed. Filesretained.
+
+## Latest final design verification
+Native full202core+171app/lint/debug+releaseGREEN .agent-cache/v4-final-design-android.log. Extra high-score-in-progress geometry regression REDtop246->216 nowGREEN using savedheadermeasurementfootprint; exactboardbounds preserved whiletrainingHUDupdates. SixTrainingBoardSize cases includeDetailsopen/close and130%fontvisibleactions. Sharedresourcegeneratorcheck/statevalidator/diffcheckGREEN. Web1055unitGREEN .agent-cache/v4-final-design-web-unit.log; full194browserfirstpass189GREEN/5fail exposedlargefont24/32pxshortmodernrailreachability; webagentfixingwithoutweakeningassertions. Utilityborderand44pxtrainingtarget/stylecohesionreviewfixed; Windows98practicebannerreviewregressionfixedandcovered. PhysicalHuawei currentlyabsent, pendinguserresponse. Emulatorremainsstopped.
+
+## 2026-10-27 — explicit delivery instruction
+User explicitly requires every change committed, pushed, represented by PR and merged. Finish remaining accessible-label regression, checkpoint/push complete source and mergegreenPR73, then workflow-onlyPR68–72. Do not holdGitdeliveryonmissingphone: latestphysicalHuawei verification remains explicitlypendingwhileADBempty. Publish/verifyrelease+Pages and cleanmain; reportphysicalcoveragehonestly. No further permissionquestionneeded. Emulatorremainsstopped, filesretainedasexplained.
+
+FinalwebstylepassfoundAxeLabelinNamewithcompactnumericHintbadge. Decision: preserveoriginalaccessiblelabelverbatim, visibleHintwordonly(no numericbadge); countremainsinaria-label/title. Sourcewebagentfinishing; no newfeaturework. CurrentAndroidfull373passedbeforeexpandedrailtext, focusedexpandedrailtraining+lint/buildsgreen; freshfullmergecheckinprogress.
+
+## Git delivery checkpoint (2026-10-27)
+CurrentAndroidfull202core+171app/lint/debug+releaseGREEN .agent-cache/v4-merge-final-android.log; web1057unit/31filesGREEN .agent-cache/v4-merge-final-web-unit.log; exactaccessiblelabelsrestored, affectedbrowser46passedincludingAxeandalladaptive42originalassertions. Finalfullbrowserrerunrunning .agent-cache/v4-merge-final-browser.log. Source-onlyGit-awareisolatedself_testGREEN .agent-cache/v4-merge-source-selftest.log (rawrecursiveworkspacecheckerincludesignoredthirdpartySDKdocandfalsefailsitsunbalancedfence;sourceunchangedcheckerworksasCI). Resourcegeneratorcheck/statevalidator/diffcheckGREEN. Userexplicitlyrequestscommit/push/PR/merge; no physicalpermissiongate. Huaweiemptylatestactualphonecheckpending, emulatorstopped.
+
+## Remote CI correction after 3b99792
+
+PR73 is pushed and ready. All Android/build/unit/repository/CodeQL checks passed.
+Remote Chromium passed 191/195; four failures exposed Linux font width and
+fractional scroll rounding. Local full 195 passed, so remote failure was inspected
+rather than dismissed. Web subagent increased text room and scoped utility grid
+minimum to short landscape; 46 focused browser tests passed with original
+assertions. Independent reviewer reproduced Data tab clipped by 0.4375px in actual
+Chromium with monospace 15.2px: integer scrollWidth clamps fractional scroll extent.
+Fix and regression verification in progress. User authorization explicitly covers
+commit, push, PR and merge. No phone in ADB; emulator remains stopped.
+
+Linux correction verification: new fractional-font regression RED before fix, GREEN afterward; full Chromium 196/196 passed (1.8m, .agent-cache/v4-linux-browser-full.log), web 1057/1057 passed, build/lint green (two existing Fast Refresh warnings), diff/state validation green. Ready to commit and push to PR73.
+
+## Intrinsic primary control sizing
+
+Remote run40394777788 confirmed tab visibility and Stats fixed; two Hint/label
+checks still failed. Broader-font reproduction measured Hint148px against122px
+label space (Georgia plus0.1em tracking), demonstrating fixed em grid thresholds
+were insufficient. Short-landscape primary controls now wrap at intrinsic content
+width; portrait unchanged. Separate stress regression RED before/GREEN after;
+existing default-font cases and strict hit-test/overflow/board assertions retained.
+Adaptive+modern-control47/47 and build/lint passed; remote full gate required.
+
+## Runner mirror stall
+
+Head9a0ec14 local full197browser tests passed; every remote check except browserjob
+passed. Browserattempt1 stalled over10minutes during native dependencies download
+from azure.archive.ubuntu.com (fonts and libglib retries), before executing tests.
+Cancelled onlyWeb workflow andreran browserjob; secondattempt stalls atsameinstall.
+Keep full --with-deps coverage; shared disposable-runner installer now switches
+observed Azure mirror to official archive.ubuntu.com with30s acquisition timeouts
+and3retries. WebPR and release use same script. No local machine apt settings
+modified. Validate syntax/diff and actualCI beforemerge.

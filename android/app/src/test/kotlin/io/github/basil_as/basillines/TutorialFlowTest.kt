@@ -192,17 +192,15 @@ class TutorialFlowTest {
     }
 
     @Test
-    fun hintButtonDoesNothingDuringTutorial() {
+    fun trainingReplacesOrdinaryHintAndRestoresItOnExit() {
         // Before tutorial: hint button shows 3 hints left
         rule.onNode(hasContentDescription("Hint (3 left)")).assertIsDisplayed()
 
         startTutorialFromHelp()
         rule.onNode(hasText("Tap a ball to pick it up", substring = true)).assertIsDisplayed()
 
-        // During tutorial, the hint button shows 0 left and tapping it does nothing
-        val hintNode = rule.onNode(hasContentDescription("Hint (0 left)"))
-        hintNode.assertIsDisplayed().performClick()
-        rule.waitForIdle()
+        // The training deck replaces ordinary controls rather than consuming board space.
+        rule.onNode(hasContentDescription("Hint (0 left)")).assertDoesNotExist()
 
         // Tutorial stays in place
         rule.onNode(hasText("Tap a ball to pick it up", substring = true)).assertIsDisplayed()

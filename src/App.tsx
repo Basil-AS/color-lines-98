@@ -3,6 +3,7 @@ import type { KeyboardEvent } from 'react';
 import confetti from 'canvas-confetti';
 import {
   BarChart3,
+  ArrowRight,
   Download,
   MonitorDown,
   HelpCircle,
@@ -11,6 +12,7 @@ import {
   Trophy,
   Lightbulb,
   Undo2,
+  X,
   Volume2,
   VolumeX,
 } from 'lucide-react';
@@ -25,6 +27,7 @@ import type { ModeId } from './engine/modes';
 import { findHint, type Hint } from './engine/hint';
 import { STEPS, judge, stepEngine } from './tutorial';
 import type { TutorialEvent } from './tutorial';
+import { STRATEGY_LESSONS, judgeStrategy, strategyEngine } from './coach';
 import { createEngine, remainingMs, todayKey } from './modes';
 import { dailyGoals, evaluateGoals, goalBonus } from './goals';
 import type { Goal } from './goals';
@@ -272,6 +275,8 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   /** The tutorial in progress: the step, the game it replaced (put back untouched when it ends) and a note after a miss. */
   const [tut, setTut] = useState<{ step: number; saved: GameEngine; retry: boolean } | null>(null);
+  const [coach, setCoach] = useState<{ step: number; saved: GameEngine; phase: 'prompt' | 'wrong' | 'success'; hintVisible: boolean } | null>(null);
+  const practiceActive = tut !== null || coach !== null;
   const lastActionAt = useRef(0);
   const [goalsDone, setGoalsDone] = useState<string[]>(() => loadGoalsDone(todayKey()));
   const [bestScore, setBestScore] = useState(() =>
@@ -290,8 +295,8 @@ export default function App() {
   const commit = useCallback(() => {
     setVersion((v) => v + 1);
     // The tutorial plays on its own board and must never overwrite the saved game.
-    if (!tut) saveGame(engine);
-  }, [engine, tut]);
+    if (!practiceActive) saveGame(engine);
+  }, [engine, practiceActive]);
 
   // Counts active time between actions; long pauses (a forgotten tab) are capped.
   const trackTime = () => {
@@ -427,7 +432,9 @@ export default function App() {
   };
 
   const handleCellClick = (x: number, y: number) => {
-    if (hint) setHint(null);
+    if (coach?.phase === 'success') return;
+    if (coach?.phase === 'wrong') setCoach({ ...coach, phase: 'prompt' });
+    if (hint && !coach?.hintVisible) setHint(null);
     setFocusCell({ x, y });
     if (engine.isGameOver) return;
     trackTime();
@@ -459,6 +466,7 @@ export default function App() {
       fxRef.current?.deny(clickedPoint);
       setAnnouncement(t('announce.noPath'));
       tutorialEvent({ kind: 'move', success: false, cleared: 0 });
+      coachMoveEvent(from, clickedPoint, false, 0);
       return;
     }
 
@@ -502,7 +510,7 @@ export default function App() {
       };
     }
     haptic(cleared ? (res.pointsEarned >= 28 ? 'bigClear' : 'clear') : 'move');
-    if (!tut && engine.score > kingOf(hall).score && coronationStart === null) {
+    if (!practiceActive && engine.score > kingOf(hall).score && coronationStart === null) {
       setCoronationStart(start);
       if (!res.isGameOver) later(450 + lag, () => soundManager.play('crown'));
     }
@@ -541,14 +549,15 @@ export default function App() {
       dangerWarned.current = false;
     }
 
-    if (!tut && engine.score > bestScore) {
+    if (!practiceActive && engine.score > bestScore) {
       setBestScore(engine.score);
       saveBestScore(engine.score);
     }
 
-    if (res.isGameOver && !tut) finishGame();
+    if (res.isGameOver && !practiceActive) finishGame();
     commit();
     tutorialEvent({ kind: 'move', success: true, cleared: res.clearedPoints.length });
+    coachMoveEvent(from, clickedPoint, true, res.clearedPoints.length);
   };
 
   // ---- tutorial -------------------------------------------------------------------------------------------
@@ -580,10 +589,25 @@ export default function App() {
 
   const startTutorial = () => {
     resetPlaySession();
+    const saved = coach?.saved ?? tut?.saved ?? engine;
+    setCoach(null);
     setDialog(null);
     setShowResult(false);
     setHint(null);
-    enterStep(0, tut ? tut.saved : engine);
+    enterStep(0, saved);
+  };
+
+  const startStrategyCoach = () => {
+    resetPlaySession();
+    const saved = coach?.saved ?? tut?.saved ?? engine;
+    setDialog(null);
+    setShowResult(false);
+    setTut(null);
+    setHint(null);
+    setCoach({ step: 0, saved, phase: 'prompt', hintVisible: false });
+    setEngine(strategyEngine(STRATEGY_LESSONS[0]));
+    setEffects([]);
+    setVersion((v) => v + 1);
   };
 
   /** Leaves the tutorial and puts the game that was on the board back, exactly as it was. */
@@ -595,6 +619,38 @@ export default function App() {
     setHint(null);
     setEffects([]);
     setVersion((v) => v + 1);
+  };
+
+  const endStrategyCoach = () => {
+    if (!coach) return;
+    resetPlaySession();
+    setEngine(coach.saved);
+    setCoach(null);
+    setHint(null);
+    setEffects([]);
+    setVersion((v) => v + 1);
+  };
+
+  const continueStrategyCoach = () => {
+    if (!coach || coach.phase !== 'success') return;
+    if (coach.step === STRATEGY_LESSONS.length - 1) {
+      endStrategyCoach();
+      return;
+    }
+    const next = coach.step + 1;
+    setCoach({ ...coach, step: next, phase: 'prompt', hintVisible: false });
+    setEngine(strategyEngine(STRATEGY_LESSONS[next]));
+    setHint(null);
+    setEffects([]);
+    setVersion((v) => v + 1);
+  };
+
+  const toggleCoachHint = () => {
+    if (!coach || coach.phase === 'success') return;
+    const lesson = STRATEGY_LESSONS[coach.step];
+    const visible = !coach.hintVisible;
+    setHint(visible ? { from: lesson.from, to: lesson.to, clears: lesson.expectedCleared > 0, value: lesson.expectedCleared } : null);
+    setCoach({ ...coach, hintVisible: visible });
   };
 
   const tutorialEvent = (e: TutorialEvent) => {
@@ -611,6 +667,22 @@ export default function App() {
     } else if (verdict === 'retry') {
       later(1300, () => enterStep(index, saved, true));
     }
+  };
+
+  const coachMoveEvent = (from: Point, to: Point, success: boolean, cleared: number) => {
+    if (!coach) return;
+    const lesson = STRATEGY_LESSONS[coach.step];
+    if (judgeStrategy(lesson, from, to, success, cleared) === 'done') {
+      setHint(null);
+      setCoach({ ...coach, phase: 'success', hintVisible: false });
+      return;
+    }
+    resetPlaySession();
+    setEngine(strategyEngine(lesson));
+    setEffects([]);
+    setHint(null);
+    setCoach({ ...coach, phase: 'wrong', hintVisible: false });
+    setVersion((v) => v + 1);
   };
 
   /** The game just ended (board full or time up): sound, result, record and the follow-up rewards. */
@@ -644,7 +716,7 @@ export default function App() {
 
   /** Selects the ball worth moving and marks where to put it; three a game. */
   const handleHint = () => {
-    if (tut !== null || engine.isGameOver || hintsLeft <= 0) return;
+    if (practiceActive || engine.isGameOver || hintsLeft <= 0) return;
     const h = findHint(engine.board);
     if (!h) {
       setAnnouncement(t('hint.none'));
@@ -663,7 +735,7 @@ export default function App() {
 
   const handleUndo = () => {
     // The tutorial script knows nothing about undo: a taken-back move would leave the step and the board out of step.
-    if (tut) return;
+    if (practiceActive) return;
     setHint(null);
     setShowResult(false);
     trackTime();
@@ -677,7 +749,7 @@ export default function App() {
 
   /** Starts a game in the given mode; a game in progress is recorded as unfinished. */
   const startGame = (mode: ModeId) => {
-    if (!tut && !engine.isGameOver && engine.moves > 0) recordGame(false);
+    if (!practiceActive && !engine.isGameOver && engine.moves > 0) recordGame(false);
     clearTimers();
     const next = createEngine(mode);
     setHint(null);
@@ -696,6 +768,7 @@ export default function App() {
     setDialog(null);
     setShowResult(false);
     setTut(null);
+    setCoach(null);
     setNewGameMode(null);
     soundManager.play('start');
     setAnnouncement(t('announce.newGame'));
@@ -706,13 +779,14 @@ export default function App() {
   const requestNewGame = () => {
     // Back from the tutorial first: the dialog then speaks about the game that was on the board before it.
     if (tut) endTutorial();
+    if (coach) endStrategyCoach();
     setNewGameMode(null);
     setDialog('newgame');
   };
 
   /** After a finished game there is nothing to warn about: play the same mode again straight away. */
   const handleNewGame = () => {
-    if (!tut && engine.isGameOver) {
+    if (!practiceActive && engine.isGameOver) {
       startGame(engine.mode);
     } else {
       requestNewGame();
@@ -837,7 +911,7 @@ export default function App() {
     const gameWindow = boardRef.current?.parentElement;
     if (!gameWindow || dos || typeof ResizeObserver === 'undefined') return;
     const support = [...gameWindow.children].filter((node) =>
-      node.matches('.hud-header, .mode-strip, .footer-row, .tutorial-banner, .win98-titlebar, .win98-menubar'),
+      node.matches('.hud-header, .mode-strip, .footer-row, .win98-titlebar, .win98-menubar'),
     );
     const measure = () => {
       const frame = getComputedStyle(gameWindow);
@@ -845,8 +919,6 @@ export default function App() {
       gameWindow.style.setProperty('--frame-inline', `${parseFloat(frame.borderLeftWidth) + parseFloat(frame.borderRightWidth)}px`);
       const height = support.reduce((total, node) => total + node.getBoundingClientRect().height, 0);
       gameWindow.style.setProperty('--support-block', `${height}px`);
-      const tutorial = support.find((node) => node.matches('.tutorial-banner'));
-      gameWindow.style.setProperty('--tutorial-block', `${tutorial?.getBoundingClientRect().height ?? 0}px`);
       const classicTop = support.filter((node) => node.matches('.win98-titlebar, .win98-menubar'));
       gameWindow.style.setProperty('--classic-top', `${classicTop.reduce((total, node) => total + node.getBoundingClientRect().height, 0)}px`);
       const classicTitle = support.find((node) => node.matches('.win98-titlebar'));
@@ -856,7 +928,7 @@ export default function App() {
     support.forEach((node) => observer.observe(node));
     measure();
     return () => observer.disconnect();
-  }, [dos, theme, tut]);
+  }, [dos, theme, tut, coach]);
 
   // The living board: effects are drawn over the board element of every look except the 1992 picture.
   const themeRef = useRef(theme);
@@ -965,7 +1037,7 @@ export default function App() {
   const hintTitle = t('btn.hint', { n: hintsLeft });
   const newRecord = engine.isGameOver && isNewRecord(engine.score, bestAtGameStart);
   const incoming = new Map<string, BallColor>();
-  if (spawnPreview && !engine.isGameOver) {
+  if ((spawnPreview || coach !== null) && !engine.isGameOver) {
     engine.nextSpawnPoints.forEach((p, i) => {
       const color = engine.nextColors[i];
       if (color) incoming.set(`${p.x},${p.y}`, color);
@@ -1008,7 +1080,7 @@ export default function App() {
             tabIndex={isFocusStop ? 0 : -1}
             aria-label={cellText(x, y, color, isSelected, isReachable, coming)}
             aria-pressed={color ? isSelected : undefined}
-            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && ((hint.to.x === x && hint.to.y === y) || (tut && hint.from.x === x && hint.from.y === y)) ? 'hint-target' : ''}`}
+            className={`board-cell ${isSelected ? 'selected' : ''} ${isReachable ? 'reachable' : ''} ${hint && ((hint.to.x === x && hint.to.y === y) || ((tut || coach) && hint.from.x === x && hint.from.y === y)) ? 'hint-target' : ''}`}
             onClick={() => handleCellClick(x, y)}
             onKeyDown={(e) => handleCellKeyDown(e, x, y)}
           >
@@ -1153,7 +1225,7 @@ export default function App() {
           onClose={() => setShowResult(false)}
         />
       )}
-      {dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} onTutorial={startTutorial} />}
+      {dialog === 'help' && <HelpDialog lang={lang} onClose={closeDialog} onTutorial={startTutorial} onStrategyCoach={startStrategyCoach} />}
       {dialog === 'stats' && (
         <StatsDialog
           lang={lang}
@@ -1180,6 +1252,7 @@ export default function App() {
           custom={custom}
           onCustom={changeCustom}
           onApplyShare={applyShare}
+          onStrategyCoach={startStrategyCoach}
           langPref={langPref}
           onLangPref={changeLanguage}
           soundEnabled={soundEnabled}
@@ -1231,7 +1304,7 @@ export default function App() {
   // The captions of the 1992 screen stay in English, like the original, whatever the language of the app.
   const names = dosNames({
     kingName: hall.length > 0 ? hall[0].name : translate('en', 'dos.defaultKing'),
-    crowned: !tut && coronationStart !== null,
+    crowned: !practiceActive && coronationStart !== null,
     playerName,
     pretenderLabel: translate('en', 'dos.pretender'),
     defaultPlayerName: translate('en', 'dos.defaultName'),
@@ -1252,7 +1325,7 @@ export default function App() {
           kingScore: kingOf(hall).score,
           soundOn: soundEnabled,
           effects,
-          coronationStart: tut ? null : coronationStart,
+          coronationStart: practiceActive ? null : coronationStart,
         }}
         // The dethroned king keeps his name and record; the crowned pretender is the player.
         kingName={names.king}
@@ -1276,10 +1349,10 @@ export default function App() {
       </DosScreen>
       {modeStrip}
       <div className="dos-tools">
-        <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={tut !== null || !engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
+        <button type="button" className="ctrl-btn" onClick={handleUndo} disabled={practiceActive || !engine.canUndo} title={t('btn.undo')} aria-label={t('btn.undo')}>
           <Undo2 size={20} aria-hidden="true" />
         </button>
-        <button type="button" className="ctrl-btn" onClick={handleHint} disabled={tut !== null || engine.isGameOver || hintsLeft <= 0} title={hintTitle} aria-label={hintTitle}>
+        <button type="button" className="ctrl-btn" onClick={handleHint} disabled={practiceActive || engine.isGameOver || hintsLeft <= 0} title={hintTitle} aria-label={hintTitle}>
           <Lightbulb size={20} aria-hidden="true" />
         </button>
         <button type="button" className="ctrl-btn" onClick={() => setDosWindow((w) => (w === 'top10' ? 'none' : 'top10'))} title={t('dos.topTen')} aria-label={t('dos.topTen')} aria-pressed={dosWindow === 'top10'}>
@@ -1303,28 +1376,88 @@ export default function App() {
         <strong>{t('tutorial.title')}</strong>
         <span>{t('tutorial.progress', { n: tut.step + 1, total: STEPS.length })}</span>
       </div>
-      <p role="status">
-        {t((tut.retry ? `tutorial.retry.${STEPS[tut.step].id}` : `tutorial.${STEPS[tut.step].id}`) as MessageKey)}
-      </p>
+      <div className="practice-copy">
+        <p role="status">
+          {t((tut.retry ? `tutorial.retry.${STEPS[tut.step].id}` : `tutorial.${STEPS[tut.step].id}`) as MessageKey)}
+        </p>
+      </div>
       <div className="tutorial-actions">
         {STEPS[tut.step].info && (
           <button type="button" className="modal-btn" onClick={() => (lastStep ? endTutorial() : enterStep(tut.step + 1, tut.saved))}>
+            <ArrowRight size={14} aria-hidden="true" />
             {lastStep ? t('tutorial.finish') : t('tutorial.continue')}
           </button>
         )}
         {!lastStep && (
           <button type="button" className="modal-btn modal-btn-secondary" onClick={endTutorial}>
+            <X size={14} aria-hidden="true" />
             {t('tutorial.skip')}
           </button>
         )}
       </div>
     </section>
   );
+  const coachLesson = coach ? STRATEGY_LESSONS[coach.step] : null;
+  const coachText = coachLesson?.text[lang] ?? null;
+  const coachBanner = coach && coachLesson && coachText && (
+    <section className="tutorial-banner strategy-coach" aria-label={t('coach.title')}>
+      <div className="tutorial-head">
+        <strong>{coachText.title}</strong>
+        <span>{t('coach.progress', { n: coach.step + 1, total: STRATEGY_LESSONS.length })}</span>
+      </div>
+      <div className="practice-copy">
+        <p role="status">
+          {coach.phase === 'success' ? coachText.success : coach.phase === 'wrong' ? coachText.wrong : coachText.explanation}
+        </p>
+        {coach.hintVisible && <p className="coach-hint">{coachText.hint}</p>}
+      </div>
+      <div className="tutorial-actions">
+        {coach.phase === 'success' ? (
+          <button type="button" className="modal-btn" onClick={continueStrategyCoach}>
+            <ArrowRight size={14} aria-hidden="true" />
+            {coach.step === STRATEGY_LESSONS.length - 1 ? t('coach.finish') : t('coach.continue')}
+          </button>
+        ) : (
+          <button type="button" className="modal-btn modal-btn-secondary" onClick={toggleCoachHint}>
+            <Lightbulb size={14} aria-hidden="true" />
+            {t(coach.hintVisible ? 'coach.hint.hide' : 'coach.hint.show')}
+          </button>
+        )}
+        <button type="button" className="modal-btn modal-btn-secondary" onClick={endStrategyCoach}>
+          <X size={14} aria-hidden="true" />
+          {t('coach.skip')}
+        </button>
+      </div>
+    </section>
+  );
+
+  const nextPreview = engine.isGameOver ? (
+              gameOverActions
+            ) : (
+              <div
+                className="next-balls-preview"
+                role="img"
+                aria-label={t('next.label', {
+                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
+                })}
+              >
+                <span className="next-balls-label" aria-hidden="true">
+                  {t('hud.next')}
+                </span>
+                <div className="next-balls-list" aria-hidden="true">
+                  {engine.nextColors.map((color, idx) => (
+                    <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
+                      {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
 
   if (dos) {
     return (
       <div className={`app-container ${themeClasses(theme, shade)} has-side`}>
-        {tutorialBanner}
+        {tutorialBanner ?? coachBanner}
         {dosView}
         {sidePanel}
         {dialogs}
@@ -1338,7 +1471,6 @@ export default function App() {
         <div className="sr-only" role="status" aria-live="polite">
           {announcement}
         </div>
-        {tutorialBanner}
 
         {theme === 'lines98' && (
           <>
@@ -1362,8 +1494,8 @@ export default function App() {
                   label: t('menu.game'),
                   items: [
                     { label: t('newgame.title'), onSelect: requestNewGame },
-                    { label: t('btn.undo'), onSelect: handleUndo, disabled: tut !== null || !engine.canUndo },
-                    { label: hintTitle, onSelect: handleHint, disabled: tut !== null || engine.isGameOver || hintsLeft <= 0 },
+                    { label: t('btn.undo'), onSelect: handleUndo, disabled: practiceActive || !engine.canUndo },
+                    { label: hintTitle, onSelect: handleHint, disabled: practiceActive || engine.isGameOver || hintsLeft <= 0 },
                     ...MODE_IDS.map((id, i) => ({
                       label: t(`mode.${id}` as MessageKey),
                       checked: engine.mode === id,
@@ -1394,7 +1526,8 @@ export default function App() {
         )}
 
         {theme === 'lines98' ? (
-          <header className="hud-header l98-header">
+          <header className={`hud-header l98-header${practiceActive ? ' is-training' : ''}`}>
+            {practiceActive && (tutorialBanner ?? coachBanner)}
             {/* Like the original: best score, the next balls and the score on one black LED panel. */}
             <div className="l98-panel">
               <div className="l98-cell" role="group" aria-label={t('hud.best')}>
@@ -1437,66 +1570,66 @@ export default function App() {
                   {sprites ? <LedNumber value={Math.max(engine.score, bestScore)} /> : Math.max(engine.score, bestScore)}
                 </div>
               </div>
+              {!sprites && !engine.isGameOver && nextPreview}
             </div>
+            {!sprites && engine.isGameOver && nextPreview}
           </div>
 
           <div className="hud-action-row">
-            {engine.isGameOver ? (
-              gameOverActions
-            ) : (
-              <div
-                className="next-balls-preview"
-                role="img"
-                aria-label={t('next.label', {
-                  colors: engine.nextColors.map((c) => colorName(lang, c)).join(', '),
-                })}
-              >
-                <span className="next-balls-label" aria-hidden="true">
-                  {t('hud.next')}
-                </span>
-                <div className="next-balls-list" aria-hidden="true">
-                  {engine.nextColors.map((color, idx) => (
-                    <div key={idx} className={`ball ball-mini ${ballThemeClass(theme)} color-${color}`}>
-                      {sprites && <img src={getSpriteUrl(color)} alt="" className="ball-classic" />}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+            {sprites && nextPreview}
 
-            <div className="controls-group">
+            <div className={`controls-group${practiceActive ? ' is-training' : ''}`}>
+              {practiceActive ? (tutorialBanner ?? coachBanner) : <>
               <div className="primary-controls">
                 <button
                   type="button"
                   className="ctrl-btn"
                   onClick={handleUndo}
-                  disabled={tut !== null || !engine.canUndo}
+                  disabled={practiceActive || !engine.canUndo}
                   title={t('btn.undo')}
                   aria-label={t('btn.undo')}
                 >
                   <Undo2 size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.undo')}</span>}
                 </button>
                 <button
                   type="button"
                   className="ctrl-btn"
                   onClick={handleHint}
-                  disabled={tut !== null || engine.isGameOver || hintsLeft <= 0}
+                  disabled={practiceActive || engine.isGameOver || hintsLeft <= 0}
                   title={hintTitle}
                   aria-label={hintTitle}
                 >
                   <Lightbulb size={20} aria-hidden="true" />
+                  {!sprites && <>
+                    <span className="control-label">{t('btn.hint.label')}</span>
+                  </>}
                 </button>
+                {!sprites && (
+                  <button
+                    type="button"
+                    className="ctrl-btn control-new-game"
+                    onClick={handleNewGame}
+                    title={t('btn.newGame')}
+                    aria-label={t('btn.newGame')}
+                  >
+                    <RotateCcw size={20} aria-hidden="true" />
+                    <span className="control-label" aria-hidden="true">{t('btn.newGame')}</span>
+                  </button>
+                )}
               </div>
               <div className="secondary-controls">
-                <button
-                  type="button"
-                  className="ctrl-btn"
-                  onClick={handleNewGame}
-                  title={t('btn.newGame')}
-                  aria-label={t('btn.newGame')}
-                >
-                  <RotateCcw size={20} aria-hidden="true" />
-                </button>
+                {sprites && (
+                  <button
+                    type="button"
+                    className="ctrl-btn control-new-game"
+                    onClick={handleNewGame}
+                    title={t('btn.newGame')}
+                    aria-label={t('btn.newGame')}
+                  >
+                    <RotateCcw size={20} aria-hidden="true" />
+                  </button>
+                )}
                 <button
                   type="button"
                   className="ctrl-btn"
@@ -1505,6 +1638,7 @@ export default function App() {
                   aria-label={t('btn.stats')}
                 >
                   <BarChart3 size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.stats')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1519,6 +1653,9 @@ export default function App() {
                   ) : (
                     <VolumeX size={20} aria-hidden="true" />
                   )}
+                  {!sprites && <>
+                    <span className="control-label">{t('btn.sound.label')}</span>
+                  </>}
                 </button>
                 <button
                   type="button"
@@ -1528,6 +1665,7 @@ export default function App() {
                   aria-label={t('btn.settings')}
                 >
                   <Settings size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.settings')}</span>}
                 </button>
                 <button
                   type="button"
@@ -1537,8 +1675,10 @@ export default function App() {
                   aria-label={t('btn.help')}
                 >
                   <HelpCircle size={20} aria-hidden="true" />
+                  {!sprites && <span className="control-label" aria-hidden="true">{t('btn.help')}</span>}
                 </button>
               </div>
+              </>}
             </div>
           </div>
         </header>

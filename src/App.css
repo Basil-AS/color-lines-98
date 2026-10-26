@@ -1632,6 +1632,26 @@ input[role='switch']:focus-visible {
   border-color: #808080 #ffffff #ffffff #808080;
 }
 
+.l98-header.is-training {
+  gap: 6px;
+}
+
+.l98-header .tutorial-banner {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 8px;
+  border: 2px solid;
+  border-color: #808080 #ffffff #ffffff #808080;
+  border-radius: 0;
+  background: var(--panel-bg);
+}
+
+.l98-header .tutorial-head {
+  opacity: 1;
+}
+
 .l98-cell .led-number {
   height: 30px;
 }
@@ -2697,6 +2717,8 @@ input[role='switch']:focus-visible {
 .tabs {
   display: flex;
   gap: 4px;
+  box-sizing: border-box;
+  padding-inline: 1px;
   margin-bottom: 12px;
   overflow-x: auto;
   scrollbar-width: thin;
@@ -3684,6 +3706,11 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 
 .app-container.adaptive-game {
   --rail-size: 280px;
+  --safe-block: calc(max(4px, env(safe-area-inset-top)) + max(4px, env(safe-area-inset-bottom)));
+  --safe-inline: calc(max(4px, env(safe-area-inset-left)) + max(4px, env(safe-area-inset-right)));
+  padding-block: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-bottom));
+  padding-inline: max(4px, env(safe-area-inset-left)) max(4px, env(safe-area-inset-right));
+  --adaptive-radius: 12px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -3695,16 +3722,19 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   max-width: 54rem;
   flex: none;
   overflow: visible;
+  border-radius: var(--adaptive-radius);
+}
+
+.adaptive-game .ctrl-btn,
+.adaptive-game .strip-btn,
+.adaptive-game .modal-content,
+.adaptive-game .modal-btn,
+.adaptive-game .gameover-btn {
+  border-radius: var(--adaptive-radius);
 }
 
 .adaptive-game .side-panel {
   display: none;
-}
-
-.adaptive-game .tutorial-banner {
-  width: 100%;
-  max-width: none;
-  margin: 0;
 }
 
 .adaptive-game .hud-header {
@@ -3728,16 +3758,23 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 .adaptive-game .hud-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
   gap: 8px;
-  margin-inline-start: auto;
+  margin-inline-start: 0;
 }
 
 .adaptive-game .stat-box {
-  min-width: 52px;
-  padding: 2px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  padding: 2px 4px;
   border: 0;
   background: none;
-  text-align: end;
+  text-align: start;
 }
 
 .adaptive-game .stat-label,
@@ -3749,7 +3786,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 .adaptive-game .stat-value {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   line-height: 1.25;
 }
 
@@ -3758,38 +3795,131 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 }
 
 .adaptive-game .next-balls-preview {
-  min-height: 44px;
-  padding: 4px 8px;
-  flex: 1;
-  justify-content: space-between;
+  min-height: 0;
+  padding: 2px 4px;
+  flex: none;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+  border: 0;
+  background: transparent;
+}
+
+.adaptive-game .next-balls-preview .ball-mini {
+  width: 24px;
+  height: 24px;
 }
 
 .adaptive-game .controls-group {
-  display: contents;
+  display: flex;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 100%;
+  min-width: 0;
+  font-size: clamp(15px, 0.75rem, 24px);
+  gap: 4px;
 }
 
 .adaptive-game .primary-controls,
 .adaptive-game .secondary-controls {
-  display: flex;
-  gap: 6px;
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 4px;
+}
+
+.adaptive-game .primary-controls {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.75em), 1fr));
 }
 
 .adaptive-game .secondary-controls {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.25em), 1fr));
+}
+
+.adaptive-game .controls-group .ctrl-btn {
+  min-height: 48px;
   width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  padding: 5px 8px;
+  text-align: center;
+  font-size: 0.7rem;
+  line-height: 1.15;
 }
 
-.adaptive-game .ctrl-btn {
-  min-height: 44px;
-}
-
-.adaptive-game .primary-controls .ctrl-btn {
-  width: 44px;
+.adaptive-game .controls-group .ctrl-btn svg {
   flex: none;
 }
 
+.adaptive-game .primary-controls .ctrl-btn {
+  background: transparent;
+  border-color: var(--panel-border);
+  font-weight: 600;
+}
+
+.adaptive-game .primary-controls .control-new-game {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 700;
+}
+
 .adaptive-game .secondary-controls .ctrl-btn {
-  width: auto;
-  flex: 1;
+  background: color-mix(in srgb, var(--ctrl-bg) 55%, var(--panel-bg));
+  border-color: color-mix(in srgb, var(--panel-border) 80%, var(--text-main));
+  color: var(--text-main);
+  padding-inline: 4px;
+}
+
+.adaptive-game .secondary-controls .control-label {
+  font-size: clamp(10px, 0.8em, 18px);
+}
+
+.adaptive-game .secondary-controls .ctrl-btn:hover:not(:disabled) {
+  border-color: var(--panel-border);
+}
+
+.adaptive-game .control-label {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+  text-align: center;
+}
+
+@media (orientation: landscape) and (max-height: 560px) {
+  .adaptive-game .controls-group:not(.is-training) {
+    max-height: max(102px, calc(100dvh - 176px));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  .adaptive-game .secondary-controls {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.75em), 1fr));
+  }
+
+  .adaptive-game .primary-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .adaptive-game .primary-controls .ctrl-btn {
+    flex: 1 1 max-content;
+    width: auto;
+    min-width: max-content;
+  }
+
+  .adaptive-game .controls-group:not(.is-training) > .primary-controls,
+  .adaptive-game .controls-group:not(.is-training) > .secondary-controls {
+    width: calc(100% + 12px);
+    margin-inline-end: -12px;
+  }
 }
 
 .adaptive-game .mode-strip {
@@ -3842,14 +3972,14 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   .adaptive-game .game-window {
     --play-size: min(calc(100dvh - var(--safe-block) - var(--frame-block, 2px)), calc(100vw - var(--safe-inline) - var(--rail-size) - var(--frame-inline, 2px)));
     display: grid;
-    width: calc(var(--play-size) + var(--rail-size) + var(--frame-inline, 2px));
+    width: calc(100vw - var(--safe-inline));
     height: calc(var(--play-size) + var(--frame-block, 2px));
     max-width: none;
     overflow-y: auto;
     overflow-x: hidden;
     contain: layout paint;
     grid-template-columns: var(--play-size) minmax(0, 1fr);
-    grid-template-rows: auto auto 1fr;
+    grid-template-rows: max-content max-content max-content;
     grid-template-areas: 'board header' 'board mode' 'board footer';
   }
 
@@ -3882,16 +4012,15 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 
   .adaptive-game .hud-stats {
     width: 100%;
-    gap: 16px;
+    gap: 12px;
   }
 
   .adaptive-game .stat-box {
-    flex: 1;
     text-align: start;
   }
 
   .adaptive-game .stat-value {
-    font-size: 1.75rem;
+    font-size: 1.5rem;
   }
 
   .adaptive-game .mode-strip {
@@ -3913,23 +4042,20 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
     justify-content: flex-start;
   }
 
-  .adaptive-game .tutorial-banner {
-    grid-area: tutorial;
-  }
-
-  .adaptive-game .game-window:has(> .tutorial-banner) {
-    grid-template-rows: auto auto auto 1fr;
-    grid-template-areas: 'tutorial header' 'board header' 'board mode' 'board footer';
-  }
-
-  .adaptive-game .game-window:has(> .tutorial-banner) .board-grid {
-    width: min(100%, max(0px, calc(100dvh - var(--safe-block) - var(--tutorial-block, 0px) - var(--frame-block, 2px))));
-  }
 }
 
 /* Short windows keep all actions in reach without shrinking the board. */
 @media (max-height: 440px) and (min-width: 540px) {
+  .adaptive-game .game-window {
+    grid-template-rows: max-content max-content max-content;
+  }
+
+  .adaptive-game .footer-row {
+    align-content: start;
+  }
+
   .adaptive-game .hud-header {
+    min-height: 0;
     padding: 8px;
     gap: 6px;
   }
@@ -3945,8 +4071,8 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   }
 
   .adaptive-game .hud-stats {
-    width: auto;
-    gap: 4px;
+    width: 100%;
+    gap: 8px;
   }
 
   .adaptive-game .stat-box {
@@ -3955,7 +4081,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   }
 
   .adaptive-game .stat-value {
-    font-size: 1.25rem;
+    font-size: 1.5rem;
   }
 
   .adaptive-game .mode-strip {
@@ -3967,6 +4093,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   }
 
   .adaptive-game .footer-row {
+    align-content: start;
     padding: 4px 8px;
   }
 
@@ -4132,4 +4259,105 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 .game-window .mode-strip .strip-btn {
   max-width: 100%;
   overflow-wrap: anywhere;
+}
+
+/* Compact named actions retain the board on phones; training has its own commands. */
+.adaptive-game .controls-group .ctrl-btn svg { width: 16px; height: 16px; }
+.adaptive-game .controls-group .ctrl-btn { gap: 2px; padding-block: 4px; font-size: 0.7rem; line-height: 1.1; }
+.adaptive-game .controls-group.is-training {
+  display: block;
+  width: 100%;
+  height: 102px;
+  min-height: 102px;
+}
+.adaptive-game .controls-group.is-training > .tutorial-banner {
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: 'head actions' 'copy actions';
+  align-items: stretch;
+  gap: 4px 8px;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  max-width: none;
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--adaptive-radius);
+  background: var(--card-bg);
+  overflow: hidden;
+}
+.adaptive-game .controls-group.is-training .tutorial-head {
+  grid-area: head;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  line-height: 1.2;
+}
+.adaptive-game .controls-group.is-training .tutorial-head strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.adaptive-game .controls-group.is-training .practice-copy {
+  grid-area: copy;
+  min-width: 0;
+  max-height: 58px;
+  align-self: stretch;
+  overflow: auto;
+  overscroll-behavior: contain;
+  text-align: start;
+  scrollbar-width: thin;
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+.adaptive-game .controls-group.is-training .practice-copy p {
+  margin: 0;
+}
+.adaptive-game .controls-group.is-training .practice-copy p + p {
+  margin-top: 3px;
+}
+.adaptive-game .controls-group.is-training .tutorial-actions {
+  grid-area: actions;
+  align-content: center;
+  justify-content: end;
+  flex-direction: column;
+  flex-wrap: nowrap;
+  gap: 4px;
+}
+.adaptive-game .controls-group.is-training .tutorial-actions .modal-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 3px 7px;
+  border-radius: calc(var(--adaptive-radius) - 4px);
+  font-size: 0.68rem;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+@media (max-width: 959px) {
+  .adaptive-game .game-title { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .adaptive-game .hud-stats { margin-inline-start: 0; }
+}
+
+@media (max-width: 959px) { .adaptive-game .hud-header { padding-block: 6px; } }
+
+@media (max-width: 360px) {
+  .adaptive-game .controls-group .ctrl-btn {
+    flex-direction: column;
+    gap: 2px;
+    padding-inline: 3px;
+    text-align: center;
+  }
+
+  .adaptive-game .control-label {
+    text-align: center;
+  }
 }

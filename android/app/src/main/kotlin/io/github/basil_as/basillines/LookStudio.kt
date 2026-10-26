@@ -361,6 +361,7 @@ fun LookStudioDialog(
     val effective = LookSpec.effective(id, overrides)
 
     Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+        GameDialogSystemBars()
         Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.surface) {
             BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal = 12.dp)) {
                 val compact = maxHeight < 640.dp * LocalDensity.current.fontScale

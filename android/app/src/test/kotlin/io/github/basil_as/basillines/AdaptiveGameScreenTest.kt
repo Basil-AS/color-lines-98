@@ -38,7 +38,8 @@ import org.robolectric.annotation.GraphicsMode
 class AdaptiveGameScreenTest {
     @get:Rule val rule = createComposeRule()
 
-    private fun show(width: Int, height: Int, font: Float = 1f, onSettings: () -> Unit = {}, score: Int = 123) {
+    private fun show(width: Int, height: Int, font: Float = 1f, onSettings: () -> Unit = {}, score: Int = 123, gameOver: Boolean = false,
+        onNewGame: () -> Unit = {}, onResult: () -> Unit = {}) {
         rule.setContent {
             val density = LocalDensity.current
             CompositionLocalProvider(LocalDensity provides Density(density.density, font)) {
@@ -48,8 +49,9 @@ class AdaptiveGameScreenTest {
                             paletteFor(AppTheme.MODERN), score, 987,
                             listOf(BallColor.RED, BallColor.GREEN, BallColor.BLUE), true, true,
                             BoardSnapshot(List(81) { null }, null, emptySet(), emptyMap()),
-                            {}, {}, {}, {}, onSettings, {}, {},
-                            GameExtras(modeLabel = "Classic", hintsLeft = 3, goalsLabel = "Goals 0/3")
+                            {}, {}, onNewGame, {}, onSettings, {}, {},
+                            GameExtras(modeLabel = "Classic", hintsLeft = 3, goalsLabel = "Goals 0/3",
+                                gameOver = gameOver, onShowResult = onResult)
                         )
                     }
                 }
@@ -62,7 +64,8 @@ class AdaptiveGameScreenTest {
         val board = rule.onNodeWithTag("adaptive-game-board").getUnclippedBoundsInRoot()
         val viewport = rule.onNodeWithTag("viewport").getUnclippedBoundsInRoot()
         assertEquals((board.right - board.left).value, (board.bottom - board.top).value, 0.1f)
-        assertTrue("Landscape board must occupy the short dimension", (board.bottom - board.top) > (viewport.bottom - viewport.top) * .8f)
+        assertEquals("Landscape board uses the safe height minus 4dp each side",
+            (viewport.bottom - viewport.top).value - 8f, (board.bottom - board.top).value, .5f)
         assertTrue(board.left >= viewport.left && board.right <= viewport.right)
         assertTrue(board.top >= viewport.top && board.bottom <= viewport.bottom)
         rule.onNodeWithContentDescription("Goals 0/3").assertIsDisplayed()
@@ -71,17 +74,16 @@ class AdaptiveGameScreenTest {
     @Test fun narrowPortraitUsesFullBoardWidthAndKeepsPrimaryActionsReachable() {
         show(320, 640)
         val board = rule.onNodeWithTag("adaptive-game-board").getUnclippedBoundsInRoot()
-        assertEquals(296f, (board.right - board.left).value, .5f)
+        assertEquals(312f, (board.right - board.left).value, .5f)
         val undo = rule.onNodeWithContentDescription("Undo move").assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue((undo.bottom - undo.top) >= 48.dp)
         rule.onNodeWithContentDescription("Hint (3 left)").assertIsDisplayed()
     }
 
-    @Test fun settingsRemainsAvailableThroughTheCompactGameMenu() {
+    @Test fun settingsOpensDirectlyFromTheVisibleDock() {
         var opened = false
         show(320, 640, onSettings = { opened = true })
-        rule.onNodeWithContentDescription("Game").performClick()
-        rule.onNodeWithText("Settings").performClick()
+        rule.onNodeWithContentDescription("Settings").assertIsDisplayed().performClick()
         rule.runOnIdle { assertTrue(opened) }
     }
 
@@ -94,11 +96,11 @@ class AdaptiveGameScreenTest {
         assertTrue(board.top >= viewport.top && board.bottom <= viewport.bottom)
         rule.onNodeWithContentDescription("Undo move").assertIsDisplayed()
     }
-    @Test fun shortLandscapeKeepsPrimaryActionsVisibleWhileHeaderScrolls() {
+    @Test fun shortLandscapeKeepsPrimaryActionsReachableWhileTheRailScrolls() {
         show(899, 280, 3f)
         rule.onNodeWithText("Next").performScrollTo()
-        rule.onNodeWithContentDescription("Undo move").assertIsDisplayed()
-        rule.onNodeWithContentDescription("Hint (3 left)").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Undo move").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("Hint (3 left)").performScrollTo().assertIsDisplayed()
     }
 
     @Test fun landscapeShowsTheEntireScoreEvenForLongGames() {
@@ -111,11 +113,44 @@ class AdaptiveGameScreenTest {
             }
     }
 
-    @Test fun landscapeMenuKeepsEverySecondaryActionVisible() {
+    @Test fun portraitShowsEveryBasicActionWithoutOpeningAMenu() {
+        show(320, 640)
+        listOf("New game", "Undo move", "Hint (3 left)", "Settings", "Statistics", "Mute sound", "Rules and info")
+            .forEach { label ->
+                val bounds = rule.onNodeWithContentDescription(label).assertIsDisplayed().getUnclippedBoundsInRoot()
+                assertTrue("$label must have a 48dp target", bounds.bottom - bounds.top >= 48.dp)
+            }
+    }
+
+    @Test @Config(sdk = [29]) fun landscapeAtEverydayLargeFontShowsEveryWholeAction() {
+        show(899, 423, 1.3f)
+        val viewport = rule.onNodeWithTag("viewport").getUnclippedBoundsInRoot()
+        listOf("New game", "Undo move", "Hint (3 left)", "Settings", "Statistics", "Mute sound", "Rules and info")
+            .forEach { label ->
+                val bounds = rule.onNodeWithContentDescription(label).getUnclippedBoundsInRoot()
+                assertTrue("$label must fit entirely without scrolling: $bounds / $viewport",
+                    bounds.top >= viewport.top && bounds.bottom <= viewport.bottom)
+            }
+    }
+
+    @Test fun gameOverKeepsNewGameResultAndSettingsDirectlyAccessible() {
+        var newGames = 0
+        var results = 0
+        show(320, 640, gameOver = true, onNewGame = { newGames++ }, onResult = { results++ })
+        rule.onNodeWithContentDescription("New game").assertIsDisplayed().performClick()
+        rule.onNodeWithContentDescription("Result").assertIsDisplayed().performClick()
+        rule.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        rule.onNodeWithContentDescription("Undo move").assertIsDisplayed()
+        rule.runOnIdle {
+            assertEquals(1, newGames)
+            assertEquals(1, results)
+        }
+    }
+
+    @Test fun extremeTextKeepsSecondaryActionsReachableInTheRail() {
         show(899, 280, 3f)
-        rule.onNodeWithContentDescription("Game").assertIsDisplayed().performClick()
-        rule.onNodeWithText("Settings").performScrollTo().assertIsDisplayed()
-        rule.onNodeWithText("Rules and info").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("Settings").performScrollTo().assertIsDisplayed()
+        rule.onNodeWithContentDescription("Rules and info").performScrollTo().assertIsDisplayed()
     }
 
 }
