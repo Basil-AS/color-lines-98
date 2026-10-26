@@ -69,8 +69,9 @@ and save formats are preserved.
 Local verification: 202 core + 171 Android app tests, Android lint and debug/release
 builds; 1057 web unit tests and 195 Chromium tests passed. Remote CI passed Android,
 unit/build, repository checks and CodeQL, but four browser checks failed for
-large-font short-window controls and selected-tab visibility on Linux. Diagnose
-and fix these before merging; retain the existing assertions.
+large-font short-window controls and selected-tab visibility on Linux. Tab rounding and utility layout corrected; primary rail now uses intrinsic text
+width after wider-font RED/GREEN reproduction. 47 focused checks passed. Require
+green full remote CI before merging; existing assertions are retained.
 
 Huawei is currently absent from ADB. Its installed signed candidate is `053e27c`,
 which predates the latest source. Preserve its current game on any future update.

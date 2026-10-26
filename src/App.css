@@ -3844,7 +3844,7 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
   flex-direction: column;
   justify-content: center;
   gap: 3px;
-  padding: 5px 4px;
+  padding: 5px 8px;
   text-align: center;
   font-size: 0.7rem;
   line-height: 1.15;
@@ -3901,6 +3901,18 @@ body[data-grid='thin'][data-cells='rounded'] .board-cell { border-radius: 4px; }
 
   .adaptive-game .secondary-controls {
     grid-template-columns: repeat(auto-fit, minmax(min(100%, 4.75em), 1fr));
+  }
+
+  .adaptive-game .primary-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .adaptive-game .primary-controls .ctrl-btn {
+    flex: 1 1 max-content;
+    width: auto;
+    min-width: max-content;
   }
 
   .adaptive-game .controls-group:not(.is-training) > .primary-controls,

@@ -128,3 +128,13 @@ Fix and regression verification in progress. User authorization explicitly cover
 commit, push, PR and merge. No phone in ADB; emulator remains stopped.
 
 Linux correction verification: new fractional-font regression RED before fix, GREEN afterward; full Chromium 196/196 passed (1.8m, .agent-cache/v4-linux-browser-full.log), web 1057/1057 passed, build/lint green (two existing Fast Refresh warnings), diff/state validation green. Ready to commit and push to PR73.
+
+## Intrinsic primary control sizing
+
+Remote run40394777788 confirmed tab visibility and Stats fixed; two Hint/label
+checks still failed. Broader-font reproduction measured Hint148px against122px
+label space (Georgia plus0.1em tracking), demonstrating fixed em grid thresholds
+were insufficient. Short-landscape primary controls now wrap at intrinsic content
+width; portrait unchanged. Separate stress regression RED before/GREEN after;
+existing default-font cases and strict hit-test/overflow/board assertions retained.
+Adaptive+modern-control47/47 and build/lint passed; remote full gate required.

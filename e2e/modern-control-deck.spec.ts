@@ -160,16 +160,29 @@ test('large-font modern controls split into clear primary and compact utility ra
       elements.map((label) => {
         const box = label.getBoundingClientRect();
         const style = getComputedStyle(label);
+        const button = label.closest('button')!;
         return {
           text: label.textContent?.trim(),
           fits: label.scrollWidth <= label.clientWidth + 1,
           unbroken: style.overflowWrap !== 'anywhere' && style.wordBreak !== 'break-all',
           visible: box.width > 0 && box.height > 0,
+          dimensions: {
+            labelWidth: box.width,
+            labelScrollWidth: label.scrollWidth,
+            labelClientWidth: label.clientWidth,
+            buttonWidth: button.getBoundingClientRect().width,
+            buttonScrollWidth: button.scrollWidth,
+            buttonClientWidth: button.clientWidth,
+            font: style.font,
+            fontFamily: style.fontFamily,
+            gridColumns: getComputedStyle(button.parentElement!).gridTemplateColumns,
+          },
         };
       }),
     );
     expect(labels).toHaveLength(7);
-    expect(labels.every((label) => label.fits && label.unbroken && label.visible), `${fontSize}px labels`).toBe(true);
+    const labelIssues = labels.filter((label) => !label.fits || !label.unbroken || !label.visible);
+    expect(labels.every((label) => label.fits && label.unbroken && label.visible), `${fontSize}px labels: ${JSON.stringify(labelIssues)}`).toBe(true);
     expect(labels.some((label) => label.text === 'Звук')).toBe(true);
     expect(labels.some((label) => label.text === 'Подсказка')).toBe(true);
 
